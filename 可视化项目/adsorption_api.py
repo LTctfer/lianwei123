@@ -79,7 +79,7 @@ class AdsorptionAPI:
         self.processor = AdsorptionCurveProcessor(data_file)
         self.warning_result = None
     
-    def analyze_warning_system(self) -> Dict[str, any]:
+    def analyze_warning_system(self) -> Dict[str, Any]:
         """
         执行预警系统分析，返回预警相关的数据点和预警点
 
@@ -100,19 +100,30 @@ class AdsorptionAPI:
         # 3. K-S检验清洗（用于预警系统）
         self.processor.cleaned_data_ks = self.processor.ks_test_cleaning(basic_cleaned)
 
-        # 4. 计算吸附效率数据（预警系统的核心数据）
-        self.processor.efficiency_data_ks = self.processor.calculate_efficiency_data(
+        # 4. 计算吸附效率与穿透率数据（两套规则，预警系统核心数据）
+        self.processor.efficiency_data_ks = self.processor.calculate_efficiency_with_two_rules(
             self.processor.cleaned_data_ks, "K-S检验"
         )
 
-        # 5. 预警分析 - 使用正确的方法名
-        if self.processor.efficiency_data_ks is not None:
-            # 调用处理器的预警分析方法
+        # 5. 备用：箱型图清洗与效率数据（若需要回退使用）
+        try:
+            self.processor.cleaned_data_boxplot = self.processor.boxplot_cleaning(basic_cleaned)
+            self.processor.efficiency_data_boxplot = self.processor.calculate_efficiency_with_two_rules(
+                self.processor.cleaned_data_boxplot, "箱型图"
+            ) if self.processor.cleaned_data_boxplot is not None and len(self.processor.cleaned_data_boxplot) > 0 else None
+        except Exception:
+            # 旧版本可能未提供该方法，忽略回退
+            self.processor.cleaned_data_boxplot = None
+            self.processor.efficiency_data_boxplot = None
+
+        # 6. 预警分析
+        if ((self.processor.efficiency_data_ks is not None and len(self.processor.efficiency_data_ks) > 0) or
+            (getattr(self.processor, 'efficiency_data_boxplot', None) is not None and len(self.processor.efficiency_data_boxplot) > 0)):
             self.processor.analyze_warning_system()
         else:
             self.processor.warning_events = []
 
-        # 6. 提取预警系统相关数据
+        # 7. 提取预警系统相关数据
         result = self._extract_warning_data()
 
         self.warning_result = result
@@ -120,72 +131,79 @@ class AdsorptionAPI:
 
         return result
     
-    def _extract_warning_data(self) -> Dict[str, any]:
+    def _extract_warning_data(self) -> Dict[str, Any]:
         """提取预警系统相关数据"""
 
-        # 预警系统的时间段穿透率数据点
-        data_points = []
-        if self.processor.efficiency_data_ks is not None:
-            for i, row in self.processor.efficiency_data_ks.iterrows():
-                # 时间段编号（从1开始）
-                time_segment = i + 1
-                # 穿透率（转换为百分比）
-                breakthrough_ratio = row.get('breakthrough_ratio', 0) * 100
-                # 效率
-                efficiency = row.get('efficiency', 0)
-                # 进口浓度
-                inlet_conc = row.get('inlet_concentration', 0)
-                # 出口浓度
-                outlet_conc = row.get('outlet_concentration', 0)
+        # 选择可用的效率数据（优先K-S，其次箱型图）
+        efficiency_df = None
+        if getattr(self.processor, 'efficiency_data_ks', None) is not None and len(self.processor.efficiency_data_ks) > 0:
+            efficiency_df = self.processor.efficiency_data_ks
+        elif getattr(self.processor, 'efficiency_data_boxplot', None) is not None and len(self.processor.efficiency_data_boxplot) > 0:
+            efficiency_df = self.processor.efficiency_data_boxplot
+
+        # 数据点
+        data_points: List[Dict[str, Any]] = []
+        if efficiency_df is not None and len(efficiency_df) > 0:
+            for _, row in efficiency_df.iterrows():
+                # X轴：时间坐标（小时）
+                x_val = row.get('时间坐标', row.get('时间(s)', row.get('time', 0)))
+
+                # Y轴：穿透率（百分比）
+                if 'breakthrough_ratio' in row:
+                    y_pct = float(row['breakthrough_ratio']) * 100
+                elif '穿透率' in row:
+                    y_pct = float(row['穿透率']) * 100
+                else:
+                    # 回退：由效率推算
+                    eff_val = float(row.get('efficiency', row.get('处理效率', 0)))
+                    y_pct = max(0.0, min(100.0, 100.0 - eff_val))
+
+                # 浓度信息（多版本字段兼容）
+                inlet = row.get('inlet_conc', row.get('进口浓度', row.get('进口voc', 0)))
+                outlet = row.get('outlet_conc', row.get('出口浓度', row.get('出口voc', 0)))
+
+                # 效率（百分比）
+                efficiency_pct = row.get('efficiency', row.get('处理效率', None))
+                if efficiency_pct is None and ('breakthrough_ratio' in row or '穿透率' in row):
+                    br = float(row.get('breakthrough_ratio', row.get('穿透率', 0)))
+                    efficiency_pct = (1 - br) * 100.0
 
                 data_points.append({
-                    "x": time_segment,  # x轴：时间段
-                    "y": breakthrough_ratio,  # y轴：穿透率%
-                    "label": f"时段{time_segment}: 进口={inlet_conc:.2f}, 出口={outlet_conc:.2f}, 穿透率={breakthrough_ratio:.1f}%, 效率={efficiency:.1f}%"
+                    "x": float(x_val),
+                    "y": float(y_pct),
+                    "label": f"t={float(x_val):.2f}h: 进口={float(inlet):.2f}, 出口={float(outlet):.2f}, 穿透率={float(y_pct):.1f}%, 效率={float(efficiency_pct):.1f}%"
                 })
 
-        # 预警时间点的穿透率（五角星标记的预警点）
-        warning_point_breakthrough = None
-        warning_time_segment = None
+        # 预警点
+        warning_time_val = None
+        warning_bt_pct = None
+        if hasattr(self.processor, 'warning_model') and getattr(self.processor.warning_model, 'fitted', False):
+            if self.processor.warning_model.warning_time is not None:
+                warning_time_val = float(self.processor.warning_model.warning_time)
+                warning_bt_pct = float(self.processor.warning_model.predict_breakthrough(
+                    np.array([warning_time_val]))[0] * 100.0)
 
-        if (self.processor.warning_model.fitted and
-            self.processor.warning_model.warning_time is not None):
-
-            # 获取预警时间点的穿透率
-            warning_time = self.processor.warning_model.warning_time
-            warning_breakthrough = self.processor.warning_model.predict_breakthrough(
-                np.array([warning_time]))[0] * 100
-
-            # 将预警时间转换为时间段（假设每个时间段对应一个索引）
-            if self.processor.efficiency_data_ks is not None:
-                # 找到最接近预警时间的时间段
-                time_data = self.processor.efficiency_data_ks.get('time', range(len(self.processor.efficiency_data_ks)))
-                if hasattr(time_data, '__iter__'):
-                    closest_idx = min(range(len(time_data)),
-                                    key=lambda i: abs(time_data.iloc[i] if hasattr(time_data, 'iloc') else time_data[i] - warning_time))
-                    warning_time_segment = closest_idx + 1
-                else:
-                    warning_time_segment = int(warning_time)
-
-            warning_point_breakthrough = warning_breakthrough
+        # 统计
+        time_values = [p["x"] for p in data_points]
+        y_values = [p["y"] for p in data_points]
 
         return {
-            "data_points": data_points,  # 所有时间段的穿透率数据点
-            "warning_point": {  # 预警时间点的穿透率
-                "time_segment": warning_time_segment,
-                "breakthrough_rate": warning_point_breakthrough,
-                "description": f"预警点(穿透率: {warning_point_breakthrough:.1f}%)" if warning_point_breakthrough else None
+            "data_points": data_points,
+            "warning_point": {
+                "time": warning_time_val,
+                "breakthrough_rate": warning_bt_pct,
+                "description": (f"预警点(穿透率: {warning_bt_pct:.1f}%)" if warning_bt_pct is not None else None)
             },
             "statistics": {
                 "total_data_points": len(data_points),
-                "has_warning_point": warning_point_breakthrough is not None,
-                "time_segments_range": {
-                    "start": 1,
-                    "end": len(data_points)
+                "has_warning_point": warning_bt_pct is not None,
+                "time_range": {
+                    "min": (min(time_values) if time_values else None),
+                    "max": (max(time_values) if time_values else None)
                 },
                 "breakthrough_range": {
-                    "min": min([p["y"] for p in data_points]) if data_points else 0,
-                    "max": max([p["y"] for p in data_points]) if data_points else 0
+                    "min": (min(y_values) if y_values else None),
+                    "max": (max(y_values) if y_values else None)
                 }
             }
         }
@@ -452,7 +470,7 @@ class AdsorptionAPI:
         }
 
 
-def get_warning_system_data(data_file: str) -> Dict[str, any]:
+def get_warning_system_data(data_file: str) -> Dict[str, Any]:
     """
     获取预警系统数据的主要接口函数
 
@@ -461,8 +479,8 @@ def get_warning_system_data(data_file: str) -> Dict[str, any]:
 
     Returns:
         Dict: 包含以下信息的字典:
-            - data_points: 时间段穿透率数据点列表，每个点包含 x(时间段), y(穿透率%), label(描述)
-            - warning_point: 预警时间点的穿透率信息
+            - data_points: 时间段穿透率数据点列表，每个点包含 x(时间h), y(穿透率%), label(描述)
+            - warning_point: 预警时间点与穿透率信息
             - statistics: 统计信息
             - success: 是否成功
     """
@@ -484,7 +502,7 @@ def get_warning_system_data(data_file: str) -> Dict[str, any]:
             "error": str(e),
             "data_points": [],
             "warning_point": {
-                "time_segment": None,
+                "time": None,
                 "breakthrough_rate": None,
                 "description": None
             },
@@ -504,7 +522,6 @@ def create_adsorption_api(data_file: str) -> AdsorptionAPI:
     """
     return AdsorptionAPI(data_file)
 
-
 def analyze_adsorption_data(data_file: str) -> Dict[str, Any]:
     """
     一键分析吸附数据，返回所有数据点坐标、标签和预警点信息
@@ -522,100 +539,46 @@ def analyze_adsorption_data(data_file: str) -> Dict[str, Any]:
     try:
         # 创建API实例并分析
         api = AdsorptionAPI(data_file)
-        result = api.analyze()
+        # 旧接口保留：若需要完整数据点可在后续补充。此处直接复用预警系统输出
+        warning_result = api.analyze_warning_system()
 
-        # 整理所有数据点
+        # 整理所有数据点（用预警系统数据点作为统一输出）
         all_data_points = []
 
-        # 添加原始数据点
-        for point in result.raw_data_points:
+        for dp in warning_result.get('data_points', []):
             all_data_points.append({
-                "x": point.x,
-                "y": point.y,
-                "label": point.label,
-                "type": "原始数据",
-                "data_category": "concentration"  # 浓度数据
-            })
-
-        # 添加K-S清洗数据点
-        for point in result.cleaned_data_points_ks:
-            all_data_points.append({
-                "x": point.x,
-                "y": point.y,
-                "label": point.label,
-                "type": "K-S清洗",
-                "data_category": "concentration"
-            })
-
-        # 添加箱型图清洗数据点
-        for point in result.cleaned_data_points_boxplot:
-            all_data_points.append({
-                "x": point.x,
-                "y": point.y,
-                "label": point.label,
-                "type": "箱型图清洗",
-                "data_category": "concentration"
-            })
-
-        # 添加K-S效率数据点
-        for point in result.efficiency_data_points_ks:
-            all_data_points.append({
-                "x": point.x,
-                "y": point.y,
-                "label": point.label,
-                "type": "K-S效率",
-                "data_category": "efficiency"  # 效率数据
-            })
-
-        # 添加箱型图效率数据点
-        for point in result.efficiency_data_points_boxplot:
-            all_data_points.append({
-                "x": point.x,
-                "y": point.y,
-                "label": point.label,
-                "type": "箱型图效率",
-                "data_category": "efficiency"
-            })
-
-        # 添加拟合曲线数据点
-        for point in result.fitted_curve_points:
-            all_data_points.append({
-                "x": point.x,
-                "y": point.y,
-                "label": point.label,
-                "type": "拟合曲线",
-                "data_category": "fitted"
+                "x": dp.get('x'),
+                "y": dp.get('y'),
+                "label": dp.get('label'),
+                "type": "时间段穿透率",
+                "data_category": "breakthrough"
             })
 
         # 整理预警点信息
         warning_points = []
-        for point in result.warning_points:
+        wp = warning_result.get('warning_point', {})
+        if wp.get('breakthrough_rate') is not None:
             warning_points.append({
-                "x": point.x,
-                "y": point.y,
-                "warning_level": point.warning_level.value,
-                "reason": point.reason,
-                "recommendation": point.recommendation,
-                "color_code": {
-                    "绿色": "#00FF00",
-                    "黄色": "#FFFF00",
-                    "橙色": "#FFA500",
-                    "红色": "#FF0000"
-                }.get(point.warning_level.value, "#808080")
+                "x": wp.get('time'),
+                "y": wp.get('breakthrough_rate'),
+                "warning_level": "预警点",
+                "reason": wp.get('description'),
+                "recommendation": "超过预警点，请关注更换周期",
+                "color_code": "#FFA500"
             })
 
         return {
             "success": True,
             "all_data_points": all_data_points,
             "warning_points": warning_points,
-            "statistics": result.statistics,
+            "statistics": warning_result.get('statistics', {}),
             "data_summary": {
                 "total_points": len(all_data_points),
                 "warning_count": len(warning_points),
                 "data_types": list(set([p["type"] for p in all_data_points])),
                 "time_range": {
-                    "min": min([p["x"] for p in all_data_points]) if all_data_points else 0,
-                    "max": max([p["x"] for p in all_data_points]) if all_data_points else 0
+                    "min": min([p["x"] for p in all_data_points]) if all_data_points else None,
+                    "max": max([p["x"] for p in all_data_points]) if all_data_points else None
                 }
             }
         }
@@ -648,14 +611,14 @@ if __name__ == "__main__":
         if data_points:
             print("前5个数据点:")
             for i, point in enumerate(data_points[:5]):
-                print(f"  时段{point['x']}: 穿透率={point['y']:.1f}%")
+                print(f"  t={point['x']:.2f}h: 穿透率={point['y']:.1f}%")
                 print(f"    标签: {point['label']}")
 
         # 显示预警时间点的穿透率
         warning_point = result["warning_point"]
         print(f"\n⭐ 预警时间点信息:")
         if warning_point["breakthrough_rate"] is not None:
-            print(f"  时间段: {warning_point['time_segment']}")
+            print(f"  时间: {warning_point['time']:.2f}h")
             print(f"  穿透率: {warning_point['breakthrough_rate']:.1f}%")
             print(f"  描述: {warning_point['description']}")
         else:
@@ -666,22 +629,24 @@ if __name__ == "__main__":
         print(f"\n📈 统计信息:")
         print(f"  数据点总数: {stats['total_data_points']}")
         print(f"  是否有预警点: {stats['has_warning_point']}")
-        print(f"  时间段范围: {stats['time_segments_range']['start']} - {stats['time_segments_range']['end']}")
-        print(f"  穿透率范围: {stats['breakthrough_range']['min']:.1f}% - {stats['breakthrough_range']['max']:.1f}%")
+        if stats.get('time_range'):
+            print(f"  时间范围(h): {stats['time_range']['min']:.2f} - {stats['time_range']['max']:.2f}")
+        if stats.get('breakthrough_range'):
+            print(f"  穿透率范围(%): {stats['breakthrough_range']['min']:.1f} - {stats['breakthrough_range']['max']:.1f}")
 
         # 返回格式示例
         print(f"\n📋 返回数据格式:")
-        print(f"  data_points: 列表，每个元素包含 x(时间段), y(穿透率%), label(描述)")
-        print(f"  warning_point: 字典，包含预警时间点的穿透率信息")
+        print(f"  data_points: 列表，每个元素包含 x(时间h), y(穿透率%), label(描述)")
+        print(f"  warning_point: 字典，包含 time(时间h), breakthrough_rate(%) 和描述")
         print(f"  statistics: 字典，包含统计信息")
 
         # 提取坐标用于绘图
-        x_coords = [p['x'] for p in data_points]  # 时间段
+        x_coords = [p['x'] for p in data_points]  # 时间(h)
         y_coords = [p['y'] for p in data_points]  # 穿透率%
         labels = [p['label'] for p in data_points]  # 标签
 
         print(f"\n🎯 可用于绘图的数据:")
-        print(f"  X坐标(时间段): {x_coords[:10]}...")  # 显示前10个
+        print(f"  X坐标(时间h): {x_coords[:10]}...")  # 显示前10个
         print(f"  Y坐标(穿透率%): {y_coords[:10]}...")  # 显示前10个
         print(f"  预警点穿透率: {warning_point['breakthrough_rate']:.1f}%" if warning_point['breakthrough_rate'] else "无预警点")
 

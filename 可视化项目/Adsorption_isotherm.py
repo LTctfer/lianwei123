@@ -2113,11 +2113,35 @@ class AdsorptionCurveProcessor:
         print(f"使用{method_name}清洗后的数据进行预警分析")
         print(f"效率数据点数: {len(efficiency_data)}")
 
-        # 准备数据 - 使用穿透率而不是效率
-        time_data = efficiency_data['时间坐标'].values
-        breakthrough_ratio_data = efficiency_data['breakthrough_ratio'].values
+        # 列名兼容处理
+        breakthrough_col = None
+        if 'breakthrough_ratio' in efficiency_data.columns:
+            breakthrough_col = 'breakthrough_ratio'
+        elif '穿透率' in efficiency_data.columns:
+            breakthrough_col = '穿透率'
 
-        print(f"穿透率范围: {breakthrough_ratio_data.min():.3f} - {breakthrough_ratio_data.max():.3f}")
+        efficiency_col = None
+        if 'efficiency' in efficiency_data.columns:
+            efficiency_col = 'efficiency'
+        elif '处理效率' in efficiency_data.columns:
+            efficiency_col = '处理效率'
+
+        # 准备数据 - 使用穿透率（ratio: 0-1）。如无该列，则由效率推算
+        time_data = efficiency_data['时间坐标'].values
+        if breakthrough_col is not None:
+            raw_bt = efficiency_data[breakthrough_col].values
+            breakthrough_ratio_data = raw_bt.astype(float)
+            # 若是百分比形式，尝试归一化（>1 视为百分比）
+            if np.nanmax(breakthrough_ratio_data) > 1.0:
+                breakthrough_ratio_data = breakthrough_ratio_data / 100.0
+        else:
+            if efficiency_col is None:
+                raise KeyError("缺少穿透率或效率列，无法进行预警分析")
+            eff_vals = efficiency_data[efficiency_col].astype(float).values
+            # eff% -> ratio
+            breakthrough_ratio_data = 1.0 - (eff_vals / 100.0)
+
+        print(f"穿透率范围: {np.nanmin(breakthrough_ratio_data):.3f} - {np.nanmax(breakthrough_ratio_data):.3f}")
 
         # 拟合Logistic模型
         if self.warning_model.fit_model(time_data, breakthrough_ratio_data):
@@ -2128,7 +2152,13 @@ class AdsorptionCurveProcessor:
             for _, row in efficiency_data.iterrows():
                 # 检查是否达到预警点
                 current_time = row['时间坐标']
-                current_breakthrough = row['breakthrough_ratio']
+                if breakthrough_col is not None:
+                    current_breakthrough = float(row[breakthrough_col])
+                    if current_breakthrough > 1.0:
+                        current_breakthrough = current_breakthrough / 100.0
+                else:
+                    eff_val = float(row[efficiency_col]) if efficiency_col in row else np.nan
+                    current_breakthrough = 1.0 - (eff_val / 100.0) if not np.isnan(eff_val) else np.nan
 
                 # 根据需求文档：当某时间段的出口浓度/进口浓度达到预警点时，推送预警信息
                 if (self.warning_model.warning_time is not None and
@@ -2138,12 +2168,18 @@ class AdsorptionCurveProcessor:
                     warning_breakthrough = self.warning_model.predict_breakthrough(
                         np.array([self.warning_model.warning_time]))[0]
 
-                    if current_breakthrough >= warning_breakthrough:
+                    if not np.isnan(current_breakthrough) and current_breakthrough >= warning_breakthrough:
+                        eff_display = None
+                        if efficiency_col in row:
+                            eff_display = float(row[efficiency_col])
+                        else:
+                            eff_display = (1.0 - current_breakthrough) * 100.0
+
                         event = WarningEvent(
                             timestamp=current_time,
                             warning_level=WarningLevel.ORANGE,
-                            breakthrough_ratio=current_breakthrough * 100,
-                            efficiency=row['efficiency'],
+                            breakthrough_ratio=current_breakthrough * 100.0,
+                            efficiency=eff_display,
                             reason=f"达到预警时间点({self.warning_model.warning_time:.1f}s)，穿透率{current_breakthrough:.3f}达到预警阈值{warning_breakthrough:.3f}",
                             recommendation="建议立即更换活性炭，设备已达到预警状态",
                             predicted_saturation_time=self.warning_model.predicted_saturation_time
@@ -2796,7 +2832,7 @@ def main():
     print("="*60)
 
     # 数据文件路径 - 支持多种格式
-    data_file = "7.24.csv"  # 可以是 .csv, .xlsx, .xls 格式
+    data_file = "可视化项目/7.24.csv"  # 可以是 .csv, .xlsx, .xls 格式
 
     print(f"当前处理文件: {data_file}")
     print("支持的文件格式: CSV (.csv), Excel (.xlsx, .xls)")

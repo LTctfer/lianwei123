@@ -250,13 +250,13 @@ class WasteIncinerationWarningSystemNingbo:
                 threshold = NINGBO_ALARM_THRESHOLDS[threshold_key]
                 mask = corrected > threshold
                 for _, row in df_daily[mask].iterrows():
-                    alarms.append({
+                                alarms.append({
                         '时间': row['数据时间'],
                         '炉号': str(fn),
-                        '预警/报警类型': '报警',
-                        '预警/报警事件': event_name,
-                        '预警/报警区分': '报警'
-                    })
+                                    '预警/报警类型': '报警',
+                                    '预警/报警事件': event_name,
+                                    '预警/报警区分': '报警'
+                                })
 
         return alarms
 
@@ -276,21 +276,21 @@ class WasteIncinerationWarningSystemNingbo:
             very_high = df_1h[col] > NINGBO_WARNING_THRESHOLDS['very_high_furnace_temp']
             high = (df_1h[col] > NINGBO_WARNING_THRESHOLDS['high_furnace_temp']) & (~very_high)
             for _, row in df_1h[very_high].iterrows():
-                warnings.append({
-                    '时间': row['数据时间'],
+            warnings.append({
+                '时间': row['数据时间'],
                     '炉号': str(fn),
-                    '预警/报警类型': '预警',
-                    '预警/报警事件': '炉膛温度过高',
-                    '预警/报警区分': '预警'
-                })
+                '预警/报警类型': '预警',
+                '预警/报警事件': '炉膛温度过高',
+                '预警/报警区分': '预警'
+            })
             for _, row in df_1h[high].iterrows():
-                warnings.append({
-                    '时间': row['数据时间'],
+            warnings.append({
+                '时间': row['数据时间'],
                     '炉号': str(fn),
-                    '预警/报警类型': '预警',
-                    '预警/报警事件': '炉膛温度偏高',
-                    '预警/报警区分': '预警'
-                })
+                '预警/报警类型': '预警',
+                '预警/报警事件': '炉膛温度偏高',
+                '预警/报警区分': '预警'
+            })
         return warnings
 
     def check_bag_pressure_warning(self, df: pd.DataFrame) -> List[Dict]:
@@ -347,10 +347,10 @@ class WasteIncinerationWarningSystemNingbo:
                 warnings.append({
                     '时间': low_start,
                     '炉号': str(fn),
-                    '预警/报警类型': '预警',
-                    '预警/报警事件': '布袋除尘器压力损失偏低',
-                    '预警/报警区分': '预警'
-                })
+                '预警/报警类型': '预警',
+                '预警/报警事件': '布袋除尘器压力损失偏低',
+                '预警/报警区分': '预警'
+            })
 
         return warnings
 
@@ -447,14 +447,14 @@ class WasteIncinerationWarningSystemNingbo:
             
             # 处理未结束的预警
             if low_start is not None:
-                warnings.append({
+            warnings.append({
                     '时间': low_start,
                     '炉号': str(fn),
-                    '预警/报警类型': '预警',
+                '预警/报警类型': '预警',
                     '预警/报警事件': '活性炭投加量不足',
-                    '预警/报警区分': '预警'
-                })
-        
+                '预警/报警区分': '预警'
+            })
+
         return warnings
 
     def check_nh3_warning(self, df: pd.DataFrame) -> List[Dict]:
@@ -479,14 +479,14 @@ class WasteIncinerationWarningSystemNingbo:
                 if pd.isna(row[col]):
                     continue
                 if row[col] > NINGBO_WARNING_THRESHOLDS['nh3_warning_limit']:
-                    warnings.append({
+            warnings.append({
                         '时间': row['数据时间'],
                         '炉号': str(fn),
-                        '预警/报警类型': '预警',
+                '预警/报警类型': '预警',
                         '预警/报警事件': '氨逃逸偏高',
-                        '预警/报警区分': '预警'
-                    })
-        
+                '预警/报警区分': '预警'
+            })
+
         return warnings
 
     def calculate_corrected_concentration(self, measured_conc, measured_o2):
@@ -566,13 +566,13 @@ class WasteIncinerationWarningSystemNingbo:
                 threshold = NINGBO_ALARM_THRESHOLDS[threshold_key]
                 mask = corrected > threshold
                 for _, row in df_daily[mask].iterrows():
-                    alarms.append({
+                                alarms.append({
                         '时间': row['数据时间'],
                         '炉号': str(fn),
-                        '预警/报警类型': '报警',
-                        '预警/报警事件': event_name,
-                        '预警/报警区分': '报警'
-                    })
+                                    '预警/报警类型': '报警',
+                                    '预警/报警事件': event_name,
+                                    '预警/报警区分': '报警'
+                                })
         return alarms
 
     def process_data(self, file_path: str, output_dir: str = None) -> pd.DataFrame:

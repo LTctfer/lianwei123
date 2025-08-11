@@ -19,6 +19,10 @@ from Adsorption_isotherm import AdsorptionCurveProcessor
 
 app = Flask(__name__)
 
+# 设置JSON编码，确保中文正确显示
+app.config['JSON_AS_ASCII'] = False
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+
 class AdsorptionAPIWrapper:
     """吸附算法API包装器"""
     
@@ -30,7 +34,7 @@ class AdsorptionAPIWrapper:
         try:
             # 1. 验证数据格式
             if not isinstance(json_data, list) or len(json_data) == 0:
-                return {"error": "数据格式错误或为空"}
+                return {"status": "failure", "error": "数据格式错误或为空"}
             
             # 2. 转换JSON到DataFrame
             df = pd.DataFrame(json_data)
@@ -39,7 +43,7 @@ class AdsorptionAPIWrapper:
             required_fields = ['gVocs', 'inVoc', 'gWindspeed', 'access', 'createTime']
             missing_fields = [field for field in required_fields if field not in df.columns]
             if missing_fields:
-                return {"error": f"缺少必要字段: {missing_fields}"}
+                return {"status": "failure", "error": f"缺少必要字段: {missing_fields}"}
             
             # 4. 数据映射和转换
             # 将JSON字段映射到算法期望的CSV列名
@@ -64,7 +68,7 @@ class AdsorptionAPIWrapper:
             # 加载数据
             if not processor.load_data():
                 os.unlink(temp_csv.name)
-                return {"error": "数据加载失败"}
+                return {"status": "failure", "error": "数据加载失败"}
             
             # 按照算法的完整流程处理数据
             
@@ -72,7 +76,7 @@ class AdsorptionAPIWrapper:
             basic_cleaned = processor.basic_data_cleaning(processor.raw_data)
             if basic_cleaned is None or basic_cleaned.empty:
                 os.unlink(temp_csv.name)
-                return {"error": "基础数据清洗后无有效数据"}
+                return {"status": "failure", "error": "基础数据清洗后无有效数据"}
             
             # 2. 高级筛选（K-S检验和箱型图）
             processor.cleaned_data_ks = processor.ks_test_cleaning(basic_cleaned)
@@ -97,7 +101,7 @@ class AdsorptionAPIWrapper:
                 processor.selected_method = "箱型图"
             else:
                 os.unlink(temp_csv.name)
-                return {"error": "K-S检验和箱型图筛选后均无有效数据"}
+                return {"status": "failure", "error": "K-S检验和箱型图筛选后均无有效数据"}
             
             # 4. 计算效率数据（两套规则）
             processor.efficiency_data = processor.calculate_efficiency_with_two_rules(
@@ -105,7 +109,7 @@ class AdsorptionAPIWrapper:
             
             if processor.efficiency_data is None or processor.efficiency_data.empty:
                 os.unlink(temp_csv.name)
-                return {"error": "无法计算效率数据"}
+                return {"status": "failure", "error": "无法计算效率数据"}
             
             # 5. 预警系统分析
             processor.analyze_warning_system_with_final_data()
@@ -116,11 +120,13 @@ class AdsorptionAPIWrapper:
             # 清理临时文件
             os.unlink(temp_csv.name)
             
+            # 添加成功状态
+            result["status"] = "success"
             return result
             
         except Exception as e:
-            return {"error": f"处理失败: {str(e)}"}
-    
+            return {"status": "yichang", "error": f"处理失败: {str(e)}"}
+
     def _extract_visualization_data(self, processor: AdsorptionCurveProcessor, efficiency_data: pd.DataFrame) -> dict:
         """从算法结果中提取可视化数据"""
         try:
@@ -159,16 +165,23 @@ class AdsorptionAPIWrapper:
                 # 按照算法内的标签格式：时间段、累计时长和穿透率
                 label = f"时间段: {time_segment}\n累积时长: {time_hours:.2f}小时\n穿透率: {breakthrough_ratio:.1f}%"
                 
+                # 数值格式化：保留2位小数，接近0则返回0
+                def format_number(value):
+                    """格式化数值，保留2位小数，接近0则返回0"""
+                    if abs(value) < 0.01:  # 小于0.01视为接近0
+                        return 0.0
+                    return round(value, 2)
+                
                 data_points.append({
-                    "x": time_hours,  # X轴：累计运行时间（小时）
-                    "y": breakthrough_ratio,  # Y轴：穿透率（%）
+                    "x": format_number(time_hours),  # X轴：累计运行时间（小时）
+                    "y": format_number(breakthrough_ratio),  # Y轴：穿透率（%）
                     "label": label,  # 按算法格式的标签
                     "time_segment": time_segment,
-                    "cumulative_hours": time_hours,
-                    "breakthrough_percent": breakthrough_ratio,
-                    "efficiency": efficiency,
-                    "inlet_concentration": float(row.get('进口浓度', 0)),
-                    "outlet_concentration": float(row.get('出口浓度', 0)),
+                    "cumulative_hours": format_number(time_hours),
+                    "breakthrough_percent": format_number(breakthrough_ratio),
+                    "efficiency": format_number(efficiency),
+                    "inlet_concentration": format_number(float(row.get('进口浓度', 0))),
+                    "outlet_concentration": format_number(float(row.get('出口浓度', 0))),
                     "calculation_rule": row.get('计算规则', ''),
                     "data_count": int(row.get('数据点数', 1))
                 })
@@ -177,7 +190,6 @@ class AdsorptionAPIWrapper:
             warning_points = self._extract_warning_points(processor)
             
             return {
-                "success": True,
                 "data_points": data_points,
                 "warning_points": warning_points,
                 "total_points": len(data_points)
@@ -195,6 +207,13 @@ class AdsorptionAPIWrapper:
             if hasattr(processor, 'warning_model') and processor.warning_model.fitted:
                 model = processor.warning_model
                 
+                # 数值格式化函数
+                def format_number(value):
+                    """格式化数值，保留2位小数，接近0则返回0"""
+                    if abs(value) < 0.01:  # 小于0.01视为接近0
+                        return 0.0
+                    return round(value, 2)
+                
                 # 获取预警时间点（对应图像中的橙色五角星标注）
                 if hasattr(model, 'warning_time') and model.warning_time is not None:
                     # 计算预警时间点的穿透率（使用Logistic模型预测）
@@ -203,11 +222,11 @@ class AdsorptionAPIWrapper:
                     warning_time_hours = warning_time_seconds / 3600  # 转换为小时
                     
                     warning_points.append({
-                        "x": float(warning_time_hours),  # X轴：预警时间（小时）
-                        "y": float(warning_breakthrough),  # Y轴：预警点穿透率（%）
+                        "x": format_number(warning_time_hours),  # X轴：预警时间（小时）
+                        "y": format_number(warning_breakthrough),  # Y轴：预警点穿透率（%）
                         "type": "warning_star",
                         "color": "orange",
-                        "description": f"预警点(穿透率:{warning_breakthrough:.1f}%)"
+                        "description": f"预警点(穿透率:{format_number(warning_breakthrough)}%)"
                     })
                 
                 # 获取预测饱和时间点（对应图像中的红色五角星标注）
@@ -217,11 +236,11 @@ class AdsorptionAPIWrapper:
                     saturation_time_hours = saturation_time_seconds / 3600
                     
                     warning_points.append({
-                        "x": float(saturation_time_hours),
-                        "y": float(saturation_breakthrough),
+                        "x": format_number(saturation_time_hours),
+                        "y": format_number(saturation_breakthrough),
                         "type": "saturation_star",
                         "color": "red",
-                        "description": f"预测饱和点(穿透率:{saturation_breakthrough:.1f}%)"
+                        "description": f"预测饱和点(穿透率:{format_number(saturation_breakthrough)}%)"
                     })
                 
                 # 获取穿透起始时间点（对应图像中的绿色垂直线）
@@ -231,11 +250,11 @@ class AdsorptionAPIWrapper:
                     start_time_hours = start_time_seconds / 3600
                     
                     warning_points.append({
-                        "x": float(start_time_hours),
-                        "y": float(start_breakthrough),
+                        "x": format_number(start_time_hours),
+                        "y": format_number(start_breakthrough),
                         "type": "breakthrough_start",
                         "color": "green",
-                        "description": f"穿透起始点(穿透率:{start_breakthrough:.1f}%)"
+                        "description": f"穿透起始点(穿透率:{format_number(start_breakthrough)}%)"
                     })
         
         except Exception as e:
@@ -259,27 +278,41 @@ def process_extraction_adsorption_curve():
         # 处理数据
         result = api_wrapper.process_json_data(json_data)
         
-        if "error" in result:
-            return jsonify(result), 400
-        
-        return jsonify(result)
+        # 根据状态返回不同的HTTP状态码
+        if result.get("status") == "success":
+            # 设置响应头确保中文正确显示
+            response = jsonify(result)
+            response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return response, 200
+        elif result.get("status") == "yichang":
+            response = jsonify(result)
+            response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return response, 500
+        else:  # failure
+            response = jsonify(result)
+            response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return response, 400
         
     except Exception as e:
-        return jsonify({"error": f"服务器内部错误: {str(e)}"}), 500
+        response = jsonify({"error": f"服务器内部错误: {str(e)}"})
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 500
 
 @app.route('/api/extraction-adsorption-curve/health', methods=['GET'])
 def health_check():
     """健康检查接口"""
-    return jsonify({
+    response = jsonify({
         "status": "healthy",
         "service": "extraction_adsorption_curve_warning_system",
         "version": "1.0.0"
     })
+    response.headers['Content-Type'] = 'application/json; charset=utf-8'
+    return response
 
 @app.route('/api/extraction-adsorption-curve/info', methods=['GET'])
 def api_info():
     """API信息接口"""
-    return jsonify({
+    response = jsonify({
         "api_name": "抽取式吸附曲线预警系统",
         "version": "1.0.0",
         "description": "基于现有Adsorption_isotherm.py算法的HTTP接口，处理VOC监测数据并返回可视化坐标点和预警信息",
@@ -288,9 +321,9 @@ def api_info():
                 "method": "POST",
                 "description": "处理抽取式吸附曲线数据，返回数据点坐标和预警点坐标",
                 "input_format": {
-                    "gvocs": "出口VOC浓度 -> 出口voc列",
-                    "invoc": "进口VOC浓度 -> 进口voc列", 
-                    "gwindspeed": "风管内风速 -> 风管内风速值列",
+                    "gVocs": "出口VOC浓度 -> 出口voc列",
+                    "inVoc": "进口VOC浓度 -> 进口voc列", 
+                    "gWindspeed": "风管内风速 -> 风管内风速值列",
                     "access": "进口(0)或出口(1)或同时(2) -> 进口0出口1列",
                     "createTime": "创建时间 -> 创建时间列",
                     "风量": "自动设置为1.0（算法内部需要，无需用户提供）"
@@ -310,6 +343,8 @@ def api_info():
             }
         }
     })
+    response.headers['Content-Type'] = 'application/json; charset=utf-8'
+    return response
 
 if __name__ == '__main__':
     print("启动抽取式吸附曲线预警系统...")

@@ -71,15 +71,19 @@ class AdsorptionAPIWrapper:
             cleaned_data = processor.ks_test_cleaning(cleaned_data)
             cleaned_data = processor.boxplot_cleaning(cleaned_data)
             
-            # 计算效率数据
-            efficiency_data = processor.calculate_efficiency_data(cleaned_data, "综合清洗")
+            # 计算效率数据 - 使用算法的两套规则计算方法
+            efficiency_data = processor.calculate_efficiency_with_two_rules(cleaned_data, "综合清洗")
             
             if efficiency_data is None or efficiency_data.empty:
                 os.unlink(temp_csv.name)
                 return {"error": "无法计算效率数据"}
             
-            # 运行预警系统分析
-            processor.analyze_warning_system()
+            # 设置处理器的效率数据（用于预警分析）
+            processor.efficiency_data = efficiency_data
+            processor.selected_method = "综合清洗"
+            
+            # 运行预警系统分析 - 使用最终筛选数据的分析方法
+            processor.analyze_warning_system_with_final_data()
             
             # 7. 提取结果
             result = self._extract_visualization_data(processor, efficiency_data)
@@ -98,12 +102,15 @@ class AdsorptionAPIWrapper:
             # 提取数据点
             data_points = []
             
-            for _, row in efficiency_data.iterrows():
-                # 使用算法计算的穿透率
-                breakthrough_ratio = row['breakthrough_ratio'] * 100  # 转换为百分比
+            for idx, row in efficiency_data.iterrows():
+                # 获取累计运行时间（小时）- 算法中已经计算好的时间坐标
+                time_hours = float(row['时间坐标'])  # 算法中时间坐标已经是小时单位
                 
-                # 时间转换为小时
-                time_hours = row['time'] / 3600  # 从秒转换为小时
+                # 获取穿透率（百分比）
+                breakthrough_ratio = float(row['穿透率']) * 100  # 转换为百分比
+                
+                # 获取处理效率
+                efficiency = float(row['处理效率'])
                 
                 # 生成时间段标识
                 if 'window_start' in row and 'window_end' in row:
@@ -112,22 +119,33 @@ class AdsorptionAPIWrapper:
                     end_time = pd.to_datetime(row['window_end'])
                     time_segment = f"{start_time.strftime('%m-%d %H:%M')}-{end_time.strftime('%H:%M')}"
                 else:
-                    # 如果没有时间窗口信息，使用索引
-                    time_segment = f"时间段{len(data_points)+1}"
+                    # 根据计算规则生成时间段标识
+                    if '计算规则' in row:
+                        rule = row['计算规则']
+                        if rule == '规则1-风速段' and '风速段' in row:
+                            time_segment = f"风速段{int(row['风速段'])}"
+                        elif rule == '规则2-拼接段' and '拼接时间段' in row:
+                            time_segment = f"拼接段{int(row['拼接时间段'])}"
+                        else:
+                            time_segment = f"时间段{idx+1}"
+                    else:
+                        time_segment = f"时间段{idx+1}"
                 
                 # 按照算法内的标签格式：时间段、累计时长和穿透率
                 label = f"时间段: {time_segment}\n累积时长: {time_hours:.2f}小时\n穿透率: {breakthrough_ratio:.1f}%"
                 
                 data_points.append({
-                    "x": float(time_hours),  # X轴：时间（小时）
-                    "y": float(breakthrough_ratio),  # Y轴：穿透率（%）
+                    "x": time_hours,  # X轴：累计运行时间（小时）
+                    "y": breakthrough_ratio,  # Y轴：穿透率（%）
                     "label": label,  # 按算法格式的标签
                     "time_segment": time_segment,
-                    "cumulative_hours": float(time_hours),
-                    "breakthrough_percent": float(breakthrough_ratio),
-                    "efficiency": float(row['efficiency']),
-                    "inlet_concentration": float(row['inlet_conc']),
-                    "outlet_concentration": float(row['outlet_conc'])
+                    "cumulative_hours": time_hours,
+                    "breakthrough_percent": breakthrough_ratio,
+                    "efficiency": efficiency,
+                    "inlet_concentration": float(row.get('进口浓度', 0)),
+                    "outlet_concentration": float(row.get('出口浓度', 0)),
+                    "calculation_rule": row.get('计算规则', ''),
+                    "data_count": int(row.get('数据点数', 1))
                 })
             
             # 提取预警点
@@ -148,34 +166,51 @@ class AdsorptionAPIWrapper:
         warning_points = []
         
         try:
-            # 检查是否有预警模型
+            # 检查是否有预警模型并且已拟合
             if hasattr(processor, 'warning_model') and processor.warning_model.fitted:
                 model = processor.warning_model
                 
-                # 获取预警时间点（对应图像中的五角星标注）
+                # 获取预警时间点（对应图像中的橙色五角星标注）
                 if hasattr(model, 'warning_time') and model.warning_time is not None:
-                    # 计算预警时间点的穿透率
-                    A, k, t0 = model.params
-                    warning_breakthrough = model.logistic_function(model.warning_time, A, k, t0) * 100
-                    warning_time_hours = model.warning_time / 3600  # 转换为小时
+                    # 计算预警时间点的穿透率（使用Logistic模型预测）
+                    warning_time_seconds = model.warning_time
+                    warning_breakthrough = model.predict_breakthrough(np.array([warning_time_seconds]))[0] * 100
+                    warning_time_hours = warning_time_seconds / 3600  # 转换为小时
                     
                     warning_points.append({
                         "x": float(warning_time_hours),  # X轴：预警时间（小时）
                         "y": float(warning_breakthrough),  # Y轴：预警点穿透率（%）
                         "type": "warning_star",
-                        "description": "预警系统计算的预警点（五角星标注）"
+                        "color": "orange",
+                        "description": f"预警点(穿透率:{warning_breakthrough:.1f}%)"
                     })
                 
-                # 如果有预测饱和时间点
+                # 获取预测饱和时间点（对应图像中的红色五角星标注）
                 if hasattr(model, 'predicted_saturation_time') and model.predicted_saturation_time is not None:
-                    saturation_breakthrough = model.logistic_function(model.predicted_saturation_time, A, k, t0) * 100
-                    saturation_time_hours = model.predicted_saturation_time / 3600
+                    saturation_time_seconds = model.predicted_saturation_time
+                    saturation_breakthrough = model.predict_breakthrough(np.array([saturation_time_seconds]))[0] * 100
+                    saturation_time_hours = saturation_time_seconds / 3600
                     
                     warning_points.append({
                         "x": float(saturation_time_hours),
                         "y": float(saturation_breakthrough),
                         "type": "saturation_star",
-                        "description": "预测饱和点（五角星标注）"
+                        "color": "red",
+                        "description": f"预测饱和点(穿透率:{saturation_breakthrough:.1f}%)"
+                    })
+                
+                # 获取穿透起始时间点（对应图像中的绿色垂直线）
+                if hasattr(model, 'breakthrough_start_time') and model.breakthrough_start_time is not None:
+                    start_time_seconds = model.breakthrough_start_time
+                    start_breakthrough = model.predict_breakthrough(np.array([start_time_seconds]))[0] * 100
+                    start_time_hours = start_time_seconds / 3600
+                    
+                    warning_points.append({
+                        "x": float(start_time_hours),
+                        "y": float(start_breakthrough),
+                        "type": "breakthrough_start",
+                        "color": "green",
+                        "description": f"穿透起始点(穿透率:{start_breakthrough:.1f}%)"
                     })
         
         except Exception as e:

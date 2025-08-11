@@ -50,6 +50,9 @@ class AdsorptionAPIWrapper:
             df_mapped['进口0出口1'] = df['access']
             df_mapped['创建时间'] = pd.to_datetime(df['createTime'])
             
+            # 添加风量字段（算法中需要，设置默认值为1.0，避免被过滤掉）
+            df_mapped['风量'] = 1.0
+            
             # 5. 保存为临时CSV文件
             temp_csv = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8-sig')
             df_mapped.to_csv(temp_csv.name, index=False)
@@ -266,8 +269,9 @@ def api_info():
                     "gvocs": "出口VOC浓度 -> 出口voc列",
                     "invoc": "进口VOC浓度 -> 进口voc列", 
                     "gwindspeed": "风管内风速 -> 风管内风速值列",
-                    "access": "进口(0)或出口(1) -> 进口0出口1列",
-                    "createTime": "创建时间 -> 创建时间列"
+                    "access": "进口(0)或出口(1)或同时(2) -> 进口0出口1列",
+                    "createTime": "创建时间 -> 创建时间列",
+                    "风量": "自动设置为1.0（算法内部需要，无需用户提供）"
                 },
                 "output_format": {
                     "data_points": "数据点数组，包含x(时间)、y(穿透率)、label(标签)",

@@ -5,7 +5,7 @@
 调用现有的Adsorption_isotherm.py算法处理数据
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -22,6 +22,16 @@ app = Flask(__name__)
 # 设置JSON编码，确保中文正确显示
 app.config['JSON_AS_ASCII'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+
+# 设置默认编码
+import locale
+try:
+    locale.setlocale(locale.LC_ALL, 'zh_CN.UTF-8')
+except:
+    try:
+        locale.setlocale(locale.LC_ALL, 'Chinese_China.65001')  # Windows中文UTF-8
+    except:
+        pass
 
 class AdsorptionAPIWrapper:
     """吸附算法API包装器"""
@@ -57,64 +67,23 @@ class AdsorptionAPIWrapper:
             # 添加风量字段（算法中需要，设置默认值为1.0，避免被过滤掉）
             df_mapped['风量'] = 1.0
             
-            # 5. 保存为临时CSV文件
+            # 5. 创建必要的目录结构（算法需要）
+            self._ensure_directories()
+            
+            # 6. 保存为临时CSV文件
             temp_csv = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8-sig')
             df_mapped.to_csv(temp_csv.name, index=False)
             temp_csv.close()
             
-            # 6. 调用现有算法
-            processor = AdsorptionCurveProcessor(temp_csv.name)
+            # 7. 创建自定义的算法处理器，禁用文件保存功能
+            processor = self._create_api_processor(temp_csv.name)
             
-            # 加载数据
-            if not processor.load_data():
+            # 8. 使用API专用处理方法
+            if not processor.api_process_and_visualize():
                 os.unlink(temp_csv.name)
-                return {"status": "failure", "error": "数据加载失败"}
+                return {"status": "failure", "error": "数据处理失败"}
             
-            # 按照算法的完整流程处理数据
-            
-            # 1. 基础数据清洗（包含风速切分和两套清洗规则）
-            basic_cleaned = processor.basic_data_cleaning(processor.raw_data)
-            if basic_cleaned is None or basic_cleaned.empty:
-                os.unlink(temp_csv.name)
-                return {"status": "failure", "error": "基础数据清洗后无有效数据"}
-            
-            # 2. 高级筛选（K-S检验和箱型图）
-            processor.cleaned_data_ks = processor.ks_test_cleaning(basic_cleaned)
-            processor.cleaned_data_boxplot = processor.boxplot_cleaning(basic_cleaned)
-            
-            # 3. 选择数据量更少的筛选结果
-            ks_count = len(processor.cleaned_data_ks) if processor.cleaned_data_ks is not None else 0
-            boxplot_count = len(processor.cleaned_data_boxplot) if processor.cleaned_data_boxplot is not None else 0
-            
-            if ks_count > 0 and boxplot_count > 0:
-                if ks_count <= boxplot_count:
-                    processor.final_cleaned_data = processor.cleaned_data_ks
-                    processor.selected_method = "K-S检验"
-                else:
-                    processor.final_cleaned_data = processor.cleaned_data_boxplot
-                    processor.selected_method = "箱型图"
-            elif ks_count > 0:
-                processor.final_cleaned_data = processor.cleaned_data_ks
-                processor.selected_method = "K-S检验"
-            elif boxplot_count > 0:
-                processor.final_cleaned_data = processor.cleaned_data_boxplot
-                processor.selected_method = "箱型图"
-            else:
-                os.unlink(temp_csv.name)
-                return {"status": "failure", "error": "K-S检验和箱型图筛选后均无有效数据"}
-            
-            # 4. 计算效率数据（两套规则）
-            processor.efficiency_data = processor.calculate_efficiency_with_two_rules(
-                processor.final_cleaned_data, processor.selected_method)
-            
-            if processor.efficiency_data is None or processor.efficiency_data.empty:
-                os.unlink(temp_csv.name)
-                return {"status": "failure", "error": "无法计算效率数据"}
-            
-            # 5. 预警系统分析
-            processor.analyze_warning_system_with_final_data()
-            
-            # 7. 提取结果
+            # 9. 提取结果
             result = self._extract_visualization_data(processor, processor.efficiency_data)
             
             # 清理临时文件
@@ -126,6 +95,104 @@ class AdsorptionAPIWrapper:
             
         except Exception as e:
             return {"status": "yichang", "error": f"处理失败: {str(e)}"}
+
+    def _ensure_directories(self):
+        """确保算法需要的目录结构存在"""
+        try:
+            directories = [
+                "可视化项目/清洗后数据",
+                "可视化项目/可视化图像"
+            ]
+            for directory in directories:
+                os.makedirs(directory, exist_ok=True)
+        except Exception as e:
+            print(f"创建目录警告: {e}")
+
+    def _create_api_processor(self, temp_csv_path: str):
+        """创建API专用的算法处理器，重写保存方法避免文件操作错误"""
+        from Adsorption_isotherm import AdsorptionCurveProcessor
+        
+        # 创建处理器实例
+        processor = AdsorptionCurveProcessor(temp_csv_path)
+        
+        # 重写可能导致文件操作错误的方法
+        def dummy_save_method(*args, **kwargs):
+            """空的保存方法，避免文件操作错误"""
+            pass
+        
+        def dummy_makedirs(*args, **kwargs):
+            """空的目录创建方法"""
+            pass
+        
+        # 重写保存相关的方法
+        if hasattr(processor, '_save_cleaned_data'):
+            processor._save_cleaned_data = dummy_save_method
+        if hasattr(processor, '_save_warning_report'):
+            processor._save_warning_report = dummy_save_method
+        
+        # 重写process_and_visualize方法，避免文件保存操作
+        original_process_and_visualize = processor.process_and_visualize
+        def api_process_and_visualize():
+            """API专用的处理方法，不保存文件"""
+            # 直接执行数据处理逻辑，跳过文件保存
+            try:
+                print("=== API模式：抽取式吸附曲线数据处理 ===")
+                
+                # 1. 加载数据
+                if not processor.load_data():
+                    return False
+                
+                # 2. 基础数据清洗  
+                basic_cleaned = processor.basic_data_cleaning(processor.raw_data)
+                if len(basic_cleaned) == 0:
+                    return False
+                
+                # 3. 高级筛选
+                processor.cleaned_data_ks = processor.ks_test_cleaning(basic_cleaned)
+                processor.cleaned_data_boxplot = processor.boxplot_cleaning(basic_cleaned)
+                
+                # 选择数据量更少的筛选结果
+                ks_count = len(processor.cleaned_data_ks) if processor.cleaned_data_ks is not None else 0
+                boxplot_count = len(processor.cleaned_data_boxplot) if processor.cleaned_data_boxplot is not None else 0
+                
+                if ks_count > 0 and boxplot_count > 0:
+                    if ks_count <= boxplot_count:
+                        processor.final_cleaned_data = processor.cleaned_data_ks
+                        processor.selected_method = "K-S检验"
+                    else:
+                        processor.final_cleaned_data = processor.cleaned_data_boxplot
+                        processor.selected_method = "箱型图"
+                elif ks_count > 0:
+                    processor.final_cleaned_data = processor.cleaned_data_ks
+                    processor.selected_method = "K-S检验"
+                elif boxplot_count > 0:
+                    processor.final_cleaned_data = processor.cleaned_data_boxplot
+                    processor.selected_method = "箱型图"
+                else:
+                    return False
+                
+                # 4. 计算效率数据
+                processor.efficiency_data = processor.calculate_efficiency_with_two_rules(
+                    processor.final_cleaned_data, processor.selected_method)
+                
+                if processor.efficiency_data is None or processor.efficiency_data.empty:
+                    return False
+                
+                # 5. 预警系统分析（不保存文件）
+                try:
+                    processor.analyze_warning_system_with_final_data()
+                except Exception as e:
+                    print(f"预警分析警告: {e}")
+                
+                return True
+                
+            except Exception as e:
+                print(f"API处理警告: {e}")
+                return False
+        
+        processor.api_process_and_visualize = api_process_and_visualize
+        
+        return processor
 
     def _extract_visualization_data(self, processor: AdsorptionCurveProcessor, efficiency_data: pd.DataFrame) -> dict:
         """从算法结果中提取可视化数据"""
@@ -262,6 +329,34 @@ class AdsorptionAPIWrapper:
         
         return warning_points
 
+def create_json_response(data, status_code=200):
+    """创建UTF-8编码的JSON响应，确保中文正确显示"""
+    try:
+        # 使用json.dumps确保中文正确编码
+        json_str = json.dumps(data, ensure_ascii=False, indent=2)
+        
+        # 创建响应对象
+        response = Response(
+            json_str,
+            status=status_code,
+            mimetype='application/json; charset=utf-8'
+        )
+        
+        # 设置响应头
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        response.headers['Cache-Control'] = 'no-cache'
+        
+        return response
+    except Exception as e:
+        # 如果出错，返回基本的错误响应
+        error_data = {"error": f"响应编码错误: {str(e)}"}
+        error_json = json.dumps(error_data, ensure_ascii=False)
+        return Response(
+            error_json,
+            status=500,
+            mimetype='application/json; charset=utf-8'
+        )
+
 # 创建API包装器实例
 api_wrapper = AdsorptionAPIWrapper()
 
@@ -270,52 +365,45 @@ def process_extraction_adsorption_curve():
     """抽取式吸附曲线预警系统API接口"""
     try:
         # 获取JSON数据
-        json_data = request.get_json()
+        json_data = request.get_json(force=True)
         
         if not json_data:
-            return jsonify({"error": "未提供JSON数据"}), 400
+            return create_json_response({"error": "未提供JSON数据"}, 400)
         
         # 处理数据
         result = api_wrapper.process_json_data(json_data)
         
         # 根据状态返回不同的HTTP状态码
         if result.get("status") == "success":
-            # 设置响应头确保中文正确显示
-            response = jsonify(result)
-            response.headers['Content-Type'] = 'application/json; charset=utf-8'
-            return response, 200
+            return create_json_response(result, 200)
         elif result.get("status") == "yichang":
-            response = jsonify(result)
-            response.headers['Content-Type'] = 'application/json; charset=utf-8'
-            return response, 500
+            return create_json_response(result, 500)
         else:  # failure
-            response = jsonify(result)
-            response.headers['Content-Type'] = 'application/json; charset=utf-8'
-            return response, 400
+            return create_json_response(result, 400)
         
     except Exception as e:
-        response = jsonify({"error": f"服务器内部错误: {str(e)}"})
-        response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        return response, 500
+        error_result = {"error": f"服务器内部错误: {str(e)}"}
+        return create_json_response(error_result, 500)
 
 @app.route('/api/extraction-adsorption-curve/health', methods=['GET'])
 def health_check():
     """健康检查接口"""
-    response = jsonify({
+    health_data = {
         "status": "healthy",
         "service": "extraction_adsorption_curve_warning_system",
-        "version": "1.0.0"
-    })
-    response.headers['Content-Type'] = 'application/json; charset=utf-8'
-    return response
+        "version": "1.0.0",
+        "encoding": "UTF-8"
+    }
+    return create_json_response(health_data)
 
 @app.route('/api/extraction-adsorption-curve/info', methods=['GET'])
 def api_info():
     """API信息接口"""
-    response = jsonify({
+    info_data = {
         "api_name": "抽取式吸附曲线预警系统",
         "version": "1.0.0",
         "description": "基于现有Adsorption_isotherm.py算法的HTTP接口，处理VOC监测数据并返回可视化坐标点和预警信息",
+        "encoding": "UTF-8",
         "endpoints": {
             "/api/extraction-adsorption-curve/process": {
                 "method": "POST",
@@ -342,9 +430,8 @@ def api_info():
                 "description": "API信息"
             }
         }
-    })
-    response.headers['Content-Type'] = 'application/json; charset=utf-8'
-    return response
+    }
+    return create_json_response(info_data)
 
 if __name__ == '__main__':
     print("启动抽取式吸附曲线预警系统...")
@@ -352,3 +439,4 @@ if __name__ == '__main__':
     print("健康检查: http://localhost:5000/api/extraction-adsorption-curve/health")
     print("数据处理: POST http://localhost:5000/api/extraction-adsorption-curve/process")
     app.run(debug=True, host='0.0.0.0', port=5000)
+

@@ -66,30 +66,52 @@ class AdsorptionAPIWrapper:
                 os.unlink(temp_csv.name)
                 return {"error": "数据加载失败"}
             
-            # 识别数据类型
-            data_type = processor.identify_data_type(processor.raw_data)
+            # 按照算法的完整流程处理数据
             
-            # 数据清洗
-            cleaned_data = processor.basic_data_cleaning(processor.raw_data)
-            cleaned_data = processor.ks_test_cleaning(cleaned_data)
-            cleaned_data = processor.boxplot_cleaning(cleaned_data)
+            # 1. 基础数据清洗（包含风速切分和两套清洗规则）
+            basic_cleaned = processor.basic_data_cleaning(processor.raw_data)
+            if basic_cleaned is None or basic_cleaned.empty:
+                os.unlink(temp_csv.name)
+                return {"error": "基础数据清洗后无有效数据"}
             
-            # 计算效率数据 - 使用算法的两套规则计算方法
-            efficiency_data = processor.calculate_efficiency_with_two_rules(cleaned_data, "综合清洗")
+            # 2. 高级筛选（K-S检验和箱型图）
+            processor.cleaned_data_ks = processor.ks_test_cleaning(basic_cleaned)
+            processor.cleaned_data_boxplot = processor.boxplot_cleaning(basic_cleaned)
             
-            if efficiency_data is None or efficiency_data.empty:
+            # 3. 选择数据量更少的筛选结果
+            ks_count = len(processor.cleaned_data_ks) if processor.cleaned_data_ks is not None else 0
+            boxplot_count = len(processor.cleaned_data_boxplot) if processor.cleaned_data_boxplot is not None else 0
+            
+            if ks_count > 0 and boxplot_count > 0:
+                if ks_count <= boxplot_count:
+                    processor.final_cleaned_data = processor.cleaned_data_ks
+                    processor.selected_method = "K-S检验"
+                else:
+                    processor.final_cleaned_data = processor.cleaned_data_boxplot
+                    processor.selected_method = "箱型图"
+            elif ks_count > 0:
+                processor.final_cleaned_data = processor.cleaned_data_ks
+                processor.selected_method = "K-S检验"
+            elif boxplot_count > 0:
+                processor.final_cleaned_data = processor.cleaned_data_boxplot
+                processor.selected_method = "箱型图"
+            else:
+                os.unlink(temp_csv.name)
+                return {"error": "K-S检验和箱型图筛选后均无有效数据"}
+            
+            # 4. 计算效率数据（两套规则）
+            processor.efficiency_data = processor.calculate_efficiency_with_two_rules(
+                processor.final_cleaned_data, processor.selected_method)
+            
+            if processor.efficiency_data is None or processor.efficiency_data.empty:
                 os.unlink(temp_csv.name)
                 return {"error": "无法计算效率数据"}
             
-            # 设置处理器的效率数据（用于预警分析）
-            processor.efficiency_data = efficiency_data
-            processor.selected_method = "综合清洗"
-            
-            # 运行预警系统分析 - 使用最终筛选数据的分析方法
+            # 5. 预警系统分析
             processor.analyze_warning_system_with_final_data()
             
             # 7. 提取结果
-            result = self._extract_visualization_data(processor, efficiency_data)
+            result = self._extract_visualization_data(processor, processor.efficiency_data)
             
             # 清理临时文件
             os.unlink(temp_csv.name)

@@ -39,9 +39,9 @@ def generate_test_data():
             access = i % 2
         
         test_data.append({
-            "gvocs": round(outlet_conc, 2),
-            "invoc": round(inlet_conc, 2),
-            "gwindspeed": round(wind_speed, 2),
+            "gVocs": round(outlet_conc, 2),
+            "inVoc": round(inlet_conc, 2),
+            "gWindspeed": round(wind_speed, 2),
             "access": access,
             "createTime": current_time.strftime("%Y-%m-%d %H:%M:%S")
         })
@@ -56,8 +56,8 @@ def test_api():
     print("=== 抽取式吸附曲线预警系统API测试 ===")
     print(f"生成测试数据: {len(test_data)} 个数据点")
     print(f"数据时间范围: {test_data[0]['createTime']} 到 {test_data[-1]['createTime']}")
-    print(f"进口浓度范围: {min(d['invoc'] for d in test_data):.1f} - {max(d['invoc'] for d in test_data):.1f}")
-    print(f"出口浓度范围: {min(d['gvocs'] for d in test_data):.1f} - {max(d['gvocs'] for d in test_data):.1f}")
+    print(f"进口浓度范围: {min(d['inVoc'] for d in test_data):.1f} - {max(d['inVoc'] for d in test_data):.1f}")
+    print(f"出口浓度范围: {min(d['gVocs'] for d in test_data):.1f} - {max(d['gVocs'] for d in test_data):.1f}")
     
     # API地址
     api_url = "http://localhost:5000/api/extraction-adsorption-curve/process"

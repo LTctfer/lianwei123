@@ -36,7 +36,7 @@ class AdsorptionAPIWrapper:
             df = pd.DataFrame(json_data)
             
             # 3. 验证必要字段
-            required_fields = ['gvocs', 'invoc', 'gwindspeed', 'access', 'createTime']
+            required_fields = ['gVocs', 'inVoc', 'gWindspeed', 'access', 'createTime']
             missing_fields = [field for field in required_fields if field not in df.columns]
             if missing_fields:
                 return {"error": f"缺少必要字段: {missing_fields}"}
@@ -44,9 +44,9 @@ class AdsorptionAPIWrapper:
             # 4. 数据映射和转换
             # 将JSON字段映射到算法期望的CSV列名
             df_mapped = pd.DataFrame()
-            df_mapped['出口voc'] = df['gvocs']
-            df_mapped['进口voc'] = df['invoc'] 
-            df_mapped['风管内风速值'] = df['gwindspeed']
+            df_mapped['出口voc'] = df['gVocs']
+            df_mapped['进口voc'] = df['inVoc'] 
+            df_mapped['风管内风速值'] = df['gWindspeed']
             df_mapped['进口0出口1'] = df['access']
             df_mapped['创建时间'] = pd.to_datetime(df['createTime'])
             

@@ -120,6 +120,71 @@ class WasteIncinerationWarningSystemNingbo:
         s = pd.to_numeric(s, errors='coerce')
         return s
 
+    def _clean_outliers_for_calculation(self, series: pd.Series, column_name: str = "", allow_negative: bool = False) -> pd.Series:
+        """
+        计算时清洗异常值，不修改原始数据
+        
+        参数:
+        - series: 要清洗的数据列
+        - column_name: 列名，用于日志输出
+        - allow_negative: 是否允许负值（压力列保留负值）
+        
+        清洗规则:
+        1. 移除0值
+        2. 移除负值（except压力列）
+        3. 使用箱型图移除极端异常值
+        """
+        if series.empty:
+            return series
+        
+        # 首先转换为数值
+        cleaned_series = self._coerce_numeric(series).copy()
+        original_count = len(cleaned_series)
+        
+        # 记录清洗前的有效数据数量
+        valid_before = cleaned_series.notna().sum()
+        
+        # 1. 移除0值
+        zero_mask = cleaned_series == 0
+        cleaned_series[zero_mask] = np.nan
+        zero_removed = zero_mask.sum()
+        
+        # 2. 移除负值（压力列除外）
+        negative_removed = 0
+        if not allow_negative:
+            negative_mask = cleaned_series < 0
+            cleaned_series[negative_mask] = np.nan
+            negative_removed = negative_mask.sum()
+        
+        # 3. 箱型图异常值检测
+        outlier_removed = 0
+        valid_data = cleaned_series.dropna()
+        if len(valid_data) > 4:  # 至少需要4个数据点才能计算四分位数
+            Q1 = valid_data.quantile(0.25)
+            Q3 = valid_data.quantile(0.75)
+            IQR = Q3 - Q1
+            
+            # 定义异常值边界
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            
+            # 移除异常值
+            outlier_mask = (cleaned_series < lower_bound) | (cleaned_series > upper_bound)
+            cleaned_series[outlier_mask] = np.nan
+            outlier_removed = outlier_mask.sum()
+        
+        # 记录清洗后的有效数据数量
+        valid_after = cleaned_series.notna().sum()
+        
+        # 输出清洗统计（仅在有清洗操作时）
+        total_removed = zero_removed + negative_removed + outlier_removed
+        if total_removed > 0 and column_name:
+            print(f"   数据清洗 [{column_name}]: 移除 {total_removed} 个异常值 "
+                  f"(零值:{zero_removed}, 负值:{negative_removed}, 异常值:{outlier_removed}) "
+                  f"剩余有效数据: {valid_after}/{original_count}")
+        
+        return cleaned_series
+
     def calculate_furnace_temperature(self, df: pd.DataFrame, furnace_no: int) -> pd.Series:
         """计算某炉的代表温度（上部与中部两个测点的平均）。返回 Series。"""
         mapping = get_field_mapping_for_furnace(furnace_no)
@@ -127,8 +192,10 @@ class WasteIncinerationWarningSystemNingbo:
         middle_col = mapping["middle_temp"]
         if upper_col not in df.columns or middle_col not in df.columns:
             return pd.Series([np.nan] * len(df), index=df.index, name=f"furnace_temp_{furnace_no}")
-        upper = self._coerce_numeric(df[upper_col])
-        middle = self._coerce_numeric(df[middle_col])
+        
+        # 使用清洗后的数据计算温度
+        upper = self._clean_outliers_for_calculation(df[upper_col], f"{furnace_no}号炉上部温度")
+        middle = self._clean_outliers_for_calculation(df[middle_col], f"{furnace_no}号炉中部温度")
         temp = (upper + middle) / 2.0
         temp.name = f"furnace_temp_{furnace_no}"
         return temp
@@ -253,7 +320,10 @@ class WasteIncinerationWarningSystemNingbo:
             pressure_field = fmap['bag_pressure']
             if pressure_field not in df_sorted.columns:
                 continue
-            series = self._coerce_numeric(df_sorted[pressure_field])
+            # 压力列允许负值，只清洗零值和极端异常值
+            series = self._clean_outliers_for_calculation(df_sorted[pressure_field], 
+                                                        f"{fn}号炉布袋压差", 
+                                                        allow_negative=True)
             high_start = None
             low_start = None
             for t, val in zip(df_sorted['数据时间'], series):
@@ -314,7 +384,9 @@ class WasteIncinerationWarningSystemNingbo:
             o2_field = fmap['o2']
             if o2_field not in df_sorted.columns:
                 continue
-            series = self._coerce_numeric(df_sorted[o2_field])
+            # 氧含量不允许负值
+            series = self._clean_outliers_for_calculation(df_sorted[o2_field], 
+                                                        f"{fn}号炉氧含量")
             high_start = None
             low_start = None
             for t, val in zip(df_sorted['数据时间'], series):
@@ -373,7 +445,9 @@ class WasteIncinerationWarningSystemNingbo:
                 continue
                 
             df_sorted = df.sort_values('数据时间')
-            series = df_sorted[col]
+            # 活性炭投加量不允许负值
+            series = self._clean_outliers_for_calculation(df_sorted[col], 
+                                                        f"{fn}号炉活性炭投加量")
             
             # 实时监控活性炭投加量
             low_start = None
@@ -420,6 +494,9 @@ class WasteIncinerationWarningSystemNingbo:
             df_temp['数据时间'] = pd.to_datetime(df_temp['数据时间'])
             df_temp.set_index('数据时间', inplace=True)
             
+            # 氨逃逸量数据清洗
+            df_temp[col] = self._clean_outliers_for_calculation(df_temp[col], 
+                                                              f"{fn}号炉氨逃逸量")
             df_1h = df_temp[[col]].resample('1H').mean().reset_index()
             
             # 检查超标
@@ -440,7 +517,39 @@ class WasteIncinerationWarningSystemNingbo:
     def calculate_corrected_concentration(self, measured_conc, measured_o2):
         """计算标准状态下的浓度（折算）"""
         # ρ（标准）=ρ（实测）*10/(21-ρ（实测O2））
-        corrected = measured_conc * 10 / (21 - measured_o2)
+        
+        # 处理异常的氧含量数据，避免折算异常
+        o2_cleaned = measured_o2.copy()
+        conc_cleaned = measured_conc.copy()
+        
+        # 氧含量合理范围检查：正常情况下应在4%-15%之间
+        # 超出此范围的数据可能是传感器故障或异常工况
+        invalid_o2_mask = (o2_cleaned <= 2) | (o2_cleaned >= 18) | pd.isna(o2_cleaned)
+        
+        # 浓度数据检查
+        invalid_conc_mask = (conc_cleaned < 0) | pd.isna(conc_cleaned)
+        
+        # 合并无效数据掩码
+        invalid_mask = invalid_o2_mask | invalid_conc_mask
+        
+        # 计算分母，避免分母过小导致折算值异常放大
+        denominator = 21 - o2_cleaned
+        # 当分母小于5时（氧含量>16%），折算系数过大，认为数据异常
+        small_denominator_mask = denominator < 5.0
+        
+        # 最终的无效数据掩码
+        final_invalid_mask = invalid_mask | small_denominator_mask
+        
+        # 计算折算浓度
+        corrected = pd.Series(index=measured_conc.index, dtype=float)
+        valid_mask = ~final_invalid_mask
+        
+        if valid_mask.any():
+            corrected[valid_mask] = conc_cleaned[valid_mask] * 10 / denominator[valid_mask]
+        
+        # 无效数据设为NaN
+        corrected[final_invalid_mask] = np.nan
+        
         return corrected
 
     def check_pollutant_warning(self, df: pd.DataFrame) -> List[Dict]:
@@ -458,20 +567,41 @@ class WasteIncinerationWarningSystemNingbo:
             o2_col = fmap['o2']
             if o2_col not in df.columns:
                 continue
+            
+            print(f"   检查{fn}号炉污染物预警...")
             df_num = pd.DataFrame({'数据时间': df['数据时间']})
-            df_num[o2_col] = self._coerce_numeric(df[o2_col])
+            
+            # 清洗氧含量数据
+            df_num[o2_col] = self._clean_outliers_for_calculation(df[o2_col], f"{fn}号炉O2")
+            
+            # 清洗各污染物数据
             for p_key, _ in pollutants.items():
                 p_col = fmap[p_key]
                 if p_col in df.columns:
-                    df_num[p_col] = self._coerce_numeric(df[p_col])
+                    df_num[p_col] = self._clean_outliers_for_calculation(df[p_col], f"{fn}号炉{p_key.upper()}")
+            
             df_num = df_num.set_index('数据时间')
             df_1h = df_num.resample('1H').mean().reset_index()
+            
             for p_key, (event_name, thresh_key) in pollutants.items():
                 p_col = fmap.get(p_key)
                 if p_col not in df_1h.columns:
                     continue
+                
+                # 计算折算浓度
                 corrected = self.calculate_corrected_concentration(df_1h[p_col], df_1h[o2_col])
                 threshold = NINGBO_WARNING_THRESHOLDS[thresh_key]
+                mask = corrected > threshold
+                
+                # 调试信息：显示计算过程
+                if mask.any():
+                    for idx, (_, row) in enumerate(df_1h[mask].iterrows()):
+                        original_conc = row[p_col]
+                        o2_value = row[o2_col]
+                        corrected_value = corrected.iloc[df_1h.index[df_1h[mask]].get_loc(row.name)]
+                        print(f"     {fn}号炉{p_key.upper()}预警: 原始浓度={original_conc:.2f}, O2={o2_value:.2f}%, "
+                              f"折算后={corrected_value:.2f}, 阈值={threshold}")
+                
                 mask = corrected > threshold
                 for _, row in df_1h[mask].iterrows():
                     warnings.append({
@@ -498,20 +628,41 @@ class WasteIncinerationWarningSystemNingbo:
             o2_col = fmap['o2']
             if o2_col not in df.columns:
                 continue
+            
+            print(f"   检查{fn}号炉污染物报警...")
             df_num = pd.DataFrame({'数据时间': df['数据时间']})
-            df_num[o2_col] = self._coerce_numeric(df[o2_col])
+            
+            # 清洗氧含量数据
+            df_num[o2_col] = self._clean_outliers_for_calculation(df[o2_col], f"{fn}号炉O2")
+            
+            # 清洗各污染物数据
             for p_key, _ in pollutants.items():
                 p_col = fmap[p_key]
                 if p_col in df.columns:
-                    df_num[p_col] = self._coerce_numeric(df[p_col])
+                    df_num[p_col] = self._clean_outliers_for_calculation(df[p_col], f"{fn}号炉{p_key.upper()}")
+            
             df_num = df_num.set_index('数据时间')
             df_daily = df_num.resample('24H').mean().reset_index()
+            
             for p_key, (event_name, threshold_key) in pollutants.items():
                 p_col = fmap.get(p_key)
                 if p_col not in df_daily.columns:
                     continue
+                
+                # 计算折算浓度
                 corrected = self.calculate_corrected_concentration(df_daily[p_col], df_daily[o2_col])
                 threshold = NINGBO_ALARM_THRESHOLDS[threshold_key]
+                mask = corrected > threshold
+                
+                # 调试信息：显示计算过程
+                if mask.any():
+                    for idx, (_, row) in enumerate(df_daily[mask].iterrows()):
+                        original_conc = row[p_col]
+                        o2_value = row[o2_col]
+                        corrected_value = corrected.iloc[df_daily.index[df_daily[mask]].get_loc(row.name)]
+                        print(f"     ⚠️  {fn}号炉{p_key.upper()}报警: 日均原始浓度={original_conc:.2f}, "
+                              f"日均O2={o2_value:.2f}%, 折算后={corrected_value:.2f}, 阈值={threshold}")
+                
                 mask = corrected > threshold
                 for _, row in df_daily[mask].iterrows():
                     alarms.append({
@@ -645,7 +796,7 @@ def main():
     """主函数 - 支持命令行和直接运行"""
     import sys
 
-    DEFAULT_INPUT_FILE = "宁德世贸/20250101.csv"  # 默认输入文件
+    DEFAULT_INPUT_FILE = "宁德世贸/2025年1月/20250103.xlsx"  # 默认输入文件
     DEFAULT_OUTPUT_DIR = "宁德世贸/预警文件输出"  # 默认输出目录
 
     if len(sys.argv) >= 2:

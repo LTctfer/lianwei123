@@ -47,32 +47,32 @@ JIANDE_FIELD_MAPPING = {
     "hcl": "HCL浓度",
 }
 
-# 预警阈值配置（宁波世贸）
+# 预警阈值配置（宁波世贸）- 基于1小时均值
 NINGBO_WARNING_THRESHOLDS = {
-    "low_furnace_temp": 850,
-    "high_furnace_temp": 1200,
-    "very_high_furnace_temp": 1300,
-    "bag_pressure_high": 2000,
-    "bag_pressure_low": 500,
-    "o2_high": 10,
-    "o2_low": 6,
-    "dust_warning_limit": 30,
-    "nox_warning_limit": 300,
-    "so2_warning_limit": 100,
-    "hcl_warning_limit": 60,
-    "co_warning_limit": 100,
-    "activated_carbon_low": 3.0,    # 活性炭投加量不足(kg/h)
-    "nh3_warning_limit": 8          # 氨逃逸偏高(ppm)
+    "low_furnace_temp": 850,          # 瞬时低炉温焚烧（5分钟均值）
+    "high_furnace_temp": 1200,        # 炉膛温度偏高（1小时均值）  
+    "very_high_furnace_temp": 1300,   # 炉膛温度过高（1小时均值）
+    "bag_pressure_high": 2000,        # 布袋除尘器压力损失偏高（实时）
+    "bag_pressure_low": 500,          # 布袋除尘器压力损失偏低（实时）
+    "o2_high": 10,                    # 焚烧炉出口氧含量偏高（实时）
+    "o2_low": 6,                      # 焚烧炉出口氧含量偏低（实时）
+    "dust_warning_limit": 30,         # 颗粒物浓度较高（1小时均值，折算后）
+    "nox_warning_limit": 300,         # 氮氧化物浓度较高（1小时均值，折算后）
+    "so2_warning_limit": 100,         # 二氧化硫浓度较高（1小时均值，折算后）
+    "hcl_warning_limit": 60,          # 氯化氢浓度较高（1小时均值，折算后）
+    "co_warning_limit": 100,          # 一氧化碳浓度较高（1小时均值，折算后）
+    "activated_carbon_low": 3.0,      # 活性炭投加量不足(kg/h，实时监控)
+    "nh3_warning_limit": 8            # 氨逃逸偏高(ppm，1小时均值)
 }
 
-# 报警阈值配置（宁波世贸）- 根据报警规则文件更新
+# 报警阈值配置（宁波世贸）- 基于24小时日均值（折算后）
 NINGBO_ALARM_THRESHOLDS = {
-    "low_furnace_temp": 850,        # 低炉温焚烧报警
-    "dust_alarm_limit": 20,         # 颗粒物(PM)排放超标(日均值)
-    "nox_alarm_limit": 250,         # 氮氧化物(NOx)排放超标(日均值)
-    "so2_alarm_limit": 80,          # 二氧化硫(SO₂)排放超标(日均值)
-    "hcl_alarm_limit": 50,          # 氯化氢(HCl)排放超标(日均值)
-    "co_alarm_limit": 80,           # 一氧化碳(CO)排放超标(日均值)
+    "low_furnace_temp": 850,        # 低炉温焚烧报警（5分钟均值）
+    "dust_alarm_limit": 20,         # 颗粒物(PM)排放超标（24小时日均值）
+    "nox_alarm_limit": 250,         # 氮氧化物(NOx)排放超标（24小时日均值）
+    "so2_alarm_limit": 80,          # 二氧化硫(SO₂)排放超标（24小时日均值）
+    "hcl_alarm_limit": 50,          # 氯化氢(HCl)排放超标（24小时日均值）
+    "co_alarm_limit": 80,           # 一氧化碳(CO)排放超标（24小时日均值）
 }
 
 class WasteIncinerationWarningSystemNingbo:
@@ -206,59 +206,7 @@ class WasteIncinerationWarningSystemNingbo:
                 })
         return events
 
-    def check_pollutant_daily_alarm(self, df: pd.DataFrame) -> List[Dict]:
-        """各炉污染物日均值排放超标报警（折算后）"""
-        alarms: List[Dict] = []
 
-        # 按日期分组计算日均值
-        df_daily = self.calculate_time_windows(df, '1day')
-
-        # 过滤掉含有0值的记录
-        df_daily = df_daily[(df_daily != 0).all(axis=1)]
-
-        # 检查各种污染物日均值（需要进行折算）
-        pollutants = {
-            'dust': ('烟气中颗粒物（PM）排放超标', 'dust_alarm_limit'),
-            'nox': ('烟气中氮氧化物（NOx）排放超标', 'nox_alarm_limit'),
-            'so2': ('烟气中二氧化硫（SO₂）排放超标', 'so2_alarm_limit'),
-            'hcl': ('烟气中氯化氢（HCl）排放超标', 'hcl_alarm_limit'),
-            'co': ('烟气中一氧化碳（CO）排放超标', 'co_alarm_limit')
-        }
-
-        # 此处保留旧结构，但将按炉号处理（见后续重写版本）
-
-        # 使用新逻辑（按炉号与点位映射）
-        alarms = []
-        for fn in self.furnace_list:
-            fmap = get_field_mapping_for_furnace(fn)
-            o2_col = fmap['o2']
-            if o2_col not in df.columns:
-                continue
-            df_num = pd.DataFrame({'数据时间': df['数据时间']})
-            df_num[o2_col] = self._coerce_numeric(df[o2_col])
-            for p_key, _ in pollutants.items():
-                p_col = fmap[p_key]
-                if p_col in df.columns:
-                    df_num[p_col] = self._coerce_numeric(df[p_col])
-            df_num = df_num.set_index('数据时间')
-            df_daily = df_num.resample('24H').mean().reset_index()
-            for p_key, (event_name, threshold_key) in pollutants.items():
-                p_col = fmap.get(p_key)
-                if p_col not in df_daily.columns:
-                    continue
-                corrected = self.calculate_corrected_concentration(df_daily[p_col], df_daily[o2_col])
-                threshold = NINGBO_ALARM_THRESHOLDS[threshold_key]
-                mask = corrected > threshold
-                for _, row in df_daily[mask].iterrows():
-                                alarms.append({
-                        '时间': row['数据时间'],
-                        '炉号': str(fn),
-                                    '预警/报警类型': '报警',
-                                    '预警/报警事件': event_name,
-                                    '预警/报警区分': '报警'
-                                })
-
-        return alarms
 
     def check_high_furnace_temp_warning(self, df: pd.DataFrame) -> List[Dict]:
         """各炉1小时平均温度>1200/1300℃ 预警"""
@@ -276,21 +224,21 @@ class WasteIncinerationWarningSystemNingbo:
             very_high = df_1h[col] > NINGBO_WARNING_THRESHOLDS['very_high_furnace_temp']
             high = (df_1h[col] > NINGBO_WARNING_THRESHOLDS['high_furnace_temp']) & (~very_high)
             for _, row in df_1h[very_high].iterrows():
-            warnings.append({
-                '时间': row['数据时间'],
+                warnings.append({
+                    '时间': row['数据时间'],
                     '炉号': str(fn),
-                '预警/报警类型': '预警',
-                '预警/报警事件': '炉膛温度过高',
-                '预警/报警区分': '预警'
-            })
+                    '预警/报警类型': '预警',
+                    '预警/报警事件': '炉膛温度过高',
+                    '预警/报警区分': '预警'
+                })
             for _, row in df_1h[high].iterrows():
-            warnings.append({
-                '时间': row['数据时间'],
+                warnings.append({
+                    '时间': row['数据时间'],
                     '炉号': str(fn),
-                '预警/报警类型': '预警',
-                '预警/报警事件': '炉膛温度偏高',
-                '预警/报警区分': '预警'
-            })
+                    '预警/报警类型': '预警',
+                    '预警/报警事件': '炉膛温度偏高',
+                    '预警/报警区分': '预警'
+                })
         return warnings
 
     def check_bag_pressure_warning(self, df: pd.DataFrame) -> List[Dict]:
@@ -447,13 +395,13 @@ class WasteIncinerationWarningSystemNingbo:
             
             # 处理未结束的预警
             if low_start is not None:
-            warnings.append({
+                warnings.append({
                     '时间': low_start,
                     '炉号': str(fn),
-                '预警/报警类型': '预警',
+                    '预警/报警类型': '预警',
                     '预警/报警事件': '活性炭投加量不足',
-                '预警/报警区分': '预警'
-            })
+                    '预警/报警区分': '预警'
+                })
 
         return warnings
 
@@ -479,13 +427,13 @@ class WasteIncinerationWarningSystemNingbo:
                 if pd.isna(row[col]):
                     continue
                 if row[col] > NINGBO_WARNING_THRESHOLDS['nh3_warning_limit']:
-            warnings.append({
+                    warnings.append({
                         '时间': row['数据时间'],
                         '炉号': str(fn),
-                '预警/报警类型': '预警',
+                        '预警/报警类型': '预警',
                         '预警/报警事件': '氨逃逸偏高',
-                '预警/报警区分': '预警'
-            })
+                        '预警/报警区分': '预警'
+                    })
 
         return warnings
 
@@ -526,13 +474,13 @@ class WasteIncinerationWarningSystemNingbo:
                 threshold = NINGBO_WARNING_THRESHOLDS[thresh_key]
                 mask = corrected > threshold
                 for _, row in df_1h[mask].iterrows():
-                                warnings.append({
+                    warnings.append({
                         '时间': row['数据时间'],
                         '炉号': str(fn),
-                                    '预警/报警类型': '预警',
-                                    '预警/报警事件': event_name,
-                                    '预警/报警区分': '预警'
-                                })
+                        '预警/报警类型': '预警',
+                        '预警/报警事件': event_name,
+                        '预警/报警区分': '预警'
+                    })
         return warnings
 
     def check_pollutant_alarm(self, df: pd.DataFrame) -> List[Dict]:
@@ -566,13 +514,13 @@ class WasteIncinerationWarningSystemNingbo:
                 threshold = NINGBO_ALARM_THRESHOLDS[threshold_key]
                 mask = corrected > threshold
                 for _, row in df_daily[mask].iterrows():
-                                alarms.append({
+                    alarms.append({
                         '时间': row['数据时间'],
                         '炉号': str(fn),
-                                    '预警/报警类型': '报警',
-                                    '预警/报警事件': event_name,
-                                    '预警/报警区分': '报警'
-                                })
+                        '预警/报警类型': '报警',
+                        '预警/报警事件': event_name,
+                        '预警/报警区分': '报警'
+                    })
         return alarms
 
     def process_data(self, file_path: str, output_dir: str = None) -> pd.DataFrame:

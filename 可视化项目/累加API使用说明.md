@@ -6,6 +6,7 @@ API现在支持累加数据处理模式，可以在连续多次数据输入中�
 
 ### 核心功能
 - **累加模式**: 通过`session_id`管理会话，后续数据的时间坐标在前次基础上累加
+- **简化输出**: 只返回数据点的X轴、Y轴坐标和描述信息，去除冗余字段
 - **会话管理**: 查询、重置会话状态
 - **兼容性**: 保持原有非累加模式的完全兼容
 
@@ -47,39 +48,39 @@ POST /api/extraction-adsorption-curve/process
 ]
 ```
 
-#### 响应格式
+#### 响应格式（简化版本）
 ```json
 {
   "status": "success",
   "data_points": [
     {
-      "x": 5.25,  // 累计运行时间（小时）- 已应用时间偏移
-      "y": 12.5,  // 穿透率（%）
-      "label": "时间段: 时间段1\n累积时长: 5.25小时\n穿透率: 12.5%",
-      "cumulative_hours": 5.25,  // 累加后时间
-      "original_hours": 1.25,    // 本批次原始时间
-      "time_offset": 4.0,        // 应用的时间偏移
-      // ... 其他字段
-    }
-  ],
-  "warning_points": [
+      "x": 5.25,  // X轴：累计运行时间（小时）
+      "y": 12.5,  // Y轴：穿透率（%）
+      "description": "时间段: 时间段1\n累积时长: 5.25小时\n穿透率: 12.5%"  // 描述信息
+    },
     {
-      "x": 8.5,  // 预警点时间（已累加）
-      "y": 85.0, // 预警点穿透率
-      "type": "warning_star",
-      "color": "orange",
-      "original_time": 3.5,  // 原始预警时间
-      "time_offset": 5.0     // 应用的时间偏移
+      "x": 6.80,
+      "y": 18.3,
+      "description": "时间段: 时间段2\n累积时长: 6.80小时\n穿透率: 18.3%"
     }
   ],
-  "session_info": {
-    "session_id": "your_session_id",
-    "current_batch_points": 3,        // 本批次数据点数
-    "total_accumulated_points": 8,    // 累计总数据点数
-    "last_cumulative_time": 6.75,    // 最后累计时间
-    "time_offset_applied": 4.0,      // 本次应用的时间偏移
-    "all_accumulated_points": [...]  // 所有累积的数据点
-  }
+  "all_accumulated_points": [  // 累加模式下的所有累积数据点（仅当提供session_id时）
+    {
+      "x": 1.25,
+      "y": 8.2,
+      "description": "时间段: 时间段1\n累积时长: 1.25小时\n穿透率: 8.2%"
+    },
+    {
+      "x": 5.25,
+      "y": 12.5,
+      "description": "时间段: 时间段1\n累积时长: 5.25小时\n穿透率: 12.5%"
+    },
+    {
+      "x": 6.80,
+      "y": 18.3,
+      "description": "时间段: 时间段2\n累积时长: 6.80小时\n穿透率: 18.3%"
+    }
+  ]
 }
 ```
 
@@ -204,7 +205,10 @@ first_batch = {
 # 发送第一批
 response1 = requests.post(f"{base_url}/process", json=first_batch)
 result1 = response1.json()
-print("第一批X坐标:", [p['x'] for p in result1['data_points']])
+print("第一批数据点:")
+for point in result1['data_points']:
+    print(f"  X={point['x']}, Y={point['y']}")
+    print(f"  描述: {point['description']}")
 
 # 第二批数据
 second_batch = {
@@ -223,8 +227,16 @@ second_batch = {
 # 发送第二批
 response2 = requests.post(f"{base_url}/process", json=second_batch)
 result2 = response2.json()
-print("第二批X坐标:", [p['x'] for p in result2['data_points']])
-print("时间偏移:", result2['session_info']['time_offset_applied'])
+print("第二批数据点:")
+for point in result2['data_points']:
+    print(f"  X={point['x']}, Y={point['y']}")
+    print(f"  描述: {point['description']}")
+
+# 显示所有累积数据点
+if 'all_accumulated_points' in result2:
+    print(f"累积总数据点: {len(result2['all_accumulated_points'])}")
+    for i, point in enumerate(result2['all_accumulated_points']):
+        print(f"  点{i+1}: X={point['x']}, Y={point['y']}")
 
 # 查询会话
 session_info = requests.get(f"{base_url}/session/{session_id}").json()
@@ -264,7 +276,11 @@ async function sendCumulativeData() {
     });
     
     const result1 = await response1.json();
-    console.log('第一批结果:', result1.data_points.map(p => p.x));
+    console.log('第一批数据点:');
+    result1.data_points.forEach(point => {
+        console.log(`  X=${point.x}, Y=${point.y}`);
+        console.log(`  描述: ${point.description}`);
+    });
 
     // 第二批数据
     const secondBatch = {
@@ -287,8 +303,19 @@ async function sendCumulativeData() {
     });
     
     const result2 = await response2.json();
-    console.log('第二批结果:', result2.data_points.map(p => p.x));
-    console.log('时间偏移:', result2.session_info.time_offset_applied);
+    console.log('第二批数据点:');
+    result2.data_points.forEach(point => {
+        console.log(`  X=${point.x}, Y=${point.y}`);
+        console.log(`  描述: ${point.description}`);
+    });
+    
+    // 显示累积数据点
+    if (result2.all_accumulated_points) {
+        console.log(`累积总数据点: ${result2.all_accumulated_points.length}`);
+        result2.all_accumulated_points.forEach((point, index) => {
+            console.log(`  点${index+1}: X=${point.x}, Y=${point.y}`);
+        });
+    }
 }
 
 sendCumulativeData();
@@ -296,11 +323,34 @@ sendCumulativeData();
 
 ## 注意事项
 
-1. **会话ID唯一性**: 不同的数据流应使用不同的session_id
-2. **内存限制**: 会话数据存储在内存中，服务重启会丢失
-3. **并发安全**: 同一session_id的并发请求可能导致数据不一致
-4. **时间单位**: 所有时间坐标均为小时单位
-5. **兼容性**: 不提供session_id时保持原有行为不变
+1. **简化输出**: API已简化输出格式，只返回必要的x、y坐标和description描述信息
+2. **会话ID唯一性**: 不同的数据流应使用不同的session_id
+3. **内存限制**: 会话数据存储在内存中，服务重启会丢失
+4. **并发安全**: 同一session_id的并发请求可能导致数据不一致
+5. **时间单位**: 所有时间坐标均为小时单位
+6. **兼容性**: 不提供session_id时保持原有行为不变
+
+## 输出格式说明
+
+### 数据点结构
+每个数据点包含以下三个字段：
+- **x**: 累计运行时间（小时，浮点数）
+- **y**: 穿透率（百分比，浮点数，0-100）
+- **description**: 描述信息（字符串，包含时间段、累计时间和穿透率）
+
+### 描述信息格式
+```
+时间段: {时间段标识}
+累积时长: {累计小时数}小时
+穿透率: {穿透率百分比}%
+```
+
+示例：
+```
+时间段: 风速段1
+累积时长: 3.25小时
+穿透率: 15.8%
+```
 
 ## 故障排除
 

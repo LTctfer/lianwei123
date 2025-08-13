@@ -262,19 +262,9 @@ class AdsorptionAPIWrapper:
                     return round(value, 2)
                 
                 data_points.append({
-                    "x": format_number(cumulative_time_hours),  # X轴：累计运行时间（小时）- 已累加
-                    "y": format_number(breakthrough_ratio),  # Y轴：穿透率（%）
-                    "label": label,  # 按算法格式的标签
-                    "time_segment": time_segment,
-                    "cumulative_hours": format_number(cumulative_time_hours),  # 累加后的时间
-                    "original_hours": format_number(current_time_hours),  # 本批次原始时间
-                    "time_offset": format_number(time_offset),  # 时间偏移量
-                    "breakthrough_percent": format_number(breakthrough_ratio),
-                    "efficiency": format_number(efficiency),
-                    "inlet_concentration": format_number(float(row.get('进口浓度', 0))),
-                    "outlet_concentration": format_number(float(row.get('出口浓度', 0))),
-                    "calculation_rule": row.get('计算规则', ''),
-                    "data_count": int(row.get('数据点数', 1))
+                    "x": format_number(cumulative_time_hours),  # X轴：累计运行时间（小时）
+                    "y": format_number(breakthrough_ratio),     # Y轴：穿透率（%）
+                    "description": label  # 描述信息：时间段、累计时间和穿透率
                 })
             
             # 更新会话状态
@@ -287,25 +277,15 @@ class AdsorptionAPIWrapper:
             # 提取预警点（应用时间偏移）
             warning_points = self._extract_warning_points(processor, time_offset)
             
-            # 构建返回结果
+            # 构建返回结果（简化版本）
             result = {
-                "data_points": data_points,
-                "warning_points": warning_points,
-                "total_points": len(data_points),
-                "session_info": {}
+                "data_points": data_points
             }
             
-            # 如果有会话信息，添加到结果中
+            # 如果有会话信息，添加累计数据点
             if session_id:
                 all_data_points = self.sessions[session_id]["data_points"]
-                result["session_info"] = {
-                    "session_id": session_id,
-                    "current_batch_points": len(data_points),
-                    "total_accumulated_points": len(all_data_points),
-                    "last_cumulative_time": self.sessions[session_id]["last_cumulative_time"],
-                    "time_offset_applied": time_offset,
-                    "all_accumulated_points": all_data_points  # 返回所有累积的数据点
-                }
+                result["all_accumulated_points"] = all_data_points
             
             return result
             
@@ -521,9 +501,8 @@ def api_info():
                     "风量": "自动设置为1.0（算法内部需要，无需用户提供）"
                 },
                 "output_format": {
-                    "data_points": "数据点数组，包含x(累计时间)、y(穿透率)、label(标签)",
-                    "warning_points": "预警点数组，包含x(累计时间)、y(穿透率)，对应图像中的五角星标注点",
-                    "session_info": "会话信息，包含累计数据点和时间偏移信息"
+                    "data_points": "数据点数组，每个点包含x(累计时间小时)、y(穿透率%)、description(时间段、累计时间和穿透率描述)",
+                    "all_accumulated_points": "累加模式下返回所有累积的数据点（仅当提供session_id时）"
                 },
                 "cumulative_mode": {
                     "description": "累加模式说明：提供session_id时，每次处理的时间坐标会在上次的最后时间基础上累加",

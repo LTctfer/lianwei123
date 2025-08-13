@@ -38,9 +38,11 @@ class AdsorptionAPIWrapper:
     
     def __init__(self):
         self.processor = None
+        # 会话管理：记录每个会话的累计时间偏移
+        self.sessions = {}  # session_id -> {"last_cumulative_time": float, "data_points": list}
     
-    def process_json_data(self, json_data: list) -> dict:
-        """处理JSON数据并调用现有算法"""
+    def process_json_data(self, json_data: list, session_id: str = None) -> dict:
+        """处理JSON数据并调用现有算法，支持累加模式"""
         try:
             # 1. 验证数据格式
             if not isinstance(json_data, list) or len(json_data) == 0:
@@ -83,8 +85,8 @@ class AdsorptionAPIWrapper:
                 os.unlink(temp_csv.name)
                 return {"status": "failure", "error": "数据处理失败"}
             
-            # 9. 提取结果
-            result = self._extract_visualization_data(processor, processor.efficiency_data)
+            # 9. 提取结果（支持累加模式）
+            result = self._extract_visualization_data(processor, processor.efficiency_data, session_id)
             
             # 清理临时文件
             os.unlink(temp_csv.name)
@@ -194,15 +196,35 @@ class AdsorptionAPIWrapper:
         
         return processor
 
-    def _extract_visualization_data(self, processor: AdsorptionCurveProcessor, efficiency_data: pd.DataFrame) -> dict:
-        """从算法结果中提取可视化数据"""
+    def _extract_visualization_data(self, processor: AdsorptionCurveProcessor, efficiency_data: pd.DataFrame, session_id: str = None) -> dict:
+        """从算法结果中提取可视化数据，支持累加模式"""
         try:
+            # 获取会话的时间偏移
+            time_offset = 0.0
+            if session_id:
+                if session_id not in self.sessions:
+                    # 初始化会话
+                    self.sessions[session_id] = {
+                        "last_cumulative_time": 0.0,
+                        "data_points": []
+                    }
+                else:
+                    # 获取上次的最后累计时间作为偏移
+                    time_offset = self.sessions[session_id]["last_cumulative_time"]
+            
             # 提取数据点
             data_points = []
+            max_time_in_batch = 0.0  # 记录本批次的最大时间
             
             for idx, row in efficiency_data.iterrows():
-                # 获取累计运行时间（小时）- 算法中已经计算好的时间坐标
-                time_hours = float(row['时间坐标'])  # 算法中时间坐标已经是小时单位
+                # 获取当前批次的时间（小时）- 算法中已经计算好的时间坐标
+                current_time_hours = float(row['时间坐标'])  # 算法中时间坐标已经是小时单位
+                
+                # 应用时间偏移，实现累加
+                cumulative_time_hours = current_time_hours + time_offset
+                
+                # 更新本批次最大时间
+                max_time_in_batch = max(max_time_in_batch, cumulative_time_hours)
                 
                 # 获取穿透率（百分比）
                 breakthrough_ratio = float(row['穿透率']) * 100  # 转换为百分比
@@ -229,8 +251,8 @@ class AdsorptionAPIWrapper:
                     else:
                         time_segment = f"时间段{idx+1}"
                 
-                # 按照算法内的标签格式：时间段、累计时长和穿透率
-                label = f"时间段: {time_segment}\n累积时长: {time_hours:.2f}小时\n穿透率: {breakthrough_ratio:.1f}%"
+                # 按照算法内的标签格式：时间段、累计时长和穿透率（使用累加后的时间）
+                label = f"时间段: {time_segment}\n累积时长: {cumulative_time_hours:.2f}小时\n穿透率: {breakthrough_ratio:.1f}%"
                 
                 # 数值格式化：保留2位小数，接近0则返回0
                 def format_number(value):
@@ -240,11 +262,13 @@ class AdsorptionAPIWrapper:
                     return round(value, 2)
                 
                 data_points.append({
-                    "x": format_number(time_hours),  # X轴：累计运行时间（小时）
+                    "x": format_number(cumulative_time_hours),  # X轴：累计运行时间（小时）- 已累加
                     "y": format_number(breakthrough_ratio),  # Y轴：穿透率（%）
                     "label": label,  # 按算法格式的标签
                     "time_segment": time_segment,
-                    "cumulative_hours": format_number(time_hours),
+                    "cumulative_hours": format_number(cumulative_time_hours),  # 累加后的时间
+                    "original_hours": format_number(current_time_hours),  # 本批次原始时间
+                    "time_offset": format_number(time_offset),  # 时间偏移量
                     "breakthrough_percent": format_number(breakthrough_ratio),
                     "efficiency": format_number(efficiency),
                     "inlet_concentration": format_number(float(row.get('进口浓度', 0))),
@@ -253,20 +277,43 @@ class AdsorptionAPIWrapper:
                     "data_count": int(row.get('数据点数', 1))
                 })
             
-            # 提取预警点
-            warning_points = self._extract_warning_points(processor)
+            # 更新会话状态
+            if session_id and max_time_in_batch > 0:
+                # 保存本批次的数据点到会话中
+                self.sessions[session_id]["data_points"].extend(data_points)
+                # 更新最后累计时间
+                self.sessions[session_id]["last_cumulative_time"] = max_time_in_batch
             
-            return {
+            # 提取预警点（应用时间偏移）
+            warning_points = self._extract_warning_points(processor, time_offset)
+            
+            # 构建返回结果
+            result = {
                 "data_points": data_points,
                 "warning_points": warning_points,
-                "total_points": len(data_points)
+                "total_points": len(data_points),
+                "session_info": {}
             }
+            
+            # 如果有会话信息，添加到结果中
+            if session_id:
+                all_data_points = self.sessions[session_id]["data_points"]
+                result["session_info"] = {
+                    "session_id": session_id,
+                    "current_batch_points": len(data_points),
+                    "total_accumulated_points": len(all_data_points),
+                    "last_cumulative_time": self.sessions[session_id]["last_cumulative_time"],
+                    "time_offset_applied": time_offset,
+                    "all_accumulated_points": all_data_points  # 返回所有累积的数据点
+                }
+            
+            return result
             
         except Exception as e:
             return {"error": f"数据提取失败: {str(e)}"}
     
-    def _extract_warning_points(self, processor: AdsorptionCurveProcessor) -> list:
-        """提取预警点（五角星标注的点）"""
+    def _extract_warning_points(self, processor: AdsorptionCurveProcessor, time_offset: float = 0.0) -> list:
+        """提取预警点（五角星标注的点），支持时间偏移"""
         warning_points = []
         
         try:
@@ -286,48 +333,94 @@ class AdsorptionAPIWrapper:
                     # 计算预警时间点的穿透率（使用Logistic模型预测）
                     warning_time_seconds = model.warning_time
                     warning_breakthrough = model.predict_breakthrough(np.array([warning_time_seconds]))[0] * 100
-                    warning_time_hours = warning_time_seconds / 3600  # 转换为小时
+                    warning_time_hours = warning_time_seconds / 3600 + time_offset  # 应用时间偏移
                     
                     warning_points.append({
-                        "x": format_number(warning_time_hours),  # X轴：预警时间（小时）
+                        "x": format_number(warning_time_hours),  # X轴：预警时间（小时）- 已累加
                         "y": format_number(warning_breakthrough),  # Y轴：预警点穿透率（%）
                         "type": "warning_star",
                         "color": "orange",
-                        "description": f"预警点(穿透率:{format_number(warning_breakthrough)}%)"
+                        "description": f"预警点(穿透率:{format_number(warning_breakthrough)}%)",
+                        "original_time": format_number(warning_time_seconds / 3600),  # 原始时间
+                        "time_offset": format_number(time_offset)  # 时间偏移
                     })
                 
                 # 获取预测饱和时间点（对应图像中的红色五角星标注）
                 if hasattr(model, 'predicted_saturation_time') and model.predicted_saturation_time is not None:
                     saturation_time_seconds = model.predicted_saturation_time
                     saturation_breakthrough = model.predict_breakthrough(np.array([saturation_time_seconds]))[0] * 100
-                    saturation_time_hours = saturation_time_seconds / 3600
+                    saturation_time_hours = saturation_time_seconds / 3600 + time_offset  # 应用时间偏移
                     
                     warning_points.append({
-                        "x": format_number(saturation_time_hours),
+                        "x": format_number(saturation_time_hours),  # 已累加
                         "y": format_number(saturation_breakthrough),
                         "type": "saturation_star",
                         "color": "red",
-                        "description": f"预测饱和点(穿透率:{format_number(saturation_breakthrough)}%)"
+                        "description": f"预测饱和点(穿透率:{format_number(saturation_breakthrough)}%)",
+                        "original_time": format_number(saturation_time_seconds / 3600),
+                        "time_offset": format_number(time_offset)
                     })
                 
                 # 获取穿透起始时间点（对应图像中的绿色垂直线）
                 if hasattr(model, 'breakthrough_start_time') and model.breakthrough_start_time is not None:
                     start_time_seconds = model.breakthrough_start_time
                     start_breakthrough = model.predict_breakthrough(np.array([start_time_seconds]))[0] * 100
-                    start_time_hours = start_time_seconds / 3600
+                    start_time_hours = start_time_seconds / 3600 + time_offset  # 应用时间偏移
                     
                     warning_points.append({
-                        "x": format_number(start_time_hours),
+                        "x": format_number(start_time_hours),  # 已累加
                         "y": format_number(start_breakthrough),
                         "type": "breakthrough_start",
                         "color": "green",
-                        "description": f"穿透起始点(穿透率:{format_number(start_breakthrough)}%)"
+                        "description": f"穿透起始点(穿透率:{format_number(start_breakthrough)}%)",
+                        "original_time": format_number(start_time_seconds / 3600),
+                        "time_offset": format_number(time_offset)
                     })
         
         except Exception as e:
             print(f"预警点提取警告: {e}")
         
         return warning_points
+
+    def reset_session(self, session_id: str) -> bool:
+        """重置指定会话"""
+        if session_id in self.sessions:
+            del self.sessions[session_id]
+            return True
+        return False
+
+    def get_session_info(self, session_id: str) -> dict:
+        """获取会话信息"""
+        if session_id in self.sessions:
+            session_data = self.sessions[session_id]
+            return {
+                "session_id": session_id,
+                "exists": True,
+                "total_points": len(session_data["data_points"]),
+                "last_cumulative_time": session_data["last_cumulative_time"],
+                "data_points": session_data["data_points"]
+            }
+        else:
+            return {
+                "session_id": session_id,
+                "exists": False,
+                "total_points": 0,
+                "last_cumulative_time": 0.0,
+                "data_points": []
+            }
+
+    def list_all_sessions(self) -> dict:
+        """列出所有会话"""
+        sessions_info = {}
+        for session_id, session_data in self.sessions.items():
+            sessions_info[session_id] = {
+                "total_points": len(session_data["data_points"]),
+                "last_cumulative_time": session_data["last_cumulative_time"]
+            }
+        return {
+            "total_sessions": len(self.sessions),
+            "sessions": sessions_info
+        }
 
 def create_json_response(data, status_code=200):
     """创建UTF-8编码的JSON响应，确保中文正确显示"""
@@ -365,13 +458,22 @@ def process_extraction_adsorption_curve():
     """抽取式吸附曲线预警系统API接口"""
     try:
         # 获取JSON数据
-        json_data = request.get_json(force=True)
+        request_data = request.get_json(force=True)
         
-        if not json_data:
+        if not request_data:
             return create_json_response({"error": "未提供JSON数据"}, 400)
         
+        # 提取会话ID和数据
+        session_id = request_data.get('session_id', None)
+        json_data = request_data.get('data', request_data)
+        
+        # 如果整个请求就是数据数组，则使用整个请求作为数据
+        if isinstance(request_data, list):
+            json_data = request_data
+            session_id = None
+        
         # 处理数据
-        result = api_wrapper.process_json_data(json_data)
+        result = api_wrapper.process_json_data(json_data, session_id)
         
         # 根据状态返回不同的HTTP状态码
         if result.get("status") == "success":
@@ -407,8 +509,10 @@ def api_info():
         "endpoints": {
             "/api/extraction-adsorption-curve/process": {
                 "method": "POST",
-                "description": "处理抽取式吸附曲线数据，返回数据点坐标和预警点坐标",
+                "description": "处理抽取式吸附曲线数据，返回数据点坐标和预警点坐标，支持累加模式",
                 "input_format": {
+                    "session_id": "可选，会话ID，用于累加数据处理",
+                    "data": "数据数组，或直接发送数组格式",
                     "gVocs": "出口VOC浓度 -> 出口voc列",
                     "inVoc": "进口VOC浓度 -> 进口voc列", 
                     "gWindspeed": "风管内风速 -> 风管内风速值列",
@@ -417,9 +521,26 @@ def api_info():
                     "风量": "自动设置为1.0（算法内部需要，无需用户提供）"
                 },
                 "output_format": {
-                    "data_points": "数据点数组，包含x(时间)、y(穿透率)、label(标签)",
-                    "warning_points": "预警点数组，包含x(时间)、y(穿透率)，对应图像中的五角星标注点"
+                    "data_points": "数据点数组，包含x(累计时间)、y(穿透率)、label(标签)",
+                    "warning_points": "预警点数组，包含x(累计时间)、y(穿透率)，对应图像中的五角星标注点",
+                    "session_info": "会话信息，包含累计数据点和时间偏移信息"
+                },
+                "cumulative_mode": {
+                    "description": "累加模式说明：提供session_id时，每次处理的时间坐标会在上次的最后时间基础上累加",
+                    "example": "第一次返回x=[1,3,4,5]，第二次处理会在5的基础上累加，返回x=[6,8,9,10]"
                 }
+            },
+            "/api/extraction-adsorption-curve/session/<session_id>": {
+                "method": "GET",
+                "description": "获取指定会话的累积数据信息"
+            },
+            "/api/extraction-adsorption-curve/session/<session_id>": {
+                "method": "DELETE", 
+                "description": "重置指定会话，清除累积数据"
+            },
+            "/api/extraction-adsorption-curve/sessions": {
+                "method": "GET",
+                "description": "列出所有活跃会话"
             },
             "/api/extraction-adsorption-curve/health": {
                 "method": "GET",
@@ -433,10 +554,54 @@ def api_info():
     }
     return create_json_response(info_data)
 
+@app.route('/api/extraction-adsorption-curve/session/<session_id>', methods=['GET'])
+def get_session_info(session_id):
+    """获取指定会话信息"""
+    try:
+        session_info = api_wrapper.get_session_info(session_id)
+        return create_json_response(session_info)
+    except Exception as e:
+        error_result = {"error": f"获取会话信息失败: {str(e)}"}
+        return create_json_response(error_result, 500)
+
+@app.route('/api/extraction-adsorption-curve/session/<session_id>', methods=['DELETE'])
+def reset_session(session_id):
+    """重置指定会话"""
+    try:
+        success = api_wrapper.reset_session(session_id)
+        if success:
+            return create_json_response({"message": f"会话 {session_id} 已重置", "success": True})
+        else:
+            return create_json_response({"message": f"会话 {session_id} 不存在", "success": False}, 404)
+    except Exception as e:
+        error_result = {"error": f"重置会话失败: {str(e)}"}
+        return create_json_response(error_result, 500)
+
+@app.route('/api/extraction-adsorption-curve/sessions', methods=['GET'])
+def list_sessions():
+    """列出所有会话"""
+    try:
+        sessions_info = api_wrapper.list_all_sessions()
+        return create_json_response(sessions_info)
+    except Exception as e:
+        error_result = {"error": f"获取会话列表失败: {str(e)}"}
+        return create_json_response(error_result, 500)
+
 if __name__ == '__main__':
-    print("启动抽取式吸附曲线预警系统...")
-    print("API文档: http://localhost:5000/api/extraction-adsorption-curve/info")
-    print("健康检查: http://localhost:5000/api/extraction-adsorption-curve/health")
-    print("数据处理: POST http://localhost:5000/api/extraction-adsorption-curve/process")
+    print("启动抽取式吸附曲线预警系统（支持累加数据处理）...")
+    print("=" * 60)
+    print("📖 API端点:")
+    print("  API文档: http://localhost:5000/api/extraction-adsorption-curve/info")
+    print("  健康检查: http://localhost:5000/api/extraction-adsorption-curve/health")
+    print("  数据处理: POST http://localhost:5000/api/extraction-adsorption-curve/process")
+    print("  会话管理: GET/DELETE http://localhost:5000/api/extraction-adsorption-curve/session/<session_id>")
+    print("  会话列表: GET http://localhost:5000/api/extraction-adsorption-curve/sessions")
+    print("=" * 60)
+    print("🔄 累加模式使用说明:")
+    print("  1. 在请求中添加 'session_id' 字段来启用累加模式")
+    print("  2. 同一session_id的后续请求会在前次最后时间基础上累加")
+    print("  3. 例如第一次返回x=[1,3,4,5]，第二次会返回x=[6,8,9,10]等")
+    print("  4. 使用DELETE端点可以重置会话状态")
+    print("=" * 60)
     app.run(debug=True, host='0.0.0.0', port=5000)
 

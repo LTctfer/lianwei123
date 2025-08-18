@@ -1,0 +1,202 @@
+# AI违规检测系统类别配置文件
+# 用于YOLO模型训练和推理
+
+# 类别数量
+nc: 10
+
+# 类别名称
+names:
+  0: dust_emission          # 工地扬尘
+  1: uncovered_soil         # 裸土未覆盖
+  2: no_dust_suppression    # 土方作业未降尘
+  3: night_construction     # 夜间违规施工
+  4: outdoor_barbecue       # 露天烧烤
+  5: garbage_burning        # 垃圾焚烧
+  6: uncovered_truck        # 渣土车未覆盖
+  7: no_helmet              # 未戴安全帽
+  8: unsafe_operation       # 不安全操作
+  9: restricted_area        # 禁入区域
+
+# 类别详细信息
+class_details:
+  dust_emission:
+    chinese_name: "工地扬尘"
+    category: "construction"
+    priority: "high"
+    description: "工地施工过程中产生的粉尘污染"
+    detection_tips: "关注施工区域的灰尘云、粉尘飞扬现象"
+    
+  uncovered_soil:
+    chinese_name: "裸土未覆盖"
+    category: "construction"
+    priority: "medium"
+    description: "裸露土地未进行防尘覆盖"
+    detection_tips: "识别未覆盖防尘网或绿化的裸露土地"
+    
+  no_dust_suppression:
+    chinese_name: "土方作业未降尘"
+    category: "construction"
+    priority: "high"
+    description: "土方作业过程中未采取洒水等降尘措施"
+    detection_tips: "观察挖掘、运输过程中是否有降尘设备工作"
+    
+  night_construction:
+    chinese_name: "夜间违规施工"
+    category: "construction"
+    priority: "medium"
+    description: "在禁止时间段进行施工作业"
+    detection_tips: "结合时间信息和施工设备运行状态判断"
+    
+  outdoor_barbecue:
+    chinese_name: "露天烧烤"
+    category: "pollution"
+    priority: "medium"
+    description: "在禁止区域进行露天烧烤活动"
+    detection_tips: "识别烧烤架、炭火、烟雾等特征"
+    
+  garbage_burning:
+    chinese_name: "垃圾焚烧"
+    category: "pollution"
+    priority: "critical"
+    description: "非法焚烧垃圾造成空气污染"
+    detection_tips: "识别垃圾堆、火焰、黑烟等特征"
+    
+  uncovered_truck:
+    chinese_name: "渣土车未覆盖"
+    category: "pollution"
+    priority: "high"
+    description: "运输车辆未加盖篷布防止扬尘"
+    detection_tips: "检查货车车厢是否有篷布覆盖"
+    
+  no_helmet:
+    chinese_name: "未戴安全帽"
+    category: "safety"
+    priority: "medium"
+    description: "施工人员未佩戴安全帽"
+    detection_tips: "识别人员头部是否佩戴安全帽"
+    
+  unsafe_operation:
+    chinese_name: "不安全操作"
+    category: "safety"
+    priority: "high"
+    description: "违反安全操作规程的行为"
+    detection_tips: "识别危险操作姿势、违规使用设备等"
+    
+  restricted_area:
+    chinese_name: "禁入区域"
+    category: "safety"
+    priority: "medium"
+    description: "人员或车辆进入禁止区域"
+    detection_tips: "结合区域标识和人员/车辆位置判断"
+
+# 训练配置
+train_config:
+  # 数据增强
+  augmentation:
+    hsv_h: 0.015
+    hsv_s: 0.7
+    hsv_v: 0.4
+    degrees: 0.0
+    translate: 0.1
+    scale: 0.5
+    shear: 0.0
+    perspective: 0.0
+    flipud: 0.0
+    fliplr: 0.5
+    mosaic: 1.0
+    mixup: 0.0
+    
+  # 超参数
+  hyperparameters:
+    lr0: 0.01
+    lrf: 0.01
+    momentum: 0.937
+    weight_decay: 0.0005
+    warmup_epochs: 3.0
+    warmup_momentum: 0.8
+    warmup_bias_lr: 0.1
+    box: 0.05
+    cls: 0.5
+    cls_pw: 1.0
+    obj: 1.0
+    obj_pw: 1.0
+    iou_t: 0.20
+    anchor_t: 4.0
+    fl_gamma: 0.0
+    
+  # 训练参数
+  training:
+    epochs: 300
+    batch_size: 16
+    imgsz: 640
+    patience: 100
+    save_period: -1
+    workers: 8
+    project: "violation_detection"
+    name: "exp"
+
+# 推理配置
+inference_config:
+  confidence_threshold: 0.5
+  iou_threshold: 0.45
+  max_detections: 1000
+  agnostic_nms: False
+  multi_label: False
+  
+# 后处理配置
+postprocess_config:
+  # 过滤规则
+  filters:
+    min_area: 100          # 最小检测区域面积
+    max_area: 500000       # 最大检测区域面积
+    min_confidence: 0.3    # 最小置信度
+    aspect_ratio_range: [0.1, 10.0]  # 宽高比范围
+    
+  # 合并规则
+  merge_rules:
+    same_class_iou: 0.5    # 同类别目标合并的IoU阈值
+    different_class_iou: 0.3  # 不同类别目标合并的IoU阈值
+    
+  # 报警规则
+  alert_rules:
+    dust_emission:
+      min_confidence: 0.6
+      min_area: 1000
+      alert_level: "high"
+      
+    garbage_burning:
+      min_confidence: 0.7
+      min_area: 500
+      alert_level: "critical"
+      
+    uncovered_truck:
+      min_confidence: 0.5
+      min_area: 2000
+      alert_level: "high"
+      
+    night_construction:
+      min_confidence: 0.6
+      time_range: ["22:00", "06:00"]
+      alert_level: "medium"
+
+# 评估指标
+evaluation_metrics:
+  - "precision"
+  - "recall"
+  - "mAP@0.5"
+  - "mAP@0.5:0.95"
+  - "F1-score"
+  
+# 数据集路径（训练时使用）
+dataset_paths:
+  train: "datasets/violation_detection/train"
+  val: "datasets/violation_detection/val"
+  test: "datasets/violation_detection/test"
+  
+# 预训练模型
+pretrained_models:
+  yolov8n: "yolov8n.pt"
+  yolov8s: "yolov8s.pt"
+  yolov8m: "yolov8m.pt"
+  yolov8l: "yolov8l.pt"
+  yolov8x: "yolov8x.pt"

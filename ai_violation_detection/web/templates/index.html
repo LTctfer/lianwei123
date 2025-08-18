@@ -1,0 +1,508 @@
+{% extends "base.html" %}
+
+{% block title %}AI违规检测系统 - 智能识别违规行为{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-primary">
+                <i class="fas fa-eye me-3"></i>AI违规检测系统
+            </h1>
+            <p class="lead text-muted">
+                基于深度学习技术，智能识别工地扬尘、违规施工、环境污染等违规行为
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- 功能介绍卡片 -->
+<div class="row mb-5">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-industry fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">工地监控</h5>
+                <p class="card-text">检测工地扬尘、裸土未覆盖、土方作业未降尘、夜间违规施工等行为</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-leaf fa-3x text-success mb-3"></i>
+                <h5 class="card-title">环境保护</h5>
+                <p class="card-text">识别露天烧烤、垃圾焚烧、渣土车未覆盖等环境污染事件</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-bell fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">智能报警</h5>
+                <p class="card-text">自动生成报警信息，支持多级别报警和实时通知</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 图像上传区域 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-upload me-2"></i>图像检测
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt fa-4x text-muted mb-3"></i>
+                        <h4>拖拽图片到此处或点击选择文件</h4>
+                        <p class="text-muted">支持 JPG, PNG, GIF, BMP 格式，最大 16MB</p>
+                        <input type="file" id="fileInput" name="file" accept="image/*" style="display: none;">
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-folder-open me-2"></i>选择图片
+                        </button>
+                    </div>
+                    
+                    <!-- 检测参数 -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <label for="confidenceSlider" class="form-label">
+                                置信度阈值: <span id="confidenceValue">0.5</span>
+                            </label>
+                            <input type="range" class="form-range" id="confidenceSlider" 
+                                   min="0.1" max="0.9" step="0.1" value="0.5">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="dustDetection" checked>
+                                <label class="form-check-label" for="dustDetection">
+                                    启用扬尘专项检测
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg" id="analyzeBtn">
+                            <i class="fas fa-search me-2"></i>开始检测
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- 加载动画 -->
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">检测中...</span>
+                    </div>
+                    <p class="mt-3">AI正在分析图像，请稍候...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 检测结果区域 -->
+<div id="resultSection" style="display: none;">
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>检测结果
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- 统计信息 -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-number" id="totalViolations">0</div>
+                                <div>违规行为</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-number" id="processingTime">0</div>
+                                <div>处理时间(秒)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-number" id="maxConfidence">0</div>
+                                <div>最高置信度</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-number" id="alertCount">0</div>
+                                <div>报警数量</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 图像对比 -->
+                    <div class="image-comparison">
+                        <div class="col-md-6">
+                            <h6>原始图像</h6>
+                            <img id="originalImage" src="" alt="原始图像" class="img-fluid">
+                        </div>
+                        <div class="col-md-6">
+                            <h6>检测结果</h6>
+                            <img id="resultImage" src="" alt="检测结果" class="img-fluid">
+                        </div>
+                    </div>
+                    
+                    <!-- 违规详情 -->
+                    <div class="mt-4">
+                        <h6>检测到的违规行为:</h6>
+                        <div id="violationsList"></div>
+                    </div>
+                    
+                    <!-- 报警信息 -->
+                    <div class="mt-4" id="alertsSection">
+                        <h6>生成的报警:</h6>
+                        <div id="alertsList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 实时检测区域 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-video me-2"></i>实时检测 (摄像头)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <video id="videoElement" width="640" height="480" style="display: none; border-radius: 10px;"></video>
+                    <canvas id="canvasElement" width="640" height="480" style="display: none; border-radius: 10px;"></canvas>
+                    
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-success me-2" id="startCameraBtn">
+                            <i class="fas fa-play me-2"></i>启动摄像头
+                        </button>
+                        <button type="button" class="btn btn-danger me-2" id="stopCameraBtn" style="display: none;">
+                            <i class="fas fa-stop me-2"></i>停止检测
+                        </button>
+                        <button type="button" class="btn btn-info" id="captureBtn" style="display: none;">
+                            <i class="fas fa-camera me-2"></i>拍照检测
+                        </button>
+                    </div>
+                    
+                    <div id="realtimeResults" class="mt-3" style="display: none;">
+                        <div class="alert alert-info">
+                            <strong>实时检测状态:</strong> <span id="realtimeStatus">准备中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 置信度滑块
+    $('#confidenceSlider').on('input', function() {
+        $('#confidenceValue').text($(this).val());
+    });
+    
+    // 文件拖拽上传
+    const uploadArea = $('#uploadArea');
+    const fileInput = $('#fileInput');
+    
+    uploadArea.on('dragover', function(e) {
+        e.preventDefault();
+        $(this).addClass('dragover');
+    });
+    
+    uploadArea.on('dragleave', function(e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+    });
+    
+    uploadArea.on('drop', function(e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+        
+        const files = e.originalEvent.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput[0].files = files;
+            handleFileUpload();
+        }
+    });
+    
+    uploadArea.on('click', function() {
+        fileInput.click();
+    });
+    
+    fileInput.on('change', function() {
+        if (this.files.length > 0) {
+            handleFileUpload();
+        }
+    });
+    
+    // 表单提交
+    $('#uploadForm').on('submit', function(e) {
+        e.preventDefault();
+        handleFileUpload();
+    });
+    
+    function handleFileUpload() {
+        const file = fileInput[0].files[0];
+        if (!file) {
+            showAlert('请选择一个图片文件', 'warning');
+            return;
+        }
+        
+        // 显示加载动画
+        $('#loadingSpinner').show();
+        $('#analyzeBtn').prop('disabled', true);
+        $('#resultSection').hide();
+        
+        // 准备表单数据
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('confidence', $('#confidenceSlider').val());
+        formData.append('dust_detection', $('#dustDetection').is(':checked'));
+        
+        // 发送请求
+        $.ajax({
+            url: '/upload',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                displayResults(response);
+                showAlert('检测完成！', 'success');
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON ? xhr.responseJSON.error : '检测失败';
+                showAlert(error, 'danger');
+            },
+            complete: function() {
+                $('#loadingSpinner').hide();
+                $('#analyzeBtn').prop('disabled', false);
+            }
+        });
+    }
+    
+    function displayResults(data) {
+        // 显示统计信息
+        $('#totalViolations').text(data.total_violations);
+        $('#processingTime').text(data.processing_time.toFixed(2));
+        
+        const maxConf = Math.max(...data.detection_result.detections.map(d => d.confidence));
+        $('#maxConfidence').text((maxConf * 100).toFixed(1) + '%');
+        $('#alertCount').text(data.alerts.length);
+        
+        // 显示图像
+        $('#originalImage').attr('src', data.original_image);
+        $('#resultImage').attr('src', data.result_image);
+        
+        // 显示违规列表
+        displayViolations(data.detection_result.detections, data.dust_result);
+        
+        // 显示报警列表
+        displayAlerts(data.alerts);
+        
+        // 显示结果区域
+        $('#resultSection').show();
+    }
+    
+    function displayViolations(detections, dustResult) {
+        const violationsList = $('#violationsList');
+        violationsList.empty();
+        
+        detections.forEach(function(detection) {
+            const badge = $(`
+                <span class="violation-badge ${getViolationBadgeClass(detection.alert_level)}">
+                    <i class="${getViolationIcon(detection.class_name)} me-2"></i>
+                    ${getViolationName(detection.class_name)}
+                    <span class="badge bg-light text-dark ms-2">${(detection.confidence * 100).toFixed(1)}%</span>
+                </span>
+            `);
+            violationsList.append(badge);
+        });
+        
+        // 添加扬尘检测结果
+        if (dustResult && dustResult.dust_detected) {
+            dustResult.detections.forEach(function(dust) {
+                const badge = $(`
+                    <span class="violation-badge ${getViolationBadgeClass(dust.alert_level)}">
+                        <i class="fas fa-smog me-2"></i>
+                        扬尘检测
+                        <span class="badge bg-light text-dark ms-2">${(dust.confidence * 100).toFixed(1)}%</span>
+                    </span>
+                `);
+                violationsList.append(badge);
+            });
+        }
+        
+        if (violationsList.children().length === 0) {
+            violationsList.html('<div class="alert alert-success">未检测到违规行为</div>');
+        }
+    }
+    
+    function displayAlerts(alerts) {
+        const alertsList = $('#alertsList');
+        alertsList.empty();
+        
+        if (alerts.length === 0) {
+            alertsList.html('<div class="alert alert-info">无报警信息</div>');
+            return;
+        }
+        
+        alerts.forEach(function(alert) {
+            const alertCard = $(`
+                <div class="alert alert-${alert.alert_level === 'critical' ? 'danger' : 
+                                      alert.alert_level === 'high' ? 'warning' : 'info'} mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong><i class="${getViolationIcon(alert.violation_type)} me-2"></i>${alert.message}</strong>
+                            <p class="mb-1 mt-2">${alert.recommended_action}</p>
+                            <small class="text-muted">检测时间: ${formatTimestamp(alert.timestamp)}</small>
+                        </div>
+                        <span class="badge bg-${alert.alert_level === 'critical' ? 'danger' : 
+                                                alert.alert_level === 'high' ? 'warning' : 'info'}">${alert.alert_level}</span>
+                    </div>
+                </div>
+            `);
+            alertsList.append(alertCard);
+        });
+    }
+    
+    // 实时检测功能
+    let stream = null;
+    let detectionInterval = null;
+    
+    $('#startCameraBtn').on('click', function() {
+        startCamera();
+    });
+    
+    $('#stopCameraBtn').on('click', function() {
+        stopCamera();
+    });
+    
+    $('#captureBtn').on('click', function() {
+        captureAndDetect();
+    });
+    
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(mediaStream) {
+                stream = mediaStream;
+                const video = $('#videoElement')[0];
+                video.srcObject = stream;
+                video.play();
+                
+                $('#videoElement').show();
+                $('#startCameraBtn').hide();
+                $('#stopCameraBtn, #captureBtn').show();
+                $('#realtimeResults').show();
+                $('#realtimeStatus').text('摄像头已启动');
+                
+                // 开始实时检测（每3秒检测一次）
+                detectionInterval = setInterval(function() {
+                    performRealtimeDetection();
+                }, 3000);
+            })
+            .catch(function(error) {
+                showAlert('无法访问摄像头: ' + error.message, 'danger');
+            });
+    }
+    
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        
+        if (detectionInterval) {
+            clearInterval(detectionInterval);
+            detectionInterval = null;
+        }
+        
+        $('#videoElement').hide();
+        $('#startCameraBtn').show();
+        $('#stopCameraBtn, #captureBtn').hide();
+        $('#realtimeResults').hide();
+    }
+    
+    function captureAndDetect() {
+        const video = $('#videoElement')[0];
+        const canvas = $('#canvasElement')[0];
+        const ctx = canvas.getContext('2d');
+        
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob(function(blob) {
+            const formData = new FormData();
+            formData.append('file', blob, 'capture.jpg');
+            formData.append('confidence', $('#confidenceSlider').val());
+            formData.append('dust_detection', $('#dustDetection').is(':checked'));
+            
+            $.ajax({
+                url: '/upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    displayResults(response);
+                    showAlert('拍照检测完成！', 'success');
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON ? xhr.responseJSON.error : '检测失败';
+                    showAlert(error, 'danger');
+                }
+            });
+        }, 'image/jpeg');
+    }
+    
+    function performRealtimeDetection() {
+        const video = $('#videoElement')[0];
+        const canvas = $('#canvasElement')[0];
+        const ctx = canvas.getContext('2d');
+        
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const imageData = canvas.toDataURL('image/jpeg');
+        
+        $.ajax({
+            url: '/detect_realtime',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ image_data: imageData }),
+            success: function(response) {
+                const violations = response.total_violations;
+                $('#realtimeStatus').text(`检测中... 发现 ${violations} 个违规行为`);
+                
+                if (violations > 0) {
+                    $('#realtimeStatus').addClass('text-danger');
+                } else {
+                    $('#realtimeStatus').removeClass('text-danger');
+                }
+            },
+            error: function() {
+                $('#realtimeStatus').text('实时检测出错');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -211,22 +211,22 @@ class EnhancedPollutionTracingSystem:
             return AdaptiveGAParameters(**base_params)
         
         elif variant == 'adaptive':
+            # 使用自适应参数：调整多样性阈值和停滞阈值
             return AdaptiveGAParameters(
                 **base_params,
-                adaptive_mutation=True,
                 diversity_threshold=0.1,
                 stagnation_threshold=50
             )
-        
+
         elif variant == 'multi_objective':
+            # 近似多目标设置：增大种群并略微减少代数，同时提高多样性
             return AdaptiveGAParameters(
                 **base_params,
                 population_size=int(base_params['population_size'] * 1.5),
                 max_generations=int(base_params['max_generations'] * 0.8),
-                adaptive_mutation=True,
                 diversity_threshold=0.15
             )
-        
+
         else:
             return AdaptiveGAParameters(**base_params)
     
@@ -562,13 +562,17 @@ class EnhancedPollutionTracingSystem:
             }
 
         # 性能总结
+        # 计算平均计算时间
+        average_computation_time = np.mean([r.computation_time for r in results.values()]) if results else 0.0
+
         report['performance_summary'] = {
             'best_algorithm': best_algorithm,
             'best_score': best_score,
             'total_algorithms_tested': len(results),
-            'average_position_error': np.mean([r.position_error for r in results.values()]),
-            'average_emission_error': np.mean([r.emission_error for r in results.values()]),
-            'total_computation_time': sum([r.computation_time for r in results.values()])
+            'average_position_error': np.mean([r.position_error for r in results.values()]) if results else 0.0,
+            'average_emission_error': np.mean([r.emission_error for r in results.values()]) if results else 0.0,
+            'average_computation_time': float(average_computation_time),
+            'total_computation_time': float(sum([r.computation_time for r in results.values()]))
         }
 
         # 生成建议

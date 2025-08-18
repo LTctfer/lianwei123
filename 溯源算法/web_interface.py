@@ -355,22 +355,22 @@ class WebInterface:
             # 位置误差对比
             pos_errors = [results[alg].position_error for alg in algorithms]
             fig1 = px.bar(x=algorithms, y=pos_errors, title="位置误差对比")
-            fig1.update_yaxis(title="位置误差 (m)")
+            fig1.update_layout(yaxis_title="位置误差 (m)")
             st.plotly_chart(fig1, use_container_width=True)
-        
+
         with col2:
             # 计算时间对比
             comp_times = [results[alg].computation_time for alg in algorithms]
             fig2 = px.bar(x=algorithms, y=comp_times, title="计算时间对比")
-            fig2.update_yaxis(title="计算时间 (s)")
+            fig2.update_layout(yaxis_title="计算时间 (s)")
             st.plotly_chart(fig2, use_container_width=True)
-        
+
         # 目标函数值对比（对数尺度）
         obj_values = [results[alg].objective_value for alg in algorithms]
         fig3 = px.bar(x=algorithms, y=obj_values, title="目标函数值对比", log_y=True)
-        fig3.update_yaxis(title="目标函数值 (对数尺度)")
+        fig3.update_layout(yaxis_title="目标函数值 (对数尺度)")
         st.plotly_chart(fig3, use_container_width=True)
-    
+
     def _show_concentration_field(self, analysis_data):
         """显示浓度场分布"""
         

@@ -1,0 +1,25 @@
+{
+  "timestamp": "2025-08-18T17:03:35.584574",
+  "scenario": "headless_standard",
+  "run_seconds": 36.89,
+  "algorithms": [
+    "standard"
+  ],
+  "standard": {
+    "position": [
+      145.9538499010457,
+      198.1357396090208,
+      21.04004346357779
+    ],
+    "emission_rate": 2.233785487013588,
+    "objective_value": 0.010826203880584601,
+    "position_error": 0.0,
+    "emission_error": 0.0,
+    "computation_time": 34.60756731033325
+  },
+  "log": [
+    "Init config",
+    "Create scenario",
+    "Run inversion (standard only)"
+  ]
+}

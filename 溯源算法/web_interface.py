@@ -251,9 +251,9 @@ class WebInterface:
                 progress_bar.progress(40)
                 
                 results = self.system.run_enhanced_inversion(
-                    sensor_data, meteo_data, self.selected_algorithms
+                    sensor_data, meteo_data, self.selected_algorithms, true_source
                 )
-                
+
                 # 创建可视化
                 status_text.text("生成可视化...")
                 progress_bar.progress(70)
@@ -291,24 +291,32 @@ class WebInterface:
             
             results = st.session_state.analysis_results['results']
             
-            # 创建结果表格
+            # 创建结果表格（含反算位置与坐标误差分解）
+            true_source = st.session_state.analysis_results['true_source']
             result_data = []
             for algorithm, result in results.items():
+                dx = result.source_x - true_source.x
+                dy = result.source_y - true_source.y
+                dz = result.source_z - true_source.z
                 result_data.append({
                     '算法': algorithm,
+                    '反算位置 (x,y,z)': f"({result.source_x:.1f}, {result.source_y:.1f}, {result.source_z:.1f})",
+                    'dx (m)': f"{dx:.2f}",
+                    'dy (m)': f"{dy:.2f}",
+                    'dz (m)': f"{dz:.2f}",
                     '位置误差 (m)': f"{result.position_error:.2f}",
                     '源强误差 (%)': f"{result.emission_error:.2f}",
                     '计算时间 (s)': f"{result.computation_time:.2f}",
                     '目标函数值': f"{result.objective_value:.2e}"
                 })
-            
+
             df = pd.DataFrame(result_data)
             st.dataframe(df, use_container_width=True)
-            
+
             # 最佳算法
             best_algorithm = min(results.items(), key=lambda x: x[1].objective_value)
             st.info(f"奖杯 最佳算法: {best_algorithm[0]} (目标函数值: {best_algorithm[1].objective_value:.2e})")
-    
+
     def _result_visualization(self):
         """结果可视化界面"""
         
@@ -328,19 +336,32 @@ class WebInterface:
         
         if viz_option == "算法性能对比":
             self._show_performance_comparison(analysis_data)
-        
+
         elif viz_option == "浓度场分布":
             self._show_concentration_field(analysis_data)
-        
+
         elif viz_option == "收敛过程":
             self._show_convergence_process(analysis_data)
-        
+
         elif viz_option == "传感器分布":
             self._show_sensor_distribution(analysis_data)
-        
+
         elif viz_option == "误差分析":
             self._show_error_analysis(analysis_data)
-    
+
+        # 显示反算污染源位置信息
+        true_source = analysis_data['true_source']
+        best_alg, best_res = min(analysis_data['results'].items(), key=lambda kv: kv[1].objective_value)
+        st.markdown("---")
+        st.subheader("反算污染源位置信息")
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            st.metric("真实位置 (x, y, z)", f"({true_source.x:.1f}, {true_source.y:.1f}, {true_source.z:.1f}) m")
+        with col_b:
+            st.metric("反算位置 (x, y, z)", f"({best_res.source_x:.1f}, {best_res.source_y:.1f}, {best_res.source_z:.1f}) m")
+        with col_c:
+            st.metric("位置误差 (m)", f"{best_res.position_error:.2f}")
+
     def _show_performance_comparison(self, analysis_data):
         """显示性能对比"""
         
@@ -441,15 +462,27 @@ class WebInterface:
         ])
         
         fig = px.scatter(
-            df, x='x', y='y', 
+            df, x='x', y='y',
             color='concentration',
             size='concentration',
             hover_data=['sensor_id'],
             title="传感器分布及浓度"
         )
-        
+
+        # 叠加真实污染源与最佳反算结果位置
+        true_source = analysis_data['true_source']
+        best_alg, best_res = min(analysis_data['results'].items(), key=lambda kv: kv[1].objective_value)
+        fig.add_trace(
+            go.Scatter(x=[true_source.x], y=[true_source.y], mode='markers',
+                       marker=dict(color='red', size=12, symbol='x'),
+                       name='真实污染源'))
+        fig.add_trace(
+            go.Scatter(x=[best_res.source_x], y=[best_res.source_y], mode='markers',
+                       marker=dict(color='cyan', size=12, symbol='circle-open-dot'),
+                       name=f'反算结果 ({best_alg})'))
+
         st.plotly_chart(fig, use_container_width=True)
-    
+
     def _show_error_analysis(self, analysis_data):
         """显示误差分析"""
         

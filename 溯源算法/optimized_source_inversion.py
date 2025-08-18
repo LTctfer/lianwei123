@@ -12,7 +12,7 @@ from matplotlib.patches import Circle
 import seaborn as sns
 
 from gaussian_plume_model import GaussianPlumeModel, PollutionSource, MeteoData
-from optimized_genetic_algorithm import OptimizedGeneticPatternSearch, AdaptiveGAParameters, OptimizedIndividual
+from optimized_genetic_algorithm import OptimizedGeneticPatternSearch, AdaptiveGAParameters, OptimizedIndividual, OptimizedPatternSearch
 
 # 设置中文字体
 plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei']
@@ -285,27 +285,85 @@ class OptimizedSourceInversion:
             self.search_bounds['q']
         ]
         
-        # 执行优化
+        # 执行优化（全局搜索）
         best_individual, convergence_history = self.optimizer.optimize(
             objective_func=self.weighted_objective_function,
             bounds=bounds,
             verbose=verbose,
             enable_visualization=enable_visualization
         )
-        
+
+        # 局部精修（粗到细，归一化坐标系）
+        try:
+            # 归一化/反归一化工具
+            def real_to_norm(arr):
+                arr = np.array(arr, dtype=float)
+                return np.array([
+                    (arr[i] - bounds[i][0]) / (bounds[i][1] - bounds[i][0] + 1e-12)
+                    for i in range(len(arr))
+                ])
+
+            def norm_to_real(arr):
+                arr = np.array(arr, dtype=float)
+                return np.array([
+                    bounds[i][0] + arr[i] * (bounds[i][1] - bounds[i][0])
+                    for i in range(len(arr))
+                ])
+
+            # 归一化目标函数
+            def objective_on_norm(u):
+                genes = norm_to_real(u)
+                return self.weighted_objective_function(genes)
+
+            # 初始点（来自全局最优）
+            u0 = real_to_norm(best_individual.genes)
+            u0 = np.clip(u0, 0.0, 1.0)
+
+            pattern = OptimizedPatternSearch(step_size=0.08, contraction_factor=0.6)
+            improved = pattern.adaptive_search(
+                OptimizedIndividual(genes=u0.copy()),
+                objective_on_norm,
+                bounds=[(0.0, 1.0)] * len(u0)
+            )
+            refined_genes = norm_to_real(improved.genes)
+            refined_value = self.weighted_objective_function(refined_genes)
+
+            # 多次随机邻域重启，避免局部极小
+            for _ in range(3):
+                noise = np.random.normal(0, 0.02, size=len(u0))
+                u_try = np.clip(improved.genes + noise, 0.0, 1.0)
+                cand = pattern.adaptive_search(
+                    OptimizedIndividual(genes=u_try),
+                    objective_on_norm,
+                    bounds=[(0.0, 1.0)] * len(u0)
+                )
+                cand_genes = norm_to_real(cand.genes)
+                cand_val = self.weighted_objective_function(cand_genes)
+                if cand_val < refined_value:
+                    refined_genes, refined_value = cand_genes, cand_val
+
+            # 若精修更优，则更新最优解
+            if refined_value < best_individual.objective_value:
+                best_individual = OptimizedIndividual(genes=refined_genes)
+                best_individual.objective_value = refined_value
+                convergence_history.append(refined_value)
+        except Exception:
+            # 精修失败时忽略，保留全局结果
+            pass
+
         computation_time = time.time() - start_time
-        
+
         # 计算性能指标
         cache_hit_rate = self.cache_hit_count / max(self.evaluation_count, 1) * 100
-        evaluations_per_second = self.evaluation_count / computation_time
-        
+        evaluations_per_second = self.evaluation_count / max(computation_time, 1e-9)
+
         performance_metrics = {
             'total_evaluations': self.evaluation_count,
             'cache_hit_rate': cache_hit_rate,
             'evaluations_per_second': evaluations_per_second,
             'convergence_generations': len(convergence_history)
         }
-        
+
         # 计算误差（如果提供了真实源）
         position_error = 0.0
         emission_error = 0.0

@@ -32,7 +32,7 @@ class PollutionSourceVisualizer:
             'pollution', ['blue', 'green', 'yellow', 'orange', 'red'], N=256
         )
     
-    def plot_concentration_field(self, 
+    def plot_concentration_field(self,
                                source: PollutionSource,
                                meteo_data: MeteoData,
                                x_range: Tuple[float, float] = (-500, 500),
@@ -40,10 +40,12 @@ class PollutionSourceVisualizer:
                                z_height: float = 2.0,
                                grid_size: int = 100,
                                sensor_data: Optional[List[OptimizedSensorData]] = None,
-                               save_path: Optional[str] = None) -> plt.Figure:
+                               save_path: Optional[str] = None,
+                               ax: Optional[plt.Axes] = None,
+                               title: Optional[str] = None) -> plt.Figure:
         """
         绘制污染物浓度场
-        
+
         Args:
             source: 污染源
             meteo_data: 气象数据
@@ -53,7 +55,9 @@ class PollutionSourceVisualizer:
             grid_size: 网格大小
             sensor_data: 传感器数据
             save_path: 保存路径
-            
+            ax: 可选的matplotlib子图轴对象；提供时在该子图上绘制
+            title: 可选的标题；提供时使用该标题
+
         Returns:
             matplotlib图形对象
         """
@@ -61,68 +65,73 @@ class PollutionSourceVisualizer:
         X, Y, concentration_field = self.gaussian_model.calculate_concentration_field(
             source, x_range, y_range, z_height, grid_size, meteo_data
         )
-        
-        # 创建图形
-        fig, ax = plt.subplots(figsize=(12, 10))
-        
+
+        # 创建或复用图形/子图
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(12, 10))
+        else:
+            fig = ax.figure
+
         # 绘制浓度等高线和填充
-        levels = np.logspace(np.log10(max(1e-3, concentration_field.min())), 
-                           np.log10(concentration_field.max()), 20)
-        
-        contour_filled = ax.contourf(X, Y, concentration_field, levels=levels, 
+        levels = np.logspace(np.log10(max(1e-3, concentration_field.min())),
+                           np.log10(max(1e-3 + 1e-12, concentration_field.max())), 20)
+
+        contour_filled = ax.contourf(X, Y, concentration_field, levels=levels,
                                    cmap=self.concentration_cmap, alpha=0.8)
-        contour_lines = ax.contour(X, Y, concentration_field, levels=levels, 
-                                 colors='black', alpha=0.3, linewidths=0.5)
-        
+        ax.contour(X, Y, concentration_field, levels=levels,
+                   colors='black', alpha=0.3, linewidths=0.5)
+
         # 添加颜色条
-        cbar = plt.colorbar(contour_filled, ax=ax, shrink=0.8)
+        cbar = fig.colorbar(contour_filled, ax=ax, shrink=0.8)
         cbar.set_label('污染物浓度 (μg/m³)', fontsize=12)
-        
+
         # 标记污染源位置
         ax.plot(source.x, source.y, 'r*', markersize=20, label=f'污染源 (q={source.emission_rate:.3f}g/s)')
-        
+
         # 绘制传感器位置和观测值
         if sensor_data:
+            max_conc = max(s.concentration for s in sensor_data) if sensor_data else 1.0
             for sensor in sensor_data:
-                color = plt.cm.viridis(sensor.concentration / max(s.concentration for s in sensor_data))
-                ax.plot(sensor.x, sensor.y, 'o', color=color, markersize=8, 
+                color = plt.cm.viridis(sensor.concentration / max_conc if max_conc > 0 else 0)
+                ax.plot(sensor.x, sensor.y, 'o', color=color, markersize=8,
                        markeredgecolor='white', markeredgewidth=1)
-                ax.annotate(f'{sensor.concentration:.1f}', 
-                          (sensor.x, sensor.y), xytext=(5, 5), 
+                ax.annotate(f'{sensor.concentration:.1f}',
+                          (sensor.x, sensor.y), xytext=(5, 5),
                           textcoords='offset points', fontsize=8,
                           bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7))
-        
+
         # 绘制风向箭头
         wind_arrow_length = min(x_range[1] - x_range[0], y_range[1] - y_range[0]) * 0.1
         wind_x = wind_arrow_length * np.sin(np.radians(meteo_data.wind_direction))
         wind_y = wind_arrow_length * np.cos(np.radians(meteo_data.wind_direction))
-        
+
         arrow_start_x = x_range[0] + (x_range[1] - x_range[0]) * 0.85
         arrow_start_y = y_range[1] - (y_range[1] - y_range[0]) * 0.15
-        
+
         ax.arrow(arrow_start_x, arrow_start_y, wind_x, wind_y,
                 head_width=20, head_length=30, fc='blue', ec='blue', alpha=0.7)
-        ax.text(arrow_start_x, arrow_start_y - 50, 
+        ax.text(arrow_start_x, arrow_start_y - 50,
                f'风向: {meteo_data.wind_direction}°\n风速: {meteo_data.wind_speed}m/s',
-               fontsize=10, ha='center', 
+               fontsize=10, ha='center',
                bbox=dict(boxstyle='round,pad=0.5', facecolor='lightblue', alpha=0.7))
-        
+
         # 设置图形属性
         ax.set_xlabel('X坐标 (m)', fontsize=12)
         ax.set_ylabel('Y坐标 (m)', fontsize=12)
-        ax.set_title(f'污染物浓度分布 (高度: {z_height}m)', fontsize=14, fontweight='bold')
+        ax.set_title(title or f'污染物浓度分布 (高度: {z_height}m)', fontsize=14, fontweight='bold')
         ax.grid(True, alpha=0.3)
         ax.legend(loc='upper left')
         ax.set_aspect('equal')
-        
-        plt.tight_layout()
-        
+
+        if ax is None:
+            plt.tight_layout()
+
         if save_path:
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            fig.savefig(save_path, dpi=300, bbox_inches='tight')
             print(f"浓度场图已保存至: {save_path}")
-        
+
         return fig
-    
+
     def plot_inversion_results(self, 
                              result: OptimizedInversionResult,
                              sensor_data: List[OptimizedSensorData],

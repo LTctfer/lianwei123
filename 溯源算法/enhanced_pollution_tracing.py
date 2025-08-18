@@ -220,12 +220,11 @@ class EnhancedPollutionTracingSystem:
 
         elif variant == 'multi_objective':
             # 近似多目标设置：增大种群并略微减少代数，同时提高多样性
-            return AdaptiveGAParameters(
-                **base_params,
-                population_size=int(base_params['population_size'] * 1.5),
-                max_generations=int(base_params['max_generations'] * 0.8),
-                diversity_threshold=0.15
-            )
+            mo_params = dict(base_params)
+            mo_params['population_size'] = int(base_params['population_size'] * 1.5)
+            mo_params['max_generations'] = int(base_params['max_generations'] * 0.8)
+            mo_params['diversity_threshold'] = 0.15
+            return AdaptiveGAParameters(**mo_params)
 
         else:
             return AdaptiveGAParameters(**base_params)

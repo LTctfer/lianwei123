@@ -56,33 +56,21 @@ POST /api/extraction-adsorption-curve/process
     {
       "x": 5.25,  // X轴：累计运行时间（小时）
       "y": 12.5,  // Y轴：穿透率（%）
-      "description": "时间段: 时间段1\n累积时长: 5.25小时\n穿透率: 12.5%"  // 描述信息
+      "description": "时间段: 时间段1, 累积时长: 5.25小时, 穿透率: 12.5%"  // 描述信息
     },
     {
       "x": 6.80,
       "y": 18.3,
-      "description": "时间段: 时间段2\n累积时长: 6.80小时\n穿透率: 18.3%"
-    }
-  ],
-  "all_accumulated_points": [  // 累加模式下的所有累积数据点（仅当提供session_id时）
-    {
-      "x": 1.25,
-      "y": 8.2,
-      "description": "时间段: 时间段1\n累积时长: 1.25小时\n穿透率: 8.2%"
-    },
-    {
-      "x": 5.25,
-      "y": 12.5,
-      "description": "时间段: 时间段1\n累积时长: 5.25小时\n穿透率: 12.5%"
-    },
-    {
-      "x": 6.80,
-      "y": 18.3,
-      "description": "时间段: 时间段2\n累积时长: 6.80小时\n穿透率: 18.3%"
+      "description": "时间段: 时间段2, 累积时长: 6.80小时, 穿透率: 18.3%"
     }
   ]
 }
 ```
+
+**响应说明**:
+- `data_points`: 当前批次处理后的数据点数组（已应用累加时间偏移）
+- 累加模式下，只返回当前批次的处理结果，不返回所有历史累积数据
+- X轴时间已经在前次基础上累加，可直接用于图表显示
 
 ### 2. 会话管理接口
 
@@ -166,7 +154,8 @@ GET /api/extraction-adsorption-curve/sessions
 - **自动创建**: 首次使用session_id时自动创建会话
 - **持久化**: 会话数据在内存中持久保存（服务重启会丢失）
 - **手动重置**: 通过DELETE接口清除会话数据
-- **数据累积**: 每次处理的数据点都会累积保存在会话中
+- **时间跟踪**: 会话内部跟踪最后累计时间，用于下次累加计算
+- **返回策略**: 每次只返回当前批次的处理结果，不返回历史累积数据
 
 ## 使用示例
 
@@ -227,20 +216,16 @@ second_batch = {
 # 发送第二批
 response2 = requests.post(f"{base_url}/process", json=second_batch)
 result2 = response2.json()
-print("第二批数据点:")
+print("第二批数据点（已累加）:")
 for point in result2['data_points']:
     print(f"  X={point['x']}, Y={point['y']}")
     print(f"  描述: {point['description']}")
 
-# 显示所有累积数据点
-if 'all_accumulated_points' in result2:
-    print(f"累积总数据点: {len(result2['all_accumulated_points'])}")
-    for i, point in enumerate(result2['all_accumulated_points']):
-        print(f"  点{i+1}: X={point['x']}, Y={point['y']}")
+print("注意：只返回当前批次的累加结果，不返回所有历史数据")
 
-# 查询会话
+# 查询会话状态
 session_info = requests.get(f"{base_url}/session/{session_id}").json()
-print("累计数据点:", session_info['total_points'])
+print(f"会话状态 - 总处理批次: {session_info['total_points']}, 最后累计时间: {session_info['last_cumulative_time']}h")
 
 # 重置会话
 reset_result = requests.delete(f"{base_url}/session/{session_id}").json()
@@ -303,19 +288,13 @@ async function sendCumulativeData() {
     });
     
     const result2 = await response2.json();
-    console.log('第二批数据点:');
+    console.log('第二批数据点（已累加）:');
     result2.data_points.forEach(point => {
         console.log(`  X=${point.x}, Y=${point.y}`);
         console.log(`  描述: ${point.description}`);
     });
-    
-    // 显示累积数据点
-    if (result2.all_accumulated_points) {
-        console.log(`累积总数据点: ${result2.all_accumulated_points.length}`);
-        result2.all_accumulated_points.forEach((point, index) => {
-            console.log(`  点${index+1}: X=${point.x}, Y=${point.y}`);
-        });
-    }
+
+    console.log('注意：只返回当前批次的累加结果，不返回所有历史数据');
 }
 
 sendCumulativeData();
@@ -323,12 +302,13 @@ sendCumulativeData();
 
 ## 注意事项
 
-1. **简化输出**: API已简化输出格式，只返回必要的x、y坐标和description描述信息
-2. **会话ID唯一性**: 不同的数据流应使用不同的session_id
-3. **内存限制**: 会话数据存储在内存中，服务重启会丢失
-4. **并发安全**: 同一session_id的并发请求可能导致数据不一致
-5. **时间单位**: 所有时间坐标均为小时单位
-6. **兼容性**: 不提供session_id时保持原有行为不变
+1. **批次返回**: API只返回当前批次的处理结果，不返回所有历史累积数据
+2. **时间累加**: 提供session_id时，时间坐标会在前次基础上累加
+3. **会话ID唯一性**: 不同的数据流应使用不同的session_id
+4. **内存限制**: 会话数据存储在内存中，服务重启会丢失
+5. **并发安全**: 同一session_id的并发请求可能导致数据不一致
+6. **时间单位**: 所有时间坐标均为小时单位
+7. **兼容性**: 不提供session_id时保持原有行为不变
 
 ## 输出格式说明
 

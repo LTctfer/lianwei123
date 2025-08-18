@@ -30,9 +30,14 @@ plt.style.use('seaborn-v0_8')
 sns.set_palette("husl")
 warnings.filterwarnings('ignore')
 
-# 设置中文字体
-plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
-plt.rcParams['axes.unicode_minus'] = False
+# 统一中文字体设置（跨平台检测）
+try:
+    from zh_font import setup_chinese_fonts
+    _font_used = setup_chinese_fonts()
+    print(f"[字体] Matplotlib/Plotly 使用: {_font_used}")
+except Exception as _e:
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
+    plt.rcParams['axes.unicode_minus'] = False
 
 
 @dataclass

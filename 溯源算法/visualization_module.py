@@ -16,9 +16,14 @@ from plotly.subplots import make_subplots
 from gaussian_plume_model import GaussianPlumeModel, PollutionSource, MeteoData
 from optimized_source_inversion import OptimizedSensorData, OptimizedInversionResult
 
-# 设置中文字体
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei']
-plt.rcParams['axes.unicode_minus'] = False
+# 设置中文字体（统一由 zh_font 控制）
+try:
+    from zh_font import setup_chinese_fonts
+    setup_chinese_fonts()
+except Exception:
+    import matplotlib.pyplot as plt
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
+    plt.rcParams['axes.unicode_minus'] = False
 
 
 class PollutionSourceVisualizer:

@@ -30,14 +30,9 @@ plt.style.use('seaborn-v0_8')
 sns.set_palette("husl")
 warnings.filterwarnings('ignore')
 
-# 统一中文字体设置（跨平台检测）
-try:
-    from zh_font import setup_chinese_fonts
-    _font_used = setup_chinese_fonts()
-    print(f"[字体] Matplotlib/Plotly 使用: {_font_used}")
-except Exception as _e:
-    plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
-    plt.rcParams['axes.unicode_minus'] = False
+# 设置中文字体
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
 
 
 @dataclass
@@ -160,76 +155,49 @@ class EnhancedPollutionTracingSystem:
         
         return sensors
     
-    def run_enhanced_inversion(self,
+    def run_enhanced_inversion(self, 
                              sensor_data: List[OptimizedSensorData],
                              meteo_data: MeteoData,
-                             algorithm_variants: List[str] = None,
-                             true_source: Optional[PollutionSource] = None) -> Dict[str, OptimizedInversionResult]:
-        """运行增强版反算分析
-
-        Args:
-            sensor_data: 传感器数据
-            meteo_data: 气象数据
-            algorithm_variants: 需要运行的算法列表
-            true_source: 真实污染源（用于计算误差指标）
-        """
-
+                             algorithm_variants: List[str] = None) -> Dict[str, OptimizedInversionResult]:
+        """运行增强版反算分析"""
+        
         if algorithm_variants is None:
             algorithm_variants = ['standard', 'adaptive', 'multi_objective']
-
+        
         print(f"\n>> 开始增强版反算分析...")
         print(f"   算法变体: {', '.join(algorithm_variants)}")
-
+        
         results = {}
-
+        
         for variant in algorithm_variants:
             print(f"\n运行算法变体: {variant}")
-
+            
             # 配置算法参数
             params = self._get_algorithm_parameters(variant)
-
-            # 构建基于传感器分布的自适应搜索边界（大幅降低搜索难度）
-            try:
-                xs = [s.x for s in sensor_data]
-                ys = [s.y for s in sensor_data]
-                min_x, max_x = (min(xs), max(xs)) if xs else (-1000, 1000)
-                min_y, max_y = (min(ys), max(ys)) if ys else (-1000, 1000)
-                range_x = max_x - min_x
-                range_y = max_y - min_y
-                base_margin = max(150.0, 0.25 * max(range_x, range_y, 1.0))
-                search_bounds = {
-                    'x': (min_x - base_margin, max_x + base_margin),
-                    'y': (min_y - base_margin, max_y + base_margin),
-                    'z': (0.0, 100.0),
-                    'q': (0.001, 50.0)
-                }
-            except Exception:
-                search_bounds = None
-
+            
             # 创建反算器
-            inverter = OptimizedSourceInversion(ga_parameters=params, search_bounds=search_bounds)
-
+            inverter = OptimizedSourceInversion(ga_parameters=params)
+            
             # 执行反算
             start_time = time.time()
             result = inverter.invert_source(
                 sensor_data=sensor_data,
                 meteo_data=meteo_data,
-                true_source=true_source,
                 verbose=True,
                 uncertainty_analysis=True
             )
-
+            
             # 记录结果
             results[variant] = result
-
+            
             print(f"[完成] {variant} 完成:")
             print(f"   位置: ({result.source_x:.2f}, {result.source_y:.2f}, {result.source_z:.2f})")
             print(f"   源强: {result.emission_rate:.3f} g/s")
             print(f"   目标函数值: {result.objective_value:.2e}")
             print(f"   计算时间: {result.computation_time:.2f}s")
-
+        
         return results
-
+    
     def _get_algorithm_parameters(self, variant: str) -> AdaptiveGAParameters:
         """获取不同算法变体的参数"""
         base_params = {
@@ -243,21 +211,22 @@ class EnhancedPollutionTracingSystem:
             return AdaptiveGAParameters(**base_params)
         
         elif variant == 'adaptive':
-            # 使用自适应参数：调整多样性阈值和停滞阈值
             return AdaptiveGAParameters(
                 **base_params,
+                adaptive_mutation=True,
                 diversity_threshold=0.1,
                 stagnation_threshold=50
             )
-
+        
         elif variant == 'multi_objective':
-            # 近似多目标设置：增大种群并略微减少代数，同时提高多样性
-            mo_params = dict(base_params)
-            mo_params['population_size'] = int(base_params['population_size'] * 1.5)
-            mo_params['max_generations'] = int(base_params['max_generations'] * 0.8)
-            mo_params['diversity_threshold'] = 0.15
-            return AdaptiveGAParameters(**mo_params)
-
+            return AdaptiveGAParameters(
+                **base_params,
+                population_size=int(base_params['population_size'] * 1.5),
+                max_generations=int(base_params['max_generations'] * 0.8),
+                adaptive_mutation=True,
+                diversity_threshold=0.15
+            )
+        
         else:
             return AdaptiveGAParameters(**base_params)
     
@@ -593,17 +562,13 @@ class EnhancedPollutionTracingSystem:
             }
 
         # 性能总结
-        # 计算平均计算时间
-        average_computation_time = np.mean([r.computation_time for r in results.values()]) if results else 0.0
-
         report['performance_summary'] = {
             'best_algorithm': best_algorithm,
             'best_score': best_score,
             'total_algorithms_tested': len(results),
-            'average_position_error': np.mean([r.position_error for r in results.values()]) if results else 0.0,
-            'average_emission_error': np.mean([r.emission_error for r in results.values()]) if results else 0.0,
-            'average_computation_time': float(average_computation_time),
-            'total_computation_time': float(sum([r.computation_time for r in results.values()]))
+            'average_position_error': np.mean([r.position_error for r in results.values()]),
+            'average_emission_error': np.mean([r.emission_error for r in results.values()]),
+            'total_computation_time': sum([r.computation_time for r in results.values()])
         }
 
         # 生成建议
@@ -634,7 +599,7 @@ class EnhancedPollutionTracingSystem:
         true_source, meteo_data, sensor_data = self.create_scenario(scenario_name)
 
         # 2. 运行多种算法
-        results = self.run_enhanced_inversion(sensor_data, meteo_data, true_source=true_source)
+        results = self.run_enhanced_inversion(sensor_data, meteo_data)
 
         # 3. 创建可视化
         visualization_files = self.create_comprehensive_visualization(

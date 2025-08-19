@@ -1,0 +1,37 @@
+{
+  "scenario_name": "test",
+  "timestamp": "2025-08-19T17:00:41.913053",
+  "true_source": {
+    "x": 150.0,
+    "y": 200.0,
+    "z": 25.0,
+    "emission_rate": 2.5
+  },
+  "algorithm_results": {
+    "test_algorithm": {
+      "position": [
+        100.0,
+        200.0,
+        25.0
+      ],
+      "emission_rate": 2.5,
+      "position_error": 5.0,
+      "emission_error": 10.0,
+      "computation_time": 15.0,
+      "objective_value": 0.1,
+      "composite_score": 15.25
+    }
+  },
+  "performance_summary": {
+    "best_algorithm": "test_algorithm",
+    "best_score": 15.25,
+    "total_algorithms_tested": 1,
+    "average_position_error": 5.0,
+    "average_emission_error": 10.0,
+    "total_computation_time": 15.0,
+    "average_computation_time": 15.0
+  },
+  "recommendations": [
+    "算法性能需要改进，建议调整参数或尝试其他方法"
+  ]
+}

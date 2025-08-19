@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 # 导入现有模块
 from gaussian_plume_model import GaussianPlumeModel, PollutionSource, MeteoData
 from optimized_source_inversion import OptimizedSourceInversion, OptimizedSensorData, AdaptiveGAParameters, OptimizedInversionResult
-from visualization_module import PollutionSourceVisualizer
+from enhanced_visualization import EnhancedVisualizer
 
 # 设置样式
 plt.style.use('seaborn-v0_8')
@@ -71,8 +71,8 @@ class EnhancedPollutionTracingSystem:
         """初始化系统"""
         self.config = config or EnhancedScenarioConfig()
         self.gaussian_model = GaussianPlumeModel()
-        self.visualizer = PollutionSourceVisualizer()
-        
+        self.visualizer = EnhancedVisualizer()
+
         # 结果存储
         self.results_history = []
         self.performance_metrics = {}
@@ -540,47 +540,83 @@ class EnhancedPollutionTracingSystem:
         best_score = float('inf')
 
         for algorithm, result in results.items():
-            # 计算综合评分
-            pos_error = result.position_error
-            emission_error = result.emission_error
-            time_penalty = result.computation_time / 60  # 时间惩罚（分钟）
+            try:
+                # 计算综合评分
+                pos_error = getattr(result, 'position_error', 0.0)
+                emission_error = getattr(result, 'emission_error', 0.0)
+                computation_time = getattr(result, 'computation_time', 0.0)
+                time_penalty = computation_time / 60  # 时间惩罚（分钟）
 
-            composite_score = pos_error + emission_error + time_penalty
+                composite_score = pos_error + emission_error + time_penalty
 
-            if composite_score < best_score:
-                best_score = composite_score
-                best_algorithm = algorithm
+                if composite_score < best_score:
+                    best_score = composite_score
+                    best_algorithm = algorithm
 
-            report['algorithm_results'][algorithm] = {
-                'position': [result.source_x, result.source_y, result.source_z],
-                'emission_rate': result.emission_rate,
-                'position_error': pos_error,
-                'emission_error': emission_error,
-                'computation_time': result.computation_time,
-                'objective_value': result.objective_value,
-                'composite_score': composite_score
-            }
+                report['algorithm_results'][algorithm] = {
+                    'position': [result.source_x, result.source_y, result.source_z],
+                    'emission_rate': result.emission_rate,
+                    'position_error': pos_error,
+                    'emission_error': emission_error,
+                    'computation_time': computation_time,
+                    'objective_value': getattr(result, 'objective_value', 0.0),
+                    'composite_score': composite_score
+                }
+            except Exception as e:
+                print(f"警告：处理算法 {algorithm} 的结果时出错: {e}")
+                # 使用默认值
+                report['algorithm_results'][algorithm] = {
+                    'position': [getattr(result, 'source_x', 0.0), getattr(result, 'source_y', 0.0), getattr(result, 'source_z', 0.0)],
+                    'emission_rate': getattr(result, 'emission_rate', 0.0),
+                    'position_error': 0.0,
+                    'emission_error': 0.0,
+                    'computation_time': 0.0,
+                    'objective_value': 0.0,
+                    'composite_score': float('inf')
+                }
 
         # 性能总结
-        report['performance_summary'] = {
-            'best_algorithm': best_algorithm,
-            'best_score': best_score,
-            'total_algorithms_tested': len(results),
-            'average_position_error': np.mean([r.position_error for r in results.values()]),
-            'average_emission_error': np.mean([r.emission_error for r in results.values()]),
-            'total_computation_time': sum([r.computation_time for r in results.values()])
-        }
+        try:
+            computation_times = [getattr(r, 'computation_time', 0.0) for r in results.values()]
+            position_errors = [getattr(r, 'position_error', 0.0) for r in results.values()]
+            emission_errors = [getattr(r, 'emission_error', 0.0) for r in results.values()]
+
+            report['performance_summary'] = {
+                'best_algorithm': best_algorithm or 'unknown',
+                'best_score': best_score if best_score != float('inf') else 0.0,
+                'total_algorithms_tested': len(results),
+                'average_position_error': np.mean(position_errors) if position_errors else 0.0,
+                'average_emission_error': np.mean(emission_errors) if emission_errors else 0.0,
+                'total_computation_time': sum(computation_times) if computation_times else 0.0,
+                'average_computation_time': np.mean(computation_times) if computation_times else 0.0
+            }
+        except Exception as e:
+            print(f"警告：生成性能总结时出错: {e}")
+            report['performance_summary'] = {
+                'best_algorithm': 'unknown',
+                'best_score': 0.0,
+                'total_algorithms_tested': len(results),
+                'average_position_error': 0.0,
+                'average_emission_error': 0.0,
+                'total_computation_time': 0.0,
+                'average_computation_time': 0.0
+            }
 
         # 生成建议
-        if best_score < 5:
-            report['recommendations'].append("算法性能优秀，建议在实际应用中使用")
-        elif best_score < 10:
-            report['recommendations'].append("算法性能良好，可考虑进一步优化参数")
-        else:
-            report['recommendations'].append("算法性能需要改进，建议调整参数或尝试其他方法")
+        try:
+            if best_score < 5:
+                report['recommendations'].append("算法性能优秀，建议在实际应用中使用")
+            elif best_score < 10:
+                report['recommendations'].append("算法性能良好，可考虑进一步优化参数")
+            else:
+                report['recommendations'].append("算法性能需要改进，建议调整参数或尝试其他方法")
 
-        if report['performance_summary']['average_computation_time'] > 30:
-            report['recommendations'].append("计算时间较长，建议启用并行计算或减少种群大小")
+            avg_time = report['performance_summary'].get('average_computation_time', 0.0)
+            if avg_time > 30:
+                report['recommendations'].append("计算时间较长，建议启用并行计算或减少种群大小")
+        except Exception as e:
+            print(f"警告：生成建议时出错: {e}")
+            report['recommendations'].append("分析完成，请查看详细结果")
 
         # 保存报告
         report_path = os.path.join(self.results_dir, f"{scenario_name}_综合分析报告.json")

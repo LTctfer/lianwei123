@@ -437,6 +437,23 @@ class WebInterface:
                 # 显示结果
                 self._display_inversion_results(result, computation_time)
 
+                # 将反算结果回填到场景配置 UI，并提示可直接执行正向验证
+                st.session_state.ui_source_x = float(result.source_x)
+                st.session_state.ui_source_y = float(result.source_y)
+                st.session_state.ui_source_z = float(result.source_z)
+                st.session_state.ui_emission_rate = float(result.emission_rate)
+
+                st.session_state.ui_wind_speed = float(wind_speed)
+                st.session_state.ui_wind_direction = float(wind_direction)
+                st.session_state.ui_temperature = float(temperature)
+                st.session_state.ui_humidity = int(humidity)
+
+                st.info("已将反算结果回填到‘场景配置’，可切换到该页面查看或继续正向验证。")
+
+                # 自动启动一次正向验证（可选），避免用户再点一次按钮
+                if st.toggle("完成后自动正向验证", value=True, key="auto_forward_validate_toggle"):
+                    st.session_state.trigger_forward_validate = True
+
             except Exception as e:
                 st.error(f"❌ 反算过程出现错误: {e}")
                 import traceback
@@ -503,60 +520,81 @@ class WebInterface:
         # 实时数据：正向验证按钮
         st.subheader("正向验证")
         if 'real_inversion_result' in st.session_state:
-            if st.button("执行正向验证", type="primary"):
-                try:
-                    data = st.session_state.real_inversion_result
-                    # 构造气象数据对象
-                    meteo = MeteoData(**data['meteo_data'])
-                    # 构造反算源
-                    est_source = PollutionSource(
-                        x=result.source_x, y=result.source_y,
-                        z=result.source_z, emission_rate=result.emission_rate
-                    )
-                    model = GaussianPlumeModel()
+            # 支持自动触发一次验证（反算完成后设置的标志）
+            do_auto = bool(st.session_state.pop('trigger_forward_validate', False))
+            do_click = st.button("执行正向验证", type="primary", key="forward_validate_real")
+            if do_click or do_auto:
+                with st.spinner("正在进行正向验证，请稍候..."):
+                    try:
+                        data = st.session_state.real_inversion_result
+                        # 构造气象数据对象
+                        meteo = MeteoData(**data['meteo_data'])
+                        # 构造反算源
+                        est_source = PollutionSource(
+                            x=result.source_x, y=result.source_y,
+                            z=result.source_z, emission_rate=result.emission_rate
+                        )
+                        model = GaussianPlumeModel()
 
-                    # 计算预测与观测
-                    sensor_dicts = data['sensor_data']
-                    pred, obs, sid = [], [], []
-                    for s in sensor_dicts:
-                        c_pred = model.calculate_concentration(est_source, s['x'], s['y'], s['z'], meteo)
-                        pred.append(c_pred)
-                        obs.append(s['concentration'])
-                        sid.append(s.get('sensor_id', ''))
+                        # 计算预测与观测
+                        sensor_dicts = data.get('sensor_data', [])
+                        if not sensor_dicts:
+                            st.warning("未找到可用的传感器数据，无法进行正向验证。")
+                            return
 
-                    import numpy as np
-                    pred_arr = np.array(pred, dtype=float)
-                    obs_arr = np.array(obs, dtype=float)
-                    diff = pred_arr - obs_arr
-                    mae = float(np.mean(np.abs(diff))) if len(diff) else 0.0
-                    rmse = float(np.sqrt(np.mean(diff**2))) if len(diff) else 0.0
-                    mape = float(np.mean(np.abs(diff) / (obs_arr + 1e-9)) * 100) if len(diff) else 0.0
-                    ss_res = float(np.sum(diff**2))
-                    ss_tot = float(np.sum((obs_arr - np.mean(obs_arr))**2)) if len(diff) else 0.0
-                    r2 = float(1 - ss_res / (ss_tot + 1e-12)) if ss_tot > 0 else 0.0
+                        pred, obs, sid = [], [], []
+                        for s in sensor_dicts:
+                            try:
+                                c_pred = model.calculate_concentration(est_source, s['x'], s['y'], s['z'], meteo)
+                                pred.append(c_pred)
+                                obs.append(s['concentration'])
+                                sid.append(s.get('sensor_id', str(len(sid)+1)))
+                            except Exception:
+                                # 跳过个别异常点
+                                continue
 
-                    c1, c2, c3, c4 = st.columns(4)
-                    c1.metric("MAE (μg/m³)", f"{mae:.2f}")
-                    c2.metric("RMSE (μg/m³)", f"{rmse:.2f}")
-                    c3.metric("MAPE (%)", f"{mape:.1f}")
-                    c4.metric("R²", f"{r2:.3f}")
+                        import numpy as np
+                        pred_arr = np.array(pred, dtype=float)
+                        obs_arr = np.array(obs, dtype=float)
+                        if pred_arr.size == 0:
+                            st.warning("没有成功计算的预测值。")
+                            return
+                        diff = pred_arr - obs_arr
+                        mae = float(np.mean(np.abs(diff)))
+                        rmse = float(np.sqrt(np.mean(diff**2)))
+                        mape = float(np.mean(np.abs(diff) / (obs_arr + 1e-9)) * 100)
+                        ss_res = float(np.sum(diff**2))
+                        ss_tot = float(np.sum((obs_arr - np.mean(obs_arr))**2))
+                        r2 = float(1 - ss_res / (ss_tot + 1e-12)) if ss_tot > 0 else 0.0
 
-                    # 图表
-                    import pandas as pd
-                    import plotly.express as px
-                    df = pd.DataFrame({'sensor_id': sid, 'obs': obs_arr, 'pred': pred_arr})
-                    fig = px.scatter(df, x='obs', y='pred', hover_name='sensor_id',
-                                     labels={'obs': '观测浓度 (μg/m³)', 'pred': '预测浓度 (μg/m³)'},
-                                     title='正向验证：观测 vs 预测')
-                    fig.add_shape(type='line', x0=df['obs'].min(), y0=df['obs'].min(),
-                                  x1=df['obs'].max(), y1=df['obs'].max(), line=dict(color='gray', dash='dash'))
-                    st.plotly_chart(fig, use_container_width=True)
+                        c1, c2, c3, c4 = st.columns(4)
+                        c1.metric("MAE (μg/m³)", f"{mae:.2f}")
+                        c2.metric("RMSE (μg/m³)", f"{rmse:.2f}")
+                        c3.metric("MAPE (%)", f"{mape:.1f}")
+                        c4.metric("R²", f"{r2:.3f}")
 
-                    df_err = pd.DataFrame({'sensor_id': sid, 'abs_error': np.abs(diff)})
-                    fig2 = px.bar(df_err, x='sensor_id', y='abs_error', title='各传感器绝对误差 (μg/m³)')
-                    st.plotly_chart(fig2, use_container_width=True)
-                except Exception as e:
-                    st.error(f"正向验证失败: {e}")
+                        # 准确度定义：这里以 1-RMSE/mean(obs) 做一个直观指标（0-1 越大越好）
+                        import numpy as np
+                        mean_obs = float(np.mean(obs_arr) + 1e-9)
+                        accuracy = max(0.0, min(1.0, 1.0 - rmse / mean_obs))
+                        st.success(f"本地反算污染源的准确度（基于RMSE/均值）：{accuracy:.3f}")
+
+                        # 图表
+                        import pandas as pd
+                        import plotly.express as px
+                        df = pd.DataFrame({'sensor_id': sid, 'obs': obs_arr, 'pred': pred_arr})
+                        fig = px.scatter(df, x='obs', y='pred', hover_name='sensor_id',
+                                         title='观测 vs 预测', labels={'obs': '观测 (μg/m³)', 'pred': '预测 (μg/m³)'})
+                        fig.add_shape(type='line', x0=df['obs'].min(), y0=df['obs'].min(),
+                                      x1=df['obs'].max(), y1=df['obs'].max(), line=dict(color='gray', dash='dash'))
+                        st.plotly_chart(fig, use_container_width=True)
+
+                        bar = px.bar(df, x='sensor_id', y=(df['pred']-df['obs']).abs(),
+                                     title='各传感器绝对误差', labels={'y': '绝对误差 (μg/m³)'})
+                        st.plotly_chart(bar, use_container_width=True)
+
+                    except Exception as e:
+                        st.error(f"正向验证失败：{e}")
         else:
             st.info("暂无实时反算结果可用。请在‘实际数据反算’中先运行一次。")
 
@@ -570,18 +608,18 @@ class WebInterface:
         with col1:
             st.subheader("污染源参数")
 
-            source_x = st.number_input("X坐标 (m)", value=150.0, step=10.0)
-            source_y = st.number_input("Y坐标 (m)", value=200.0, step=10.0)
-            source_z = st.number_input("Z坐标 (m)", value=25.0, step=5.0)
-            emission_rate = st.number_input("排放强度 (g/s)", value=2.5, step=0.1)
+            source_x = st.number_input("X坐标 (m)", value=float(st.session_state.get('ui_source_x', 150.0)), step=10.0, key='ui_source_x')
+            source_y = st.number_input("Y坐标 (m)", value=float(st.session_state.get('ui_source_y', 200.0)), step=10.0, key='ui_source_y')
+            source_z = st.number_input("Z坐标 (m)", value=float(st.session_state.get('ui_source_z', 25.0)), step=5.0, key='ui_source_z')
+            emission_rate = st.number_input("排放强度 (g/s)", value=float(st.session_state.get('ui_emission_rate', 2.5)), step=0.1, key='ui_emission_rate')
 
         with col2:
             st.subheader("气象参数")
 
-            wind_speed = st.slider("风速 (m/s)", 0.5, 15.0, 3.5, 0.5)
-            wind_direction = st.slider("风向 (度)", 0.0, 360.0, 225.0, 15.0)
-            temperature = st.number_input("温度 (°C)", value=20.0, step=1.0)
-            humidity = st.slider("湿度 (%)", 0, 100, 60, 5)
+            wind_speed = st.slider("风速 (m/s)", 0.5, 15.0, float(st.session_state.get('ui_wind_speed', 3.5)), 0.5, key='ui_wind_speed')
+            wind_direction = st.slider("风向 (度)", 0.0, 360.0, float(st.session_state.get('ui_wind_direction', 225.0)), 15.0, key='ui_wind_direction')
+            temperature = st.number_input("温度 (°C)", value=float(st.session_state.get('ui_temperature', 20.0)), step=1.0, key='ui_temperature')
+            humidity = st.slider("湿度 (%)", 0, 100, int(st.session_state.get('ui_humidity', 60)), 5, key='ui_humidity')
 
         st.subheader("传感器网络配置")
 
@@ -803,85 +841,131 @@ class WebInterface:
     def _show_performance_comparison(self, analysis_data):
         """显示性能对比"""
 
-        results = analysis_data['results']
+        try:
+            results = analysis_data['results']
 
-        # 创建性能对比图
-        algorithms = list(results.keys())
+            # 创建性能对比图
+            algorithms = list(results.keys())
 
-        col1, col2 = st.columns(2)
+            if not algorithms:
+                st.warning("没有可用的算法结果进行对比")
+                return
 
-        with col1:
-            # 位置误差对比
-            pos_errors = [results[alg].position_error for alg in algorithms]
-            fig1 = px.bar(x=algorithms, y=pos_errors, title="位置误差对比")
-            fig1.update_yaxis(title="位置误差 (m)")
-            st.plotly_chart(fig1, use_container_width=True)
+            col1, col2 = st.columns(2)
 
-        with col2:
-            # 计算时间对比
-            comp_times = [results[alg].computation_time for alg in algorithms]
-            fig2 = px.bar(x=algorithms, y=comp_times, title="计算时间对比")
-            fig2.update_yaxis(title="计算时间 (s)")
-            st.plotly_chart(fig2, use_container_width=True)
+            with col1:
+                # 位置误差对比
+                try:
+                    pos_errors = [getattr(results[alg], 'position_error', 0.0) for alg in algorithms]
+                    fig1 = px.bar(x=algorithms, y=pos_errors, title="位置误差对比")
+                    fig1.update_yaxes(title="位置误差 (m)")
+                    st.plotly_chart(fig1, use_container_width=True)
+                except Exception as e:
+                    st.error(f"位置误差图表生成失败: {e}")
 
-        # 目标函数值对比（对数尺度）
-        obj_values = [results[alg].objective_value for alg in algorithms]
-        fig3 = px.bar(x=algorithms, y=obj_values, title="目标函数值对比", log_y=True)
-        fig3.update_yaxis(title="目标函数值 (对数尺度)")
-        st.plotly_chart(fig3, use_container_width=True)
+            with col2:
+                # 计算时间对比
+                try:
+                    comp_times = [getattr(results[alg], 'computation_time', 0.0) for alg in algorithms]
+                    fig2 = px.bar(x=algorithms, y=comp_times, title="计算时间对比")
+                    fig2.update_yaxes(title="计算时间 (s)")
+                    st.plotly_chart(fig2, use_container_width=True)
+                except Exception as e:
+                    st.error(f"计算时间图表生成失败: {e}")
+
+            # 目标函数值对比（对数尺度）
+            try:
+                obj_values = [getattr(results[alg], 'objective_value', 1e-6) for alg in algorithms]
+                # 确保所有值都大于0，避免对数尺度问题
+                obj_values = [max(val, 1e-10) for val in obj_values]
+                fig3 = px.bar(x=algorithms, y=obj_values, title="目标函数值对比", log_y=True)
+                fig3.update_yaxes(title="目标函数值 (对数尺度)")
+                st.plotly_chart(fig3, use_container_width=True)
+            except Exception as e:
+                st.error(f"目标函数值图表生成失败: {e}")
+
+        except Exception as e:
+            st.error(f"性能对比显示失败: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     def _show_concentration_field(self, analysis_data):
         """显示浓度场分布"""
 
-        true_source = analysis_data['true_source']
-        meteo_data = analysis_data['meteo_data']
-        results = analysis_data['results']
+        try:
+            true_source = analysis_data['true_source']
+            meteo_data = analysis_data['meteo_data']
+            results = analysis_data['results']
 
-        # 选择算法
-        selected_alg = st.selectbox("选择算法", list(results.keys()))
+            # 选择算法
+            if not results:
+                st.warning("没有可用的算法结果")
+                return
 
-        if selected_alg:
-            result = results[selected_alg]
+            selected_alg = st.selectbox("选择算法", list(results.keys()))
 
-            # 创建浓度场对比
-            col1, col2 = st.columns(2)
+            if selected_alg:
+                result = results[selected_alg]
 
-            with col1:
-                st.subheader("真实浓度场")
-                # 这里可以添加真实浓度场的可视化
-                st.info("真实浓度场可视化")
+                # 创建浓度场对比
+                col1, col2 = st.columns(2)
 
-            with col2:
-                st.subheader(f"{selected_alg} 算法结果")
-                # 这里可以添加估计浓度场的可视化
-                st.info("估计浓度场可视化")
+                with col1:
+                    st.subheader("真实浓度场")
+                    # 这里可以添加真实浓度场的可视化
+                    st.info("真实浓度场可视化")
+
+                with col2:
+                    st.subheader(f"{selected_alg} 算法结果")
+                    # 这里可以添加估计浓度场的可视化
+                    st.info("估计浓度场可视化")
+
+        except Exception as e:
+            st.error(f"浓度场显示失败: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     def _show_convergence_process(self, analysis_data):
         """显示收敛过程"""
 
-        results = analysis_data['results']
+        try:
+            results = analysis_data['results']
 
-        # 创建收敛过程图
-        fig = go.Figure()
+            if not results:
+                st.warning("没有可用的算法结果")
+                return
 
-        for algorithm, result in results.items():
-            fig.add_trace(
-                go.Scatter(
-                    y=result.convergence_history,
-                    mode='lines',
-                    name=algorithm,
-                    line=dict(width=2)
-                )
+            # 创建收敛过程图
+            fig = go.Figure()
+
+            for algorithm, result in results.items():
+                try:
+                    convergence_history = getattr(result, 'convergence_history', [])
+                    if convergence_history:
+                        fig.add_trace(
+                            go.Scatter(
+                                y=convergence_history,
+                                mode='lines',
+                                name=algorithm,
+                                line=dict(width=2)
+                            )
+                        )
+                except Exception as e:
+                    st.warning(f"算法 {algorithm} 的收敛历史数据有问题: {e}")
+
+            fig.update_layout(
+                title="算法收敛过程对比",
+                xaxis_title="迭代次数",
+                yaxis_title="目标函数值",
+                yaxis_type="log"
             )
 
-        fig.update_layout(
-            title="算法收敛过程对比",
-            xaxis_title="迭代次数",
-            yaxis_title="目标函数值",
-            yaxis_type="log"
-        )
+            st.plotly_chart(fig, use_container_width=True)
 
-        st.plotly_chart(fig, use_container_width=True)
+        except Exception as e:
+            st.error(f"收敛过程显示失败: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     def _show_sensor_distribution(self, analysis_data):
         """显示传感器分布"""

@@ -623,15 +623,18 @@ class WebInterface:
 
         st.subheader("传感器网络配置")
 
-        col3, col4, col5 = st.columns(3)
+        col3, col4, col5, col6 = st.columns(4)
 
         with col3:
-            sensor_grid_size = st.slider("网格大小", 5, 12, 7, 1)
+            sensor_count = st.slider("传感器数量", 6, 16, 8, 1)
 
         with col4:
-            sensor_spacing = st.number_input("传感器间距 (m)", value=100.0, step=10.0)
+            sensor_grid_size = st.slider("网格大小", 5, 12, 7, 1)
 
         with col5:
+            sensor_spacing = st.number_input("传感器间距 (m)", value=100.0, step=10.0)
+
+        with col6:
             noise_level = st.slider("噪声水平", 0.01, 0.5, 0.1, 0.01)
 
         st.subheader("算法参数")
@@ -650,7 +653,8 @@ class WebInterface:
                 source_x=source_x, source_y=source_y, source_z=source_z,
                 emission_rate=emission_rate, wind_speed=wind_speed,
                 wind_direction=wind_direction, temperature=temperature,
-                humidity=humidity, sensor_grid_size=sensor_grid_size,
+                humidity=humidity, sensor_count=sensor_count,
+                sensor_grid_size=sensor_grid_size,
                 sensor_spacing=sensor_spacing, noise_level=noise_level,
                 population_size=population_size, max_generations=max_generations,
                 use_parallel=self.use_parallel, use_cache=self.use_cache
@@ -745,7 +749,7 @@ class WebInterface:
                 progress_bar.progress(40)
 
                 results = self.system.run_enhanced_inversion(
-                    sensor_data, meteo_data, self.selected_algorithms
+                    sensor_data, meteo_data, true_source, self.selected_algorithms
                 )
 
                 # 创建可视化

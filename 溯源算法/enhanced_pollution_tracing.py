@@ -52,14 +52,15 @@ class EnhancedScenarioConfig:
     humidity: float = 60.0
     
     # 传感器配置
+    sensor_count: int = 8  # 固定传感器数量
     sensor_grid_size: int = 7
     sensor_spacing: float = 100.0
     sensor_height: float = 2.0
-    noise_level: float = 0.1
-    
+    noise_level: float = 0.05  # 降低噪声水平以提高精度
+
     # 算法配置
-    population_size: int = 50  # 减小种群大小以加快计算
-    max_generations: int = 500  # 减少迭代次数以加快计算
+    population_size: int = 100  # 增大种群大小以提高精度
+    max_generations: int = 1500  # 增加迭代次数以提高精度
     use_parallel: bool = False  # 禁用并行计算以避免序列化问题
     use_cache: bool = True
 
@@ -121,43 +122,119 @@ class EnhancedPollutionTracingSystem:
     def _create_sensor_network(self, source: PollutionSource, meteo_data: MeteoData) -> List[OptimizedSensorData]:
         """创建传感器网络"""
         sensors = []
-        
-        # 网格布置
-        grid_size = self.config.sensor_grid_size
-        spacing = self.config.sensor_spacing
-        center_x, center_y = 0, 0
-        
-        for i in range(grid_size):
-            for j in range(grid_size):
-                x = center_x + (i - grid_size//2) * spacing
-                y = center_y + (j - grid_size//2) * spacing
-                
+
+        # 方法1：固定数量的传感器，围绕污染源布置
+        if hasattr(self.config, 'sensor_count'):
+            # 在污染源周围以圆形布置传感器
+            n_sensors = self.config.sensor_count
+            center_x, center_y = source.x, source.y  # 以污染源为中心
+
+            for i in range(n_sensors):
+                # 计算角度和距离 - 优化传感器布置
+                angle = 2 * np.pi * i / n_sensors
+                # 减小距离范围，使传感器更接近污染源以提高精度
+                distance = 80 + 60 * np.random.random()  # 80-140m距离
+
+                x = center_x + distance * np.cos(angle)
+                y = center_y + distance * np.sin(angle)
+
                 # 计算理论浓度
                 concentration = self.gaussian_model.calculate_concentration(
                     source, x, y, self.config.sensor_height, meteo_data
                 )
-                
+
                 # 添加噪声
                 noise = np.random.normal(0, concentration * self.config.noise_level)
-                observed_concentration = max(0, concentration + noise)
-                
-                # 只保留有效浓度的传感器
-                if observed_concentration > 0.1:  # 阈值过滤
-                    sensor = OptimizedSensorData(
-                        sensor_id=f"S{i:02d}{j:02d}",
-                        x=x, y=y, z=self.config.sensor_height,
-                        concentration=observed_concentration,
-                        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        uncertainty=observed_concentration * self.config.noise_level,
-                        weight=1.0 / (1.0 + observed_concentration * self.config.noise_level)
+                observed_concentration = max(0.01, concentration + noise)  # 确保最小浓度
+
+                # 优化权重计算：高浓度传感器获得更高权重
+                # 使用信噪比来计算权重
+                signal_to_noise = observed_concentration / (observed_concentration * self.config.noise_level + 1e-6)
+                weight = min(10.0, max(0.1, signal_to_noise / 10.0))  # 权重范围[0.1, 10.0]
+
+                sensor = OptimizedSensorData(
+                    sensor_id=f"S{i+1:03d}",
+                    x=x, y=y, z=self.config.sensor_height,
+                    concentration=observed_concentration,
+                    timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    uncertainty=observed_concentration * self.config.noise_level,
+                    weight=weight
+                )
+                sensors.append(sensor)
+        else:
+            # 方法2：网格布置（原方法）
+            grid_size = self.config.sensor_grid_size
+            spacing = self.config.sensor_spacing
+            center_x, center_y = 0, 0
+
+            for i in range(grid_size):
+                for j in range(grid_size):
+                    x = center_x + (i - grid_size//2) * spacing
+                    y = center_y + (j - grid_size//2) * spacing
+
+                    # 计算理论浓度
+                    concentration = self.gaussian_model.calculate_concentration(
+                        source, x, y, self.config.sensor_height, meteo_data
                     )
-                    sensors.append(sensor)
-        
+
+                    # 添加噪声
+                    noise = np.random.normal(0, concentration * self.config.noise_level)
+                    observed_concentration = max(0, concentration + noise)
+
+                    # 只保留有效浓度的传感器
+                    if observed_concentration > 0.1:  # 阈值过滤
+                        sensor = OptimizedSensorData(
+                            sensor_id=f"S{i:02d}{j:02d}",
+                            x=x, y=y, z=self.config.sensor_height,
+                            concentration=observed_concentration,
+                            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            uncertainty=observed_concentration * self.config.noise_level,
+                            weight=1.0 / (1.0 + observed_concentration * self.config.noise_level)
+                        )
+                        sensors.append(sensor)
+
         return sensors
-    
-    def run_enhanced_inversion(self, 
+
+    def _get_optimized_search_bounds(self, sensor_data: List[OptimizedSensorData]) -> Dict[str, Tuple[float, float]]:
+        """根据传感器分布动态设置搜索范围"""
+        if not sensor_data:
+            # 默认搜索范围
+            return {
+                'x': (-500, 500),
+                'y': (-500, 500),
+                'z': (0, 50),
+                'q': (0.001, 10.0)
+            }
+
+        # 计算传感器分布范围
+        x_coords = [s.x for s in sensor_data]
+        y_coords = [s.y for s in sensor_data]
+
+        x_min, x_max = min(x_coords), max(x_coords)
+        y_min, y_max = min(y_coords), max(y_coords)
+
+        # 扩展搜索范围（在传感器范围基础上扩展50%）
+        x_range = x_max - x_min
+        y_range = y_max - y_min
+
+        x_center = (x_min + x_max) / 2
+        y_center = (y_min + y_max) / 2
+
+        # 设置合理的搜索范围
+        search_x_range = max(300, x_range * 1.5)  # 至少300m范围
+        search_y_range = max(300, y_range * 1.5)
+
+        return {
+            'x': (x_center - search_x_range/2, x_center + search_x_range/2),
+            'y': (y_center - search_y_range/2, y_center + search_y_range/2),
+            'z': (0, 50),  # 高度范围
+            'q': (0.1, 20.0)  # 源强范围
+        }
+
+    def run_enhanced_inversion(self,
                              sensor_data: List[OptimizedSensorData],
                              meteo_data: MeteoData,
+                             true_source: PollutionSource = None,
                              algorithm_variants: List[str] = None) -> Dict[str, OptimizedInversionResult]:
         """运行增强版反算分析"""
         
@@ -175,14 +252,20 @@ class EnhancedPollutionTracingSystem:
             # 配置算法参数
             params = self._get_algorithm_parameters(variant)
             
-            # 创建反算器
-            inverter = OptimizedSourceInversion(ga_parameters=params)
+            # 创建反算器 - 优化搜索范围
+            # 根据传感器分布动态设置搜索范围
+            search_bounds = self._get_optimized_search_bounds(sensor_data)
+            inverter = OptimizedSourceInversion(
+                search_bounds=search_bounds,
+                ga_parameters=params
+            )
             
             # 执行反算
             start_time = time.time()
             result = inverter.invert_source(
                 sensor_data=sensor_data,
                 meteo_data=meteo_data,
+                true_source=true_source,  # 传入真实源信息用于误差计算
                 verbose=True,
                 uncertainty_analysis=True
             )
@@ -208,23 +291,35 @@ class EnhancedPollutionTracingSystem:
         }
         
         if variant == 'standard':
-            return AdaptiveGAParameters(**base_params)
-        
+            return AdaptiveGAParameters(
+                **base_params,
+                initial_crossover_rate=0.85,  # 提高交叉率
+                initial_mutation_rate=0.08,   # 降低变异率
+                elite_rate=0.15,              # 保留更多精英
+                convergence_threshold=1e-8,   # 更严格的收敛条件
+                adaptive_mutation=True,       # 启用自适应
+                diversity_threshold=0.05      # 更严格的多样性要求
+            )
+
         elif variant == 'adaptive':
             return AdaptiveGAParameters(
                 **base_params,
                 adaptive_mutation=True,
-                diversity_threshold=0.1,
-                stagnation_threshold=50
+                diversity_threshold=0.08,
+                stagnation_threshold=30,      # 更早检测停滞
+                initial_crossover_rate=0.9,
+                initial_mutation_rate=0.05
             )
-        
+
         elif variant == 'multi_objective':
             return AdaptiveGAParameters(
                 **base_params,
-                population_size=int(base_params['population_size'] * 1.5),
-                max_generations=int(base_params['max_generations'] * 0.8),
+                population_size=int(base_params['population_size'] * 1.2),
+                max_generations=int(base_params['max_generations'] * 1.2),
                 adaptive_mutation=True,
-                diversity_threshold=0.15
+                diversity_threshold=0.12,
+                initial_crossover_rate=0.88,
+                initial_mutation_rate=0.06
             )
         
         else:
@@ -635,7 +730,7 @@ class EnhancedPollutionTracingSystem:
         true_source, meteo_data, sensor_data = self.create_scenario(scenario_name)
 
         # 2. 运行多种算法
-        results = self.run_enhanced_inversion(sensor_data, meteo_data)
+        results = self.run_enhanced_inversion(sensor_data, meteo_data, true_source)
 
         # 3. 创建可视化
         visualization_files = self.create_comprehensive_visualization(

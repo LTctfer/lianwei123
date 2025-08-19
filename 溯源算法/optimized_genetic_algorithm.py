@@ -40,17 +40,18 @@ class AdaptiveGAParameters:
     elite_rate: float = 0.2
     temperature: float = 1.0
     convergence_threshold: float = 1e-6
-    
+
     # 自适应参数
+    adaptive_mutation: bool = False  # 是否启用自适应变异/交叉率调整
     crossover_rate_range: Tuple[float, float] = (0.6, 0.9)
     mutation_rate_range: Tuple[float, float] = (0.05, 0.3)
     diversity_threshold: float = 0.1
     stagnation_threshold: int = 50
-    
+
     # 并行计算参数
     use_parallel: bool = True
     n_processes: int = field(default_factory=lambda: max(1, mp.cpu_count() - 1))
-    
+
     # 缓存参数
     use_cache: bool = True
     cache_size: int = 10000
@@ -246,7 +247,11 @@ class OptimizedGeneticPatternSearch:
         """自适应参数调整"""
         diversity = self.calculate_population_diversity()
         self.diversity_history.append(diversity)
-        
+
+        # 未启用自适应则直接返回（保持固定交叉/变异率）
+        if not getattr(self.params, 'adaptive_mutation', False):
+            return
+
         # 检查停滞
         if len(self.convergence_history) > 10:
             recent_improvement = abs(self.convergence_history[-10] - self.convergence_history[-1])
@@ -254,11 +259,11 @@ class OptimizedGeneticPatternSearch:
                 self.stagnation_counter += 1
             else:
                 self.stagnation_counter = 0
-        
+
         # 调整交叉率和变异率
         if diversity < self.params.diversity_threshold or self.stagnation_counter > self.params.stagnation_threshold:
             # 增加变异率，降低交叉率，促进探索
-            self.current_mutation_rate = min(self.params.mutation_rate_range[1], 
+            self.current_mutation_rate = min(self.params.mutation_rate_range[1],
                                            self.current_mutation_rate * 1.1)
             self.current_crossover_rate = max(self.params.crossover_rate_range[0],
                                             self.current_crossover_rate * 0.9)
@@ -268,7 +273,7 @@ class OptimizedGeneticPatternSearch:
                                            self.current_mutation_rate * 0.95)
             self.current_crossover_rate = min(self.params.crossover_rate_range[1],
                                             self.current_crossover_rate * 1.05)
-    
+
     def initialize_population(self, bounds: List[Tuple[float, float]]) -> None:
         """初始化种群"""
         self.population = []

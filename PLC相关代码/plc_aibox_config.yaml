@@ -1,0 +1,225 @@
+# PLC到AI-BOX系统配置文件
+
+# PLC配置
+plc:
+  # PLC连接参数
+  connection:
+    ip_address: "192.168.1.10"
+    port: 502
+    protocol: "modbus_tcp"  # modbus_tcp, siemens_s7, omron_fins
+    timeout: 5
+    retry_count: 3
+    
+  # 设备信息
+  device:
+    id: "PLC_001"
+    name: "主控PLC"
+    location: "生产车间A"
+    scan_rate: 1000  # 扫描周期(ms)
+    
+  # 数据点配置
+  data_points:
+    - name: "vibration_x"
+      address: "DB1.DBD0"
+      type: "REAL"
+      unit: "mm/s"
+      description: "X轴振动速度"
+      scaling_factor: 1.0
+      offset: 0.0
+      
+    - name: "vibration_y"
+      address: "DB1.DBD4"
+      type: "REAL"
+      unit: "mm/s"
+      description: "Y轴振动速度"
+      scaling_factor: 1.0
+      offset: 0.0
+      
+    - name: "temperature"
+      address: "DB1.DBD8"
+      type: "REAL"
+      unit: "°C"
+      description: "设备温度"
+      scaling_factor: 1.0
+      offset: 0.0
+      
+    - name: "pressure"
+      address: "DB1.DBD12"
+      type: "REAL"
+      unit: "hPa"
+      description: "系统压力"
+      scaling_factor: 1.0
+      offset: 0.0
+      
+    - name: "flow_rate"
+      address: "DB1.DBD16"
+      type: "REAL"
+      unit: "L/min"
+      description: "流量"
+      scaling_factor: 1.0
+      offset: 0.0
+
+# AI-BOX配置
+aibox:
+  # 连接参数
+  connection:
+    ip_address: "192.168.1.100"
+    port: 8080
+    protocol: "http"  # http, https, mqtt
+    api_endpoint: "/api/data/upload"
+    auth_token: "your_auth_token_here"
+    
+  # 上传参数
+  upload:
+    batch_size: 50
+    upload_interval: 30  # 秒
+    max_retry: 3
+    timeout: 30
+    
+  # 数据格式
+  data_format:
+    timestamp_format: "iso8601"
+    compression: false
+    encryption: false
+
+# 数据处理配置
+processing:
+  # 缓冲区配置
+  buffer:
+    size: 1000
+    cleanup_interval: 3600  # 秒
+    
+  # 数据清洗
+  data_cleaning:
+    enable: true
+    outlier_detection: "zscore"  # zscore, iqr, isolation_forest
+    outlier_threshold: 3.0
+    missing_value_strategy: "interpolation"  # drop, interpolation, forward_fill
+    
+  # 滤波配置
+  filtering:
+    enable: true
+    vibration:
+      type: "bandpass"
+      low_freq: 0.1
+      high_freq: 0.4
+      order: 4
+      
+    temperature:
+      type: "lowpass"
+      cutoff_freq: 0.1
+      order: 4
+      
+    default:
+      type: "moving_average"
+      window_size: 5
+      
+  # 降采样配置
+  downsampling:
+    enable: false
+    factor: 2
+    method: "decimation"  # decimation, averaging
+    
+  # FFT特征提取
+  fft:
+    enable: true
+    window_size: 128
+    overlap: 0.5
+    window_type: "hann"  # hann, hamming, blackman
+    parameters:
+      - "vibration_x"
+      - "vibration_y"
+      
+  # 公式计算
+  calculations:
+    enable: true
+    formulas:
+      - name: "vibration_magnitude"
+        expression: "sqrt(vibration_x^2 + vibration_y^2)"
+        unit: "mm/s"
+        
+      - name: "vibration_angle"
+        expression: "atan2(vibration_y, vibration_x) * 180 / pi"
+        unit: "degree"
+        
+      - name: "temperature_f"
+        expression: "temperature * 9/5 + 32"
+        unit: "°F"
+        
+      - name: "pressure_bar"
+        expression: "pressure / 1000"
+        unit: "bar"
+        
+      - name: "thermal_efficiency"
+        expression: "max(0, min(100, 100 - abs(temperature - 25) * 2 - abs(flow_rate - 100) * 0.5))"
+        unit: "%"
+
+# 数据存储配置
+storage:
+  # 本地数据库
+  local_db:
+    enable: true
+    path: "plc_data.db"
+    retention_days: 30
+    backup_interval: 86400  # 秒
+    
+  # 日志配置
+  logging:
+    level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+    file_path: "plc_aibox_system.log"
+    max_file_size: "10MB"
+    backup_count: 5
+    
+# 系统监控
+monitoring:
+  # 性能监控
+  performance:
+    enable: true
+    cpu_threshold: 80  # %
+    memory_threshold: 80  # %
+    disk_threshold: 90  # %
+    
+  # 健康检查
+  health_check:
+    enable: true
+    interval: 60  # 秒
+    plc_connection_timeout: 10
+    aibox_connection_timeout: 10
+    
+  # 告警配置
+  alerts:
+    enable: true
+    email_notifications: false
+    webhook_url: ""
+    
+# 安全配置
+security:
+  # 数据加密
+  encryption:
+    enable: false
+    algorithm: "AES-256"
+    key_file: "encryption.key"
+    
+  # 访问控制
+  access_control:
+    enable: false
+    allowed_ips: []
+    
+# 高级配置
+advanced:
+  # 多线程配置
+  threading:
+    max_workers: 4
+    queue_size: 10000
+    
+  # 网络配置
+  network:
+    connection_pool_size: 10
+    keep_alive: true
+    tcp_nodelay: true
+    
+  # 调试配置
+  debug:
+    enable: false
+    save_raw_data: false
+    performance_profiling: false

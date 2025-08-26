@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}污染源溯源系统 - 首页{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 系统介绍 -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> 系统介绍</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="card-title">基于遗传算法和模式搜索的污染源溯源系统</h6>
+                <p class="card-text">
+                    本系统采用先进的智能优化算法，结合高斯烟羽扩散模型，通过分析多源监测数据（包括风向、风速、污染物浓度、湿度等），
+                    精确反算污染源位置，并通过预测污染物正向传播路径与监测站数据进行比对，确认反算准确度。
+                </p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-cogs text-primary"></i> 核心算法</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> 遗传算法全局搜索</li>
+                            <li><i class="fas fa-check text-success"></i> 模式搜索局部优化</li>
+                            <li><i class="fas fa-check text-success"></i> 高斯烟羽扩散模型</li>
+                            <li><i class="fas fa-check text-success"></i> 多源数据融合</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-chart-bar text-primary"></i> 主要功能</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> 污染源位置反算</li>
+                            <li><i class="fas fa-check text-success"></i> 浓度场预测</li>
+                            <li><i class="fas fa-check text-success"></i> 结果验证分析</li>
+                            <li><i class="fas fa-check text-success"></i> 可视化展示</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 使用流程 -->
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-list-ol"></i> 使用流程</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="bg-light p-3 rounded">
+                            <i class="fas fa-upload fa-2x text-primary mb-2"></i>
+                            <h6>1. 数据上传</h6>
+                            <small class="text-muted">上传监测站数据和气象数据</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="bg-light p-3 rounded">
+                            <i class="fas fa-play fa-2x text-success mb-2"></i>
+                            <h6>2. 运行反算</h6>
+                            <small class="text-muted">启动智能溯源算法</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="bg-light p-3 rounded">
+                            <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                            <h6>3. 结果分析</h6>
+                            <small class="text-muted">查看溯源结果和验证指标</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="bg-light p-3 rounded">
+                            <i class="fas fa-download fa-2x text-warning mb-2"></i>
+                            <h6>4. 导出报告</h6>
+                            <small class="text-muted">生成分析报告</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 快速操作 -->
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-rocket"></i> 快速开始</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('upload_data') }}" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> 上传数据
+                    </a>
+                    <button class="btn btn-success" onclick="runDemoInversion()">
+                        <i class="fas fa-play"></i> 运行演示
+                    </button>
+                    <a href="{{ url_for('visualization') }}" class="btn btn-info">
+                        <i class="fas fa-chart-line"></i> 查看结果
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 系统状态 -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-server"></i> 系统状态</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h4 class="text-success mb-1" id="system-status">
+                                <i class="fas fa-check-circle"></i>
+                            </h4>
+                            <small class="text-muted">系统状态</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-primary mb-1" id="total-inversions">0</h4>
+                        <small class="text-muted">总反算次数</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 最近结果 -->
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-history"></i> 最近结果</h5>
+            </div>
+            <div class="card-body" id="recent-results">
+                <p class="text-muted text-center">暂无反算结果</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 演示模态框 -->
+<div class="modal fade" id="demoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">运行演示反算</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h6>正在运行污染源反算...</h6>
+                    <p class="text-muted">这可能需要几分钟时间，请耐心等待</p>
+                    
+                    <div class="progress mt-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%" id="demo-progress"></div>
+                    </div>
+                </div>
+                
+                <div id="demo-results" style="display: none;">
+                    <h6>反算完成！</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>污染源位置：</strong>
+                            <ul id="source-location"></ul>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>验证指标：</strong>
+                            <ul id="validation-metrics"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <a href="{{ url_for('visualization') }}" class="btn btn-primary" id="view-results-btn" style="display: none;">
+                    查看详细结果
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 页面加载时获取系统状态
+    $(document).ready(function() {
+        updateSystemStatus();
+        updateRecentResults();
+    });
+    
+    // 更新系统状态
+    function updateSystemStatus() {
+        $.get('/get_results')
+            .done(function(data) {
+                $('#system-status').html('<i class="fas fa-check-circle"></i>');
+                $('#total-inversions').text('1');
+            })
+            .fail(function() {
+                $('#system-status').html('<i class="fas fa-times-circle text-danger"></i>');
+                $('#total-inversions').text('0');
+            });
+    }
+    
+    // 更新最近结果
+    function updateRecentResults() {
+        $.get('/get_results')
+            .done(function(data) {
+                const html = '<div class="small">' +
+                    '<strong>最近反算：</strong><br>' +
+                    '时间：' + new Date(data.timestamp).toLocaleString() + '<br>' +
+                    '位置：(' + data.final_solution.x.toFixed(1) + ', ' + data.final_solution.y.toFixed(1) + ')<br>' +
+                    'R²：' + data.validation.r_squared.toFixed(3) +
+                    '</div>';
+                $('#recent-results').html(html);
+            })
+            .fail(function() {
+                $('#recent-results').html('<p class="text-muted text-center">暂无反算结果</p>');
+            });
+    }
+    
+    // 运行演示反算
+    function runDemoInversion() {
+        $('#demoModal').modal('show');
+        
+        // 模拟进度
+        let progress = 0;
+        const progressInterval = setInterval(function() {
+            progress += Math.random() * 20;
+            if (progress > 90) progress = 90;
+            $('#demo-progress').css('width', progress + '%');
+        }, 500);
+        
+        // 运行反算
+        $.ajax({
+            url: '/run_inversion',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                algorithm_params: {
+                    ga_population_size: 30,
+                    ga_max_generations: 50
+                }
+            }),
+            success: function(data) {
+                clearInterval(progressInterval);
+                $('#demo-progress').css('width', '100%');
+                
+                setTimeout(function() {
+                    $('.spinner-border').hide();
+                    $('h6').text('反算完成！');
+                    $('.text-muted').hide();
+                    $('.progress').hide();
+                    
+                    // 显示结果
+                    const solution = data.results.final_solution;
+                    const validation = data.results.validation_metrics;
+                    
+                    $('#source-location').html(
+                        '<li>X坐标: ' + solution.x.toFixed(1) + ' m</li>' +
+                        '<li>Y坐标: ' + solution.y.toFixed(1) + ' m</li>' +
+                        '<li>高度: ' + solution.z.toFixed(1) + ' m</li>' +
+                        '<li>源强: ' + solution.q.toFixed(3) + ' g/s</li>'
+                    );
+                    
+                    $('#validation-metrics').html(
+                        '<li>MAE: ' + validation.mae.toFixed(3) + '</li>' +
+                        '<li>RMSE: ' + validation.rmse.toFixed(3) + '</li>' +
+                        '<li>MAPE: ' + validation.mape.toFixed(1) + '%</li>' +
+                        '<li>R²: ' + validation.r_squared.toFixed(3) + '</li>'
+                    );
+                    
+                    $('#demo-results').show();
+                    $('#view-results-btn').show();
+                    
+                    // 更新页面状态
+                    updateSystemStatus();
+                    updateRecentResults();
+                }, 1000);
+            },
+            error: function(xhr, status, error) {
+                clearInterval(progressInterval);
+                showAlert('演示运行失败: ' + error, 'danger');
+                $('#demoModal').modal('hide');
+            }
+        });
+    }
+</script>
+{% endblock %}

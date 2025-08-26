@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang=\"zh-CN\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>三色预警污染源溯源系统 - 主控制台</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
+    <!-- Font Awesome -->
+    <link href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css\" rel=\"stylesheet\">
+    <!-- Chart.js -->
+    <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>
+    <!-- Plotly.js -->
+    <script src=\"https://cdn.plot.ly/plotly-latest.min.js\"></script>
+    
+    <style>
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .warning-yellow {
+            background: linear-gradient(135deg, #f6d55c 0%, #ee9617 100%);
+            color: white;
+        }
+        
+        .warning-orange {
+            background: linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%);
+            color: white;
+        }
+        
+        .warning-red {
+            background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
+            color: white;
+        }
+        
+        .monitoring-station {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .monitoring-station.active {
+            border-color: #28a745;
+        }
+        
+        .monitoring-station.inactive {
+            border-color: #dc3545;
+        }
+        
+        .alert-item {
+            border-left: 4px solid;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .alert-item.critical {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        
+        .alert-item.high {
+            border-left-color: #fd7e14;
+            background-color: #fff3cd;
+        }
+        
+        .alert-item.medium {
+            border-left-color: #ffc107;
+            background-color: #fff3e0;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background-color: #28a745;
+        }
+        
+        .status-offline {
+            background-color: #dc3545;
+        }
+        
+        .auto-refresh {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- 自动刷新控制 -->
+    <div class=\"auto-refresh\">
+        <div class=\"btn-group\" role=\"group\">
+            <button type=\"button\" class=\"btn btn-sm btn-outline-primary\" id=\"refreshBtn\">
+                <i class=\"fas fa-sync-alt\"></i> 刷新
+            </button>
+            <button type=\"button\" class=\"btn btn-sm btn-outline-success\" id=\"autoRefreshBtn\">
+                <i class=\"fas fa-play\"></i> 自动刷新
+            </button>
+        </div>
+    </div>
+
+    <!-- 页面头部 -->
+    <div class=\"dashboard-header\">
+        <div class=\"container\">
+            <div class=\"row align-items-center\">
+                <div class=\"col-md-8\">
+                    <h1 class=\"mb-0\">
+                        <i class=\"fas fa-tachometer-alt me-3\"></i>
+                        三色预警污染源溯源系统
+                    </h1>
+                    <p class=\"mb-0 mt-2\">实时监控 · 智能预警 · 精准溯源</p>
+                </div>
+                <div class=\"col-md-4 text-end\">
+                    <div class=\"d-flex flex-column align-items-end\">
+                        <div class=\"mb-2\">
+                            <span class=\"status-indicator status-online\"></span>
+                            <span>系统运行正常</span>
+                        </div>
+                        <div>
+                            <small>最后更新: <span id=\"lastUpdate\">{{ data.last_update or '未知' }}</span></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class=\"container-fluid\">
+        <!-- 系统状态卡片 -->
+        <div class=\"row mb-4\">
+            <div class=\"col-md-3\">
+                <div class=\"card stat-card warning-yellow\">
+                    <div class=\"card-body text-center\">
+                        <i class=\"fas fa-exclamation-triangle fa-2x mb-2\"></i>
+                        <h3 id=\"yellowWarnings\">{{ data.warning_statistics.level_distribution.yellow or 0 }}</h3>
+                        <p class=\"mb-0\">黄色预警</p>
+                    </div>
+                </div>
+            </div>
+            <div class=\"col-md-3\">
+                <div class=\"card stat-card warning-orange\">
+                    <div class=\"card-body text-center\">
+                        <i class=\"fas fa-exclamation-circle fa-2x mb-2\"></i>
+                        <h3 id=\"orangeWarnings\">{{ data.warning_statistics.level_distribution.orange or 0 }}</h3>
+                        <p class=\"mb-0\">橙色预警</p>
+                    </div>
+                </div>
+            </div>
+            <div class=\"col-md-3\">
+                <div class=\"card stat-card warning-red\">
+                    <div class=\"card-body text-center\">
+                        <i class=\"fas fa-ban fa-2x mb-2\"></i>
+                        <h3 id=\"redWarnings\">{{ data.warning_statistics.level_distribution.red or 0 }}</h3>
+                        <p class=\"mb-0\">红色预警</p>
+                    </div>
+                </div>
+            </div>
+            <div class=\"col-md-3\">
+                <div class=\"card stat-card bg-primary text-white\">
+                    <div class=\"card-body text-center\">
+                        <i class=\"fas fa-broadcast-tower fa-2x mb-2\"></i>
+                        <h3 id=\"activeStations\">{{ data.system_statistics.monitoring_stations.active or 0 }}</h3>
+                        <p class=\"mb-0\">活跃监测站</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class=\"row\">
+            <!-- 左侧列 -->
+            <div class=\"col-lg-8\">
+                <!-- 实时数据图表 -->
+                <div class=\"chart-container\">
+                    <h5><i class=\"fas fa-chart-line me-2\"></i>实时污染物浓度监控</h5>
+                    <div id=\"realtimeChart\" style=\"height: 400px;\"></div>
+                </div>
+
+                <!-- 监测站状态 -->
+                <div class=\"chart-container\">
+                    <h5><i class=\"fas fa-map-marker-alt me-2\"></i>监测站状态</h5>
+                    <div id=\"stationsContainer\">
+                        <!-- 监测站信息将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 溯源分析结果 -->
+                <div class=\"chart-container\">
+                    <h5><i class=\"fas fa-search-location me-2\"></i>溯源分析结果</h5>
+                    <div class=\"row\">
+                        <div class=\"col-md-6\">
+                            <button class=\"btn btn-primary\" id=\"runInversionBtn\">
+                                <i class=\"fas fa-play\"></i> 启动溯源分析
+                            </button>
+                            <button class=\"btn btn-secondary ms-2\" id=\"simulateDataBtn\">
+                                <i class=\"fas fa-random\"></i> 模拟数据
+                            </button>
+                        </div>
+                        <div class=\"col-md-6 text-end\">
+                            <div id=\"inversionStatus\">
+                                <span class=\"badge bg-secondary\">待启动</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id=\"inversionResults\" class=\"mt-3\">
+                        <!-- 溯源结果将显示在这里 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧列 -->
+            <div class=\"col-lg-4\">
+                <!-- 活跃预警 -->
+                <div class=\"chart-container\">
+                    <h5><i class=\"fas fa-bell me-2\"></i>活跃预警</h5>
+                    <div id=\"activeAlertsContainer\">
+                        {% if data.active_realtime_alerts %}
+                            {% for alert in data.active_realtime_alerts %}
+                            <div class=\"alert-item {{ alert.severity }}\">
+                                <div class=\"d-flex justify-content-between align-items-start\">
+                                    <div>
+                                        <strong>{{ alert.station_id }}</strong>
+                                        <p class=\"mb-1\">{{ alert.message }}</p>
+                                        <small class=\"text-muted\">{{ alert.timestamp }}</small>
+                                    </div>
+                                    <button class=\"btn btn-sm btn-outline-secondary\" onclick=\"acknowledgeAlert('{{ alert.alert_id }}')\">
+                                        <i class=\"fas fa-check\"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class=\"text-center py-4\">
+                                <i class=\"fas fa-check-circle fa-3x text-success mb-3\"></i>
+                                <p class=\"text-muted\">暂无活跃预警</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 系统统计 -->
+                <div class=\"chart-container\">
+                    <h5><i class=\"fas fa-chart-bar me-2\"></i>系统统计</h5>
+                    <div class=\"row\">
+                        <div class=\"col-6\">
+                            <div class=\"text-center\">
+                                <h4 class=\"text-primary\">{{ data.system_statistics.data_statistics.total_readings or 0 }}</h4>
+                                <small class=\"text-muted\">总读数</small>
+                            </div>
+                        </div>
+                        <div class=\"col-6\">
+                            <div class=\"text-center\">
+                                <h4 class=\"text-warning\">{{ data.system_statistics.alert_statistics.total_alerts or 0 }}</h4>
+                                <small class=\"text-muted\">总预警</small>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class=\"row\">
+                        <div class=\"col-12\">
+                            <div class=\"progress mb-2\">
+                                <div class=\"progress-bar bg-success\" role=\"progressbar\" style=\"width: 75%\"></div>
+                            </div>
+                            <small class=\"text-muted\">系统健康度: 75%</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快速操作 -->
+                <div class=\"chart-container\">
+                    <h5><i class=\"fas fa-tools me-2\"></i>快速操作</h5>
+                    <div class=\"d-grid gap-2\">
+                        <a href=\"/upload\" class=\"btn btn-outline-primary\">
+                            <i class=\"fas fa-upload\"></i> 上传数据
+                        </a>
+                        <a href=\"/visualization\" class=\"btn btn-outline-info\">
+                            <i class=\"fas fa-chart-pie\"></i> 数据可视化
+                        </a>
+                        <button class=\"btn btn-outline-success\" onclick=\"exportData()\">
+                            <i class=\"fas fa-download\"></i> 导出报告
+                        </button>
+                        <button class=\"btn btn-outline-secondary\" onclick=\"showSettings()\">
+                            <i class=\"fas fa-cog\"></i> 系统设置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js\"></script>
+    
+    <script>
+        // 全局变量
+        let autoRefreshInterval;
+        let isAutoRefreshing = false;
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            loadRealtimeChart();
+            loadMonitoringStations();
+        });
+        
+        // 初始化控制台
+        function initializeDashboard() {
+            // 刷新按钮事件
+            document.getElementById('refreshBtn').addEventListener('click', refreshData);
+            
+            // 自动刷新按钮事件
+            document.getElementById('autoRefreshBtn').addEventListener('click', toggleAutoRefresh);
+            
+            // 溯源分析按钮事件
+            document.getElementById('runInversionBtn').addEventListener('click', runInversion);
+            
+            // 模拟数据按钮事件
+            document.getElementById('simulateDataBtn').addEventListener('click', simulateData);
+        }
+        
+        // 刷新数据
+        function refreshData() {
+            location.reload();
+        }
+        
+        // 切换自动刷新
+        function toggleAutoRefresh() {
+            const btn = document.getElementById('autoRefreshBtn');
+            
+            if (isAutoRefreshing) {
+                clearInterval(autoRefreshInterval);
+                btn.innerHTML = '<i class=\"fas fa-play\"></i> 自动刷新';
+                btn.className = 'btn btn-sm btn-outline-success';
+                isAutoRefreshing = false;
+            } else {
+                autoRefreshInterval = setInterval(refreshData, 30000); // 30秒刷新
+                btn.innerHTML = '<i class=\"fas fa-pause\"></i> 停止刷新';
+                btn.className = 'btn btn-sm btn-success';
+                isAutoRefreshing = true;
+            }
+        }
+        
+        // 加载实时图表
+        function loadRealtimeChart() {
+            // 获取监测站数据
+            fetch('/api/monitoring/data/ST001?hours=24')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        createRealtimeChart(data.readings);
+                    }
+                })
+                .catch(error => {
+                    console.error('加载实时数据失败:', error);
+                });
+        }
+        
+        // 创建实时图表
+        function createRealtimeChart(readings) {
+            // 按传感器类型分组数据
+            const groupedData = {};
+            readings.forEach(reading => {
+                if (!groupedData[reading.sensor_type]) {
+                    groupedData[reading.sensor_type] = {
+                        x: [],
+                        y: [],
+                        name: reading.sensor_type.toUpperCase(),
+                        type: 'scatter',
+                        mode: 'lines+markers'
+                    };
+                }
+                groupedData[reading.sensor_type].x.push(reading.timestamp);
+                groupedData[reading.sensor_type].y.push(reading.value);
+            });
+            
+            const traces = Object.values(groupedData);
+            
+            const layout = {
+                title: '24小时污染物浓度变化',
+                xaxis: { title: '时间' },
+                yaxis: { title: '浓度 (μg/m³)' },
+                showlegend: true
+            };
+            
+            Plotly.newPlot('realtimeChart', traces, layout);
+        }
+        
+        // 加载监测站信息
+        function loadMonitoringStations() {
+            fetch('/api/monitoring/stations')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayMonitoringStations(data.stations);
+                    }
+                })
+                .catch(error => {
+                    console.error('加载监测站信息失败:', error);
+                });
+        }
+        
+        // 显示监测站信息
+        function displayMonitoringStations(stations) {
+            const container = document.getElementById('stationsContainer');
+            container.innerHTML = '';
+            
+            stations.forEach(station => {
+                const stationDiv = document.createElement('div');
+                stationDiv.className = `monitoring-station ${station.is_active ? 'active' : 'inactive'}`;
+                
+                stationDiv.innerHTML = `
+                    <div class=\"row align-items-center\">
+                        <div class=\"col-md-6\">
+                            <h6 class=\"mb-1\">
+                                <span class=\"status-indicator ${station.is_active ? 'status-online' : 'status-offline'}\"></span>
+                                ${station.name} (${station.station_id})
+                            </h6>
+                            <small class=\"text-muted\">坐标: (${station.x}, ${station.y})</small>
+                        </div>
+                        <div class=\"col-md-3\">
+                            <small class=\"text-muted\">传感器: ${station.sensors.join(', ')}</small>
+                        </div>
+                        <div class=\"col-md-3 text-end\">
+                            <span class=\"badge ${station.is_active ? 'bg-success' : 'bg-danger'}\">
+                                ${station.is_active ? '在线' : '离线'}
+                            </span>
+                            <br>
+                            <small class=\"text-muted\">质量评分: ${(station.data_quality_score * 100).toFixed(1)}%</small>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(stationDiv);
+            });
+        }
+        
+        // 运行溯源分析
+        function runInversion() {
+            const btn = document.getElementById('runInversionBtn');
+            const status = document.getElementById('inversionStatus');
+            const results = document.getElementById('inversionResults');
+            
+            // 更新状态
+            btn.disabled = true;
+            btn.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> 分析中...';
+            status.innerHTML = '<span class=\"badge bg-warning\">运行中</span>';
+            
+            // 发送请求
+            fetch('/run_inversion', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    algorithm_params: {
+                        population_size: 50,
+                        max_generations: 100
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class=\"fas fa-play\"></i> 启动溯源分析';
+                
+                if (data.success) {
+                    status.innerHTML = '<span class=\"badge bg-success\">完成</span>';
+                    displayInversionResults(data.results);
+                } else {
+                    status.innerHTML = '<span class=\"badge bg-danger\">失败</span>';
+                    results.innerHTML = `<div class=\"alert alert-danger\">${data.error}</div>`;
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class=\"fas fa-play\"></i> 启动溯源分析';
+                status.innerHTML = '<span class=\"badge bg-danger\">错误</span>';
+                results.innerHTML = `<div class=\"alert alert-danger\">请求失败: ${error.message}</div>`;
+            });
+        }
+        
+        // 显示溯源结果
+        function displayInversionResults(results) {
+            const container = document.getElementById('inversionResults');
+            
+            container.innerHTML = `
+                <div class=\"alert alert-success\">
+                    <h6><i class=\"fas fa-check-circle\"></i> 溯源分析完成</h6>
+                    <div class=\"row\">
+                        <div class=\"col-md-6\">
+                            <strong>污染源位置:</strong><br>
+                            X: ${results.final_solution.x.toFixed(1)}m<br>
+                            Y: ${results.final_solution.y.toFixed(1)}m<br>
+                            Z: ${results.final_solution.z.toFixed(1)}m
+                        </div>
+                        <div class=\"col-md-6\">
+                            <strong>源强:</strong> ${results.final_solution.q.toFixed(3)} g/s<br>
+                            <strong>计算时间:</strong> ${results.computation_time.toFixed(2)}s<br>
+                            <strong>R²:</strong> ${results.validation_metrics.r_squared.toFixed(3)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 模拟数据
+        function simulateData() {
+            const btn = document.getElementById('simulateDataBtn');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> 模拟中...';
+            
+            fetch('/api/monitoring/simulate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    station_id: 'ST001',
+                    duration_minutes: 30
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class=\"fas fa-random\"></i> 模拟数据';
+                
+                if (data.success) {
+                    alert('数据模拟已启动！');
+                    setTimeout(() => {
+                        loadRealtimeChart();
+                    }, 2000);
+                } else {
+                    alert('模拟失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class=\"fas fa-random\"></i> 模拟数据';
+                alert('请求失败: ' + error.message);
+            });
+        }
+        
+        // 确认预警
+        function acknowledgeAlert(alertId) {
+            fetch(`/api/alerts/${alertId}/acknowledge`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('确认失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('请求失败: ' + error.message);
+            });
+        }
+        
+        // 导出数据
+        function exportData() {
+            window.open('/api/export/dashboard', '_blank');
+        }
+        
+        // 显示设置
+        function showSettings() {
+            alert('系统设置功能开发中...');
+        }
+        
+        // 更新时间显示
+        function updateLastUpdateTime() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleString('zh-CN');
+        }
+        
+        // 每分钟更新时间
+        setInterval(updateLastUpdateTime, 60000);
+        updateLastUpdateTime();
+    </script>
+</body>
+</html>"

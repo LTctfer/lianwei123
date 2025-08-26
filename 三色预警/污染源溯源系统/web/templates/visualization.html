@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}结果可视化 - 污染源溯源系统{% endblock %}
+
+{% block extra_css %}
+<style>
+    .plot-container {
+        height: 500px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .metrics-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    .result-summary {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 结果摘要 -->
+    <div class="col-12 mb-4">
+        <div class="card result-summary">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="fas fa-bullseye"></i> 溯源结果摘要
+                </h5>
+                <div class="row" id="result-summary">
+                    <div class="col-md-3 text-center">
+                        <h4 id="source-x">--</h4>
+                        <small>X坐标 (m)</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 id="source-y">--</h4>
+                        <small>Y坐标 (m)</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 id="source-z">--</h4>
+                        <small>高度 (m)</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 id="source-q">--</h4>
+                        <small>源强 (g/s)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 验证指标 -->
+    <div class="col-lg-4 mb-4">
+        <div class="card metrics-card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-bar"></i> 验证指标
+                </h5>
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <h4 id="mae-value">--</h4>
+                        <small>MAE</small>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <h4 id="rmse-value">--</h4>
+                        <small>RMSE</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 id="mape-value">--</h4>
+                        <small>MAPE (%)</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 id="r2-value">--</h4>
+                        <small>R²</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 计算信息 -->
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="fas fa-info-circle"></i> 计算信息</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <td>计算时间</td>
+                        <td id="computation-time">--</td>
+                    </tr>
+                    <tr>
+                        <td>数据质量</td>
+                        <td id="data-quality">--</td>
+                    </tr>
+                    <tr>
+                        <td>监测站数</td>
+                        <td id="station-count">--</td>
+                    </tr>
+                    <tr>
+                        <td>监测点数</td>
+                        <td id="point-count">--</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 图表区域 -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="plotTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="convergence-tab" data-bs-toggle="tab" 
+                                data-bs-target="#convergence" type="button" role="tab">
+                            收敛曲线
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="concentration-tab" data-bs-toggle="tab" 
+                                data-bs-target="#concentration" type="button" role="tab">
+                            浓度场分布
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="validation-tab" data-bs-toggle="tab" 
+                                data-bs-target="#validation" type="button" role="tab">
+                            验证分析
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="comparison-tab" data-bs-toggle="tab" 
+                                data-bs-target="#comparison" type="button" role="tab">
+                            算法对比
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="plotTabContent">
+                    <div class="tab-pane fade show active" id="convergence" role="tabpanel">
+                        <div id="convergence-plot" class="plot-container"></div>
+                    </div>
+                    <div class="tab-pane fade" id="concentration" role="tabpanel">
+                        <div id="concentration-plot" class="plot-container"></div>
+                    </div>
+                    <div class="tab-pane fade" id="validation" role="tabpanel">
+                        <div id="validation-plot" class="plot-container"></div>
+                    </div>
+                    <div class="tab-pane fade" id="comparison" role="tabpanel">
+                        <div id="comparison-plot" class="plot-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 操作按钮 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">操作选项</h6>
+                        <small class="text-muted">导出结果或重新计算</small>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="refreshResults()">
+                            <i class="fas fa-sync-alt"></i> 刷新结果
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportResults()">
+                            <i class="fas fa-download"></i> 导出报告
+                        </button>
+                        <a href="{{ url_for('upload_data') }}" class="btn btn-outline-info">
+                            <i class="fas fa-upload"></i> 重新上传
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 加载提示 -->
+<div id="loading-overlay" class="d-none">
+    <div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" 
+         style="background: rgba(0,0,0,0.5); z-index: 9999;">
+        <div class="bg-white p-4 rounded text-center">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h6>正在加载结果...</h6>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentResults = null;
+    
+    $(document).ready(function() {
+        loadResults();
+    });
+    
+    function loadResults() {
+        showLoading();
+        
+        $.get('/get_results')
+            .done(function(data) {
+                currentResults = data;
+                updateResultSummary(data);
+                updateValidationMetrics(data);
+                updateComputationInfo(data);
+                loadPlots();
+                hideLoading();
+            })
+            .fail(function() {
+                hideLoading();
+                showAlert('暂无反算结果，请先运行反算', 'warning');
+                
+                // 显示空状态
+                $('.plot-container').html(
+                    '<div class="d-flex align-items-center justify-content-center h-100">' +
+                    '<div class="text-center text-muted">' +
+                    '<i class="fas fa-chart-line fa-3x mb-3"></i>' +
+                    '<h6>暂无数据</h6>' +
+                    '<p>请先上传数据并运行反算</p>' +
+                    '</div></div>'
+                );
+            });
+    }
+    
+    function updateResultSummary(data) {
+        const solution = data.final_solution;
+        $('#source-x').text(solution.x.toFixed(1));
+        $('#source-y').text(solution.y.toFixed(1));
+        $('#source-z').text(solution.z.toFixed(1));
+        $('#source-q').text(solution.q.toFixed(3));
+    }
+    
+    function updateValidationMetrics(data) {
+        const validation = data.validation;
+        $('#mae-value').text(validation.mae.toFixed(3));
+        $('#rmse-value').text(validation.rmse.toFixed(3));
+        $('#mape-value').text(validation.mape.toFixed(1));
+        $('#r2-value').text(validation.r_squared.toFixed(3));
+    }
+    
+    function updateComputationInfo(data) {
+        $('#computation-time').text(data.computation_time.toFixed(2) + ' 秒');
+        $('#data-quality').text((data.data_quality * 100).toFixed(1) + '%');
+        $('#station-count').text(data.monitoring_stations.length);
+        $('#point-count').text(data.total_monitoring_points);
+    }
+    
+    function loadPlots() {
+        $.get('/generate_plots')
+            .done(function(data) {
+                if (data.success) {
+                    // 渲染收敛曲线
+                    const convergencePlot = JSON.parse(data.plots.convergence);
+                    Plotly.newPlot('convergence-plot', convergencePlot.data, convergencePlot.layout, {responsive: true});
+                    
+                    // 渲染浓度场分布
+                    const concentrationPlot = JSON.parse(data.plots.concentration_field);
+                    Plotly.newPlot('concentration-plot', concentrationPlot.data, concentrationPlot.layout, {responsive: true});
+                    
+                    // 渲染验证散点图
+                    const validationPlot = JSON.parse(data.plots.validation_scatter);
+                    Plotly.newPlot('validation-plot', validationPlot.data, validationPlot.layout, {responsive: true});
+                    
+                    // 渲染算法对比
+                    const comparisonPlot = JSON.parse(data.plots.algorithm_comparison);
+                    Plotly.newPlot('comparison-plot', comparisonPlot.data, comparisonPlot.layout, {responsive: true});
+                }
+            })
+            .fail(function() {
+                showAlert('图表加载失败', 'danger');
+            });
+    }
+    
+    function refreshResults() {
+        loadResults();
+        showAlert('结果已刷新', 'success');
+    }
+    
+    function exportResults() {
+        if (!currentResults) {
+            showAlert('暂无结果可导出', 'warning');
+            return;
+        }
+        
+        $.get('/export_results')
+            .done(function(data) {
+                if (data.success) {
+                    // 创建下载链接
+                    const blob = new Blob([JSON.stringify(data.report, null, 2)], 
+                                        { type: 'application/json' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = data.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    showAlert('报告导出成功', 'success');
+                }
+            })
+            .fail(function() {
+                showAlert('报告导出失败', 'danger');
+            });
+    }
+    
+    function showLoading() {
+        $('#loading-overlay').removeClass('d-none');
+    }
+    
+    function hideLoading() {
+        $('#loading-overlay').addClass('d-none');
+    }
+    
+    // 响应式图表调整
+    window.addEventListener('resize', function() {
+        if (currentResults) {
+            Plotly.Plots.resize('convergence-plot');
+            Plotly.Plots.resize('concentration-plot');
+            Plotly.Plots.resize('validation-plot');
+            Plotly.Plots.resize('comparison-plot');
+        }
+    });
+</script>
+{% endblock %}

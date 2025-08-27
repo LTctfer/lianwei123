@@ -1,0 +1,293 @@
+# AI-BOX Modbus PLC数据读取配置文件
+
+# PLC连接配置
+plc_connection:
+  ip_address: "192.168.1.10"    # Modbus PLC IP地址
+  port: 502                     # Modbus TCP端口 (标准端口502)
+  unit_id: 1                    # 从站ID (Modbus设备地址)
+  timeout: 5                    # 连接超时时间(秒)
+  retry_count: 3                # 重试次数
+  retry_delay: 2                # 重试间隔(秒)
+
+# 数据读取配置
+data_reading:
+  interval: 1.0                 # 读取间隔(秒)
+  batch_size: 50                # 批处理大小
+  queue_size: 1000              # 数据队列大小
+
+# 数据点配置 - 根据PLC程序实际配置修改
+data_points:
+  # 振动传感器数据 (保持寄存器)
+  vibration_x:
+    address: 40001              # Modbus保持寄存器地址
+    type: "FLOAT32"             # 数据类型：FLOAT32(32位浮点), INT32(32位整数), INT16(16位整数), BOOL(布尔)
+    function_code: 3            # Modbus功能码：3=读保持寄存器, 1=读线圈, 2=读离散输入, 4=读输入寄存器
+    unit: "mm/s"                # 单位
+    description: "X轴振动速度"
+    min_value: -100.0           # 有效范围最小值
+    max_value: 100.0            # 有效范围最大值
+    alarm_high: 50.0            # 高报警阈值
+    alarm_low: -50.0            # 低报警阈值
+
+  vibration_y:
+    address: 40003              # 每个FLOAT32占用2个寄存器，所以地址+2
+    type: "FLOAT32"
+    function_code: 3
+    unit: "mm/s"
+    description: "Y轴振动速度"
+    min_value: -100.0
+    max_value: 100.0
+    alarm_high: 50.0
+    alarm_low: -50.0
+
+  vibration_z:
+    address: 40005
+    type: "FLOAT32"
+    function_code: 3
+    unit: "mm/s"
+    description: "Z轴振动速度"
+    min_value: -100.0
+    max_value: 100.0
+    alarm_high: 50.0
+    alarm_low: -50.0
+
+  # 温度传感器数据
+  temperature_bearing1:
+    address: 40007
+    type: "FLOAT32"
+    function_code: 3
+    unit: "°C"
+    description: "轴承1温度"
+    min_value: -40.0
+    max_value: 150.0
+    alarm_high: 80.0
+    alarm_low: -10.0
+
+  temperature_bearing2:
+    address: 40009
+    type: "FLOAT32"
+    function_code: 3
+    unit: "°C"
+    description: "轴承2温度"
+    min_value: -40.0
+    max_value: 150.0
+    alarm_high: 80.0
+    alarm_low: -10.0
+
+  temperature_motor:
+    address: 40011
+    type: "FLOAT32"
+    function_code: 3
+    unit: "°C"
+    description: "电机温度"
+    min_value: -40.0
+    max_value: 150.0
+    alarm_high: 100.0
+    alarm_low: -10.0
+
+  # 压力传感器数据
+  pressure_inlet:
+    address: 40013
+    type: "FLOAT32"
+    function_code: 3
+    unit: "bar"
+    description: "进口压力"
+    min_value: 0.0
+    max_value: 50.0
+    alarm_high: 40.0
+    alarm_low: 0.5
+
+  pressure_outlet:
+    address: 40015
+    type: "FLOAT32"
+    function_code: 3
+    unit: "bar"
+    description: "出口压力"
+    min_value: 0.0
+    max_value: 50.0
+    alarm_high: 35.0
+    alarm_low: 0.5
+
+  # 流量传感器数据
+  flow_rate:
+    address: 40017
+    type: "FLOAT32"
+    function_code: 3
+    unit: "L/min"
+    description: "流量"
+    min_value: 0.0
+    max_value: 1000.0
+    alarm_high: 800.0
+    alarm_low: 10.0
+
+  # 转速传感器数据
+  motor_speed:
+    address: 40019
+    type: "FLOAT32"
+    function_code: 3
+    unit: "rpm"
+    description: "电机转速"
+    min_value: 0.0
+    max_value: 3600.0
+    alarm_high: 3000.0
+    alarm_low: 100.0
+
+  # 电流传感器数据
+  motor_current_a:
+    address: 40021
+    type: "FLOAT32"
+    function_code: 3
+    unit: "A"
+    description: "电机A相电流"
+    min_value: 0.0
+    max_value: 100.0
+    alarm_high: 80.0
+    alarm_low: 0.5
+
+  motor_current_b:
+    address: 40023
+    type: "FLOAT32"
+    function_code: 3
+    unit: "A"
+    description: "电机B相电流"
+    min_value: 0.0
+    max_value: 100.0
+    alarm_high: 80.0
+    alarm_low: 0.5
+
+  motor_current_c:
+    address: 40025
+    type: "FLOAT32"
+    function_code: 3
+    unit: "A"
+    description: "电机C相电流"
+    min_value: 0.0
+    max_value: 100.0
+    alarm_high: 80.0
+    alarm_low: 0.5
+
+  # 电压数据
+  voltage_supply:
+    address: 40027
+    type: "FLOAT32"
+    function_code: 3
+    unit: "V"
+    description: "供电电压"
+    min_value: 0.0
+    max_value: 500.0
+    alarm_high: 450.0
+    alarm_low: 200.0
+
+  # 功率数据
+  power_active:
+    address: 40029
+    type: "FLOAT32"
+    function_code: 3
+    unit: "kW"
+    description: "有功功率"
+    min_value: 0.0
+    max_value: 100.0
+    alarm_high: 80.0
+    alarm_low: 0.1
+
+  # 设备状态位 (线圈)
+  device_running:
+    address: 1                  # 线圈地址1
+    type: "BOOL"
+    function_code: 1            # 读线圈
+    unit: ""
+    description: "设备运行状态"
+
+  device_alarm:
+    address: 2                  # 线圈地址2
+    type: "BOOL"
+    function_code: 1
+    unit: ""
+    description: "设备报警状态"
+
+  emergency_stop:
+    address: 3                  # 线圈地址3
+    type: "BOOL"
+    function_code: 1
+    unit: ""
+    description: "急停状态"
+
+  maintenance_mode:
+    address: 4                  # 线圈地址4
+    type: "BOOL"
+    function_code: 1
+    unit: ""
+    description: "维护模式"
+
+  auto_mode:
+    address: 5                  # 线圈地址5
+    type: "BOOL"
+    function_code: 1
+    unit: ""
+    description: "自动模式"
+
+  manual_mode:
+    address: 6                  # 线圈地址6
+    type: "BOOL"
+    function_code: 1
+    unit: ""
+    description: "手动模式"
+
+# 数据处理配置
+data_processing:
+  enable_filtering: true        # 启用数据滤波
+  filter_window: 5              # 滤波窗口大小
+  enable_validation: true       # 启用数据验证
+  outlier_threshold: 3.0        # 异常值检测阈值(标准差倍数)
+
+# 数据存储配置
+data_storage:
+  database_path: "aibox_data.db"
+  backup_interval: 3600         # 备份间隔(秒)
+  cleanup_days: 30              # 数据保留天数
+  batch_insert_size: 100        # 批量插入大小
+
+# 报警配置
+alarm_system:
+  enable_alarms: true           # 启用报警系统
+  alarm_check_interval: 5       # 报警检查间隔(秒)
+  alarm_log_path: "alarms.log"  # 报警日志文件
+  
+  # 报警通知方式
+  notifications:
+    email:
+      enabled: false
+      smtp_server: "smtp.example.com"
+      smtp_port: 587
+      username: "alert@example.com"
+      password: "password"
+      recipients: ["admin@example.com"]
+    
+    webhook:
+      enabled: false
+      url: "http://your-webhook-url.com/alerts"
+      timeout: 10
+
+# 日志配置
+logging:
+  level: "INFO"                 # 日志级别: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_path: "aibox_s7_reader.log"
+  max_file_size: 10485760       # 最大文件大小(10MB)
+  backup_count: 5               # 备份文件数量
+  console_output: true          # 是否输出到控制台
+
+# Web监控配置
+web_monitor:
+  enabled: true                 # 启用Web监控
+  host: "0.0.0.0"              # 监听地址
+  port: 8080                    # 监听端口
+  update_interval: 2            # 页面更新间隔(秒)
+
+# 性能监控配置
+performance:
+  enable_metrics: true          # 启用性能指标收集
+  metrics_interval: 30          # 指标收集间隔(秒)
+  cpu_threshold: 80.0           # CPU使用率阈值(%)
+  memory_threshold: 80.0        # 内存使用率阈值(%)
+  disk_threshold: 90.0          # 磁盘使用率阈值(%)

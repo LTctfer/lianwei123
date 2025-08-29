@@ -1,0 +1,98 @@
+{
+  "plc_settings": {
+    "host": "192.168.1.100",
+    "port": 502,
+    "unit_id": 1,
+    "timeout": 5.0
+  },
+  "registers": [
+    {
+      "name": "pm25",
+      "address": 40001,
+      "register_type": "holding",
+      "data_type": "float32",
+      "count": 2,
+      "scale": 1.0,
+      "offset": 0.0,
+      "unit": "μg/m³",
+      "description": "PM2.5浓度"
+    },
+    {
+      "name": "pm10",
+      "address": 40003,
+      "register_type": "holding",
+      "data_type": "float32",
+      "count": 2,
+      "scale": 1.0,
+      "offset": 0.0,
+      "unit": "μg/m³",
+      "description": "PM10浓度"
+    },
+    {
+      "name": "wind_speed",
+      "address": 40005,
+      "register_type": "holding",
+      "data_type": "uint16",
+      "count": 1,
+      "scale": 0.1,
+      "offset": 0.0,
+      "unit": "m/s",
+      "description": "风速"
+    },
+    {
+      "name": "wind_direction",
+      "address": 40006,
+      "register_type": "holding",
+      "data_type": "uint16",
+      "count": 1,
+      "scale": 1.0,
+      "offset": 0.0,
+      "unit": "度",
+      "description": "风向"
+    },
+    {
+      "name": "temperature",
+      "address": 40007,
+      "register_type": "holding",
+      "data_type": "int16",
+      "count": 1,
+      "scale": 0.1,
+      "offset": 0.0,
+      "unit": "°C",
+      "description": "温度"
+    },
+    {
+      "name": "humidity",
+      "address": 40008,
+      "register_type": "holding",
+      "data_type": "uint16",
+      "count": 1,
+      "scale": 0.1,
+      "offset": 0.0,
+      "unit": "%",
+      "description": "相对湿度"
+    },
+    {
+      "name": "pressure",
+      "address": 40009,
+      "register_type": "holding",
+      "data_type": "uint16",
+      "count": 1,
+      "scale": 0.1,
+      "offset": 900.0,
+      "unit": "hPa",
+      "description": "大气压力"
+    },
+    {
+      "name": "device_status",
+      "address": 1,
+      "register_type": "coil",
+      "data_type": "bool",
+      "count": 1,
+      "scale": 1.0,
+      "offset": 0.0,
+      "unit": "",
+      "description": "设备状态"
+    }
+  ]
+}

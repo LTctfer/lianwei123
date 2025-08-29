@@ -1,0 +1,5087 @@
+[
+  {
+    "name": "横轴_LowHwLimitSwitch",
+    "logical_address": "%I0.7",
+    "data_type": "Bool",
+    "modbus_address": 10007,
+    "register_type": "discrete",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "横轴_HighHwLimitSwitch",
+    "logical_address": "%I0.5",
+    "data_type": "Bool",
+    "modbus_address": 10005,
+    "register_type": "discrete",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "横轴_归位开关",
+    "logical_address": "%I0.6",
+    "data_type": "Bool",
+    "modbus_address": 10006,
+    "register_type": "discrete",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "竖轴_HighHwLimitSwitch",
+    "logical_address": "%I0.1",
+    "data_type": "Bool",
+    "modbus_address": 10001,
+    "register_type": "discrete",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "竖轴_LowHwLimitSwitch",
+    "logical_address": "%I0.2",
+    "data_type": "Bool",
+    "modbus_address": 10002,
+    "register_type": "discrete",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "竖轴_归位开关",
+    "logical_address": "%I0.4",
+    "data_type": "Bool",
+    "modbus_address": 10004,
+    "register_type": "discrete",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "横轴_脉冲",
+    "logical_address": "%Q0.0",
+    "data_type": "Bool",
+    "modbus_address": 0,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "横轴_方向",
+    "logical_address": "%Q0.1",
+    "data_type": "Bool",
+    "modbus_address": 1,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "竖轴_脉冲",
+    "logical_address": "%Q0.2",
+    "data_type": "Bool",
+    "modbus_address": 2,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "竖轴_方向",
+    "logical_address": "%Q0.3",
+    "data_type": "Bool",
+    "modbus_address": 3,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_6",
+    "logical_address": "%Q0.4",
+    "data_type": "Bool",
+    "modbus_address": 4,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_7",
+    "logical_address": "%Q0.5",
+    "data_type": "Bool",
+    "modbus_address": 5,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_10",
+    "logical_address": "%Q10.0",
+    "data_type": "Bool",
+    "modbus_address": 80,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_11",
+    "logical_address": "%Q10.1",
+    "data_type": "Bool",
+    "modbus_address": 81,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_14",
+    "logical_address": "%Q10.2",
+    "data_type": "Bool",
+    "modbus_address": 82,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_16",
+    "logical_address": "%Q10.3",
+    "data_type": "Bool",
+    "modbus_address": 83,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_29",
+    "logical_address": "%Q10.4",
+    "data_type": "Bool",
+    "modbus_address": 84,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_34",
+    "logical_address": "%Q10.5",
+    "data_type": "Bool",
+    "modbus_address": 85,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_39",
+    "logical_address": "%Q10.6",
+    "data_type": "Bool",
+    "modbus_address": 86,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_44",
+    "logical_address": "%Q10.7",
+    "data_type": "Bool",
+    "modbus_address": 87,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_49",
+    "logical_address": "%Q11.0",
+    "data_type": "Bool",
+    "modbus_address": 88,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_54",
+    "logical_address": "%Q11.1",
+    "data_type": "Bool",
+    "modbus_address": 89,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_59",
+    "logical_address": "%Q11.2",
+    "data_type": "Bool",
+    "modbus_address": 90,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_64",
+    "logical_address": "%Q11.3",
+    "data_type": "Bool",
+    "modbus_address": 91,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_69",
+    "logical_address": "%Q11.4",
+    "data_type": "Bool",
+    "modbus_address": 92,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_74",
+    "logical_address": "%Q11.5",
+    "data_type": "Bool",
+    "modbus_address": 93,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_79",
+    "logical_address": "%Q11.6",
+    "data_type": "Bool",
+    "modbus_address": 94,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_84",
+    "logical_address": "%Q11.7",
+    "data_type": "Bool",
+    "modbus_address": 95,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_89",
+    "logical_address": "%Q12.0",
+    "data_type": "Bool",
+    "modbus_address": 96,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_94",
+    "logical_address": "%Q12.1",
+    "data_type": "Bool",
+    "modbus_address": 97,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_99",
+    "logical_address": "%Q12.2",
+    "data_type": "Bool",
+    "modbus_address": 98,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_104",
+    "logical_address": "%Q12.3",
+    "data_type": "Bool",
+    "modbus_address": 99,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_109",
+    "logical_address": "%Q12.4",
+    "data_type": "Bool",
+    "modbus_address": 100,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_114",
+    "logical_address": "%Q12.5",
+    "data_type": "Bool",
+    "modbus_address": 101,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_119",
+    "logical_address": "%Q12.6",
+    "data_type": "Bool",
+    "modbus_address": 102,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_122",
+    "logical_address": "%Q12.7",
+    "data_type": "Bool",
+    "modbus_address": 103,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_127",
+    "logical_address": "%Q13.0",
+    "data_type": "Bool",
+    "modbus_address": 104,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_132",
+    "logical_address": "%Q13.1",
+    "data_type": "Bool",
+    "modbus_address": 105,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_137",
+    "logical_address": "%Q13.2",
+    "data_type": "Bool",
+    "modbus_address": 106,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_155",
+    "logical_address": "%Q13.3",
+    "data_type": "Bool",
+    "modbus_address": 107,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_156",
+    "logical_address": "%Q13.4",
+    "data_type": "Bool",
+    "modbus_address": 108,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_157",
+    "logical_address": "%Q13.5",
+    "data_type": "Bool",
+    "modbus_address": 109,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_158",
+    "logical_address": "%Q13.6",
+    "data_type": "Bool",
+    "modbus_address": 110,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_159",
+    "logical_address": "%Q13.7",
+    "data_type": "Bool",
+    "modbus_address": 111,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_160",
+    "logical_address": "%Q14.0",
+    "data_type": "Bool",
+    "modbus_address": 112,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_161",
+    "logical_address": "%Q14.1",
+    "data_type": "Bool",
+    "modbus_address": 113,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_162",
+    "logical_address": "%Q14.2",
+    "data_type": "Bool",
+    "modbus_address": 114,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_163",
+    "logical_address": "%Q14.3",
+    "data_type": "Bool",
+    "modbus_address": 115,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_164",
+    "logical_address": "%Q14.4",
+    "data_type": "Bool",
+    "modbus_address": 116,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_165",
+    "logical_address": "%Q14.5",
+    "data_type": "Bool",
+    "modbus_address": 117,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_166",
+    "logical_address": "%Q14.6",
+    "data_type": "Bool",
+    "modbus_address": 118,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_167",
+    "logical_address": "%Q14.7",
+    "data_type": "Bool",
+    "modbus_address": 119,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_168",
+    "logical_address": "%Q15.0",
+    "data_type": "Bool",
+    "modbus_address": 120,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_169",
+    "logical_address": "%Q15.1",
+    "data_type": "Bool",
+    "modbus_address": 121,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_170",
+    "logical_address": "%Q15.2",
+    "data_type": "Bool",
+    "modbus_address": 122,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_171",
+    "logical_address": "%Q15.3",
+    "data_type": "Bool",
+    "modbus_address": 123,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_172",
+    "logical_address": "%Q15.4",
+    "data_type": "Bool",
+    "modbus_address": 124,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_173",
+    "logical_address": "%Q15.5",
+    "data_type": "Bool",
+    "modbus_address": 125,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_174",
+    "logical_address": "%Q15.6",
+    "data_type": "Bool",
+    "modbus_address": 126,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_175",
+    "logical_address": "%Q15.7",
+    "data_type": "Bool",
+    "modbus_address": 127,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_176",
+    "logical_address": "%Q16.0",
+    "data_type": "Bool",
+    "modbus_address": 128,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_177",
+    "logical_address": "%Q16.1",
+    "data_type": "Bool",
+    "modbus_address": 129,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_178",
+    "logical_address": "%Q16.2",
+    "data_type": "Bool",
+    "modbus_address": 130,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_179",
+    "logical_address": "%Q16.3",
+    "data_type": "Bool",
+    "modbus_address": 131,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_180",
+    "logical_address": "%Q16.4",
+    "data_type": "Bool",
+    "modbus_address": 132,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_181",
+    "logical_address": "%Q16.5",
+    "data_type": "Bool",
+    "modbus_address": 133,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_182",
+    "logical_address": "%Q16.6",
+    "data_type": "Bool",
+    "modbus_address": 134,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_183",
+    "logical_address": "%Q16.7",
+    "data_type": "Bool",
+    "modbus_address": 135,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_184",
+    "logical_address": "%Q17.0",
+    "data_type": "Bool",
+    "modbus_address": 136,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_185",
+    "logical_address": "%Q17.1",
+    "data_type": "Bool",
+    "modbus_address": 137,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_186",
+    "logical_address": "%Q17.2",
+    "data_type": "Bool",
+    "modbus_address": 138,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_187",
+    "logical_address": "%Q17.3",
+    "data_type": "Bool",
+    "modbus_address": 139,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_188",
+    "logical_address": "%Q17.4",
+    "data_type": "Bool",
+    "modbus_address": 140,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_189",
+    "logical_address": "%Q17.5",
+    "data_type": "Bool",
+    "modbus_address": 141,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_190",
+    "logical_address": "%Q17.6",
+    "data_type": "Bool",
+    "modbus_address": 142,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_191",
+    "logical_address": "%Q17.7",
+    "data_type": "Bool",
+    "modbus_address": 143,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_192",
+    "logical_address": "%Q18.0",
+    "data_type": "Bool",
+    "modbus_address": 144,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_193",
+    "logical_address": "%Q18.1",
+    "data_type": "Bool",
+    "modbus_address": 145,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_194",
+    "logical_address": "%Q18.2",
+    "data_type": "Bool",
+    "modbus_address": 146,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_195",
+    "logical_address": "%Q18.3",
+    "data_type": "Bool",
+    "modbus_address": 147,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_196",
+    "logical_address": "%Q18.4",
+    "data_type": "Bool",
+    "modbus_address": 148,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_197",
+    "logical_address": "%Q18.5",
+    "data_type": "Bool",
+    "modbus_address": 149,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_198",
+    "logical_address": "%Q18.6",
+    "data_type": "Bool",
+    "modbus_address": 150,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_200",
+    "logical_address": "%Q20.0",
+    "data_type": "Bool",
+    "modbus_address": 160,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_534",
+    "logical_address": "%Q19.0",
+    "data_type": "Bool",
+    "modbus_address": 152,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_1",
+    "logical_address": "%M1.1",
+    "data_type": "Bool",
+    "modbus_address": 20009,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_2",
+    "logical_address": "%M1.0",
+    "data_type": "Bool",
+    "modbus_address": 20008,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_3",
+    "logical_address": "%M1.2",
+    "data_type": "Bool",
+    "modbus_address": 20010,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_4",
+    "logical_address": "%MW100",
+    "data_type": "Word",
+    "modbus_address": 40100,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_5",
+    "logical_address": "%M100.0",
+    "data_type": "Bool",
+    "modbus_address": 20800,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_8",
+    "logical_address": "%MD100",
+    "data_type": "Real",
+    "modbus_address": 40050,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_9",
+    "logical_address": "%M1.3",
+    "data_type": "Bool",
+    "modbus_address": 20011,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_12",
+    "logical_address": "%M1.4",
+    "data_type": "Bool",
+    "modbus_address": 20012,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_13",
+    "logical_address": "%M0.0",
+    "data_type": "Bool",
+    "modbus_address": 20000,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_15",
+    "logical_address": "%M1.5",
+    "data_type": "Bool",
+    "modbus_address": 20013,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_17",
+    "logical_address": "%M1.6",
+    "data_type": "Bool",
+    "modbus_address": 20014,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_18",
+    "logical_address": "%M1.7",
+    "data_type": "Bool",
+    "modbus_address": 20015,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_19",
+    "logical_address": "%M2.0",
+    "data_type": "Bool",
+    "modbus_address": 20016,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_20",
+    "logical_address": "%M2.1",
+    "data_type": "Bool",
+    "modbus_address": 20017,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_21",
+    "logical_address": "%M2.2",
+    "data_type": "Bool",
+    "modbus_address": 20018,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_22",
+    "logical_address": "%M2.3",
+    "data_type": "Bool",
+    "modbus_address": 20019,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_23",
+    "logical_address": "%M2.4",
+    "data_type": "Bool",
+    "modbus_address": 20020,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_24",
+    "logical_address": "%M2.5",
+    "data_type": "Bool",
+    "modbus_address": 20021,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_25",
+    "logical_address": "%M2.6",
+    "data_type": "Bool",
+    "modbus_address": 20022,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_26",
+    "logical_address": "%M2.7",
+    "data_type": "Bool",
+    "modbus_address": 20023,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_27",
+    "logical_address": "%M3.0",
+    "data_type": "Bool",
+    "modbus_address": 20024,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_28",
+    "logical_address": "%M3.1",
+    "data_type": "Bool",
+    "modbus_address": 20025,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_30",
+    "logical_address": "%M3.2",
+    "data_type": "Bool",
+    "modbus_address": 20026,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_31",
+    "logical_address": "%M3.3",
+    "data_type": "Bool",
+    "modbus_address": 20027,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_32",
+    "logical_address": "%M3.4",
+    "data_type": "Bool",
+    "modbus_address": 20028,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_33",
+    "logical_address": "%M3.5",
+    "data_type": "Bool",
+    "modbus_address": 20029,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_35",
+    "logical_address": "%M3.6",
+    "data_type": "Bool",
+    "modbus_address": 20030,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_36",
+    "logical_address": "%M3.7",
+    "data_type": "Bool",
+    "modbus_address": 20031,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_37",
+    "logical_address": "%M4.0",
+    "data_type": "Bool",
+    "modbus_address": 20032,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_38",
+    "logical_address": "%M4.1",
+    "data_type": "Bool",
+    "modbus_address": 20033,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_40",
+    "logical_address": "%M4.2",
+    "data_type": "Bool",
+    "modbus_address": 20034,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_41",
+    "logical_address": "%M4.3",
+    "data_type": "Bool",
+    "modbus_address": 20035,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_42",
+    "logical_address": "%M4.4",
+    "data_type": "Bool",
+    "modbus_address": 20036,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_43",
+    "logical_address": "%M4.5",
+    "data_type": "Bool",
+    "modbus_address": 20037,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_45",
+    "logical_address": "%M4.6",
+    "data_type": "Bool",
+    "modbus_address": 20038,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_46",
+    "logical_address": "%M4.7",
+    "data_type": "Bool",
+    "modbus_address": 20039,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_47",
+    "logical_address": "%M5.0",
+    "data_type": "Bool",
+    "modbus_address": 20040,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_48",
+    "logical_address": "%M5.1",
+    "data_type": "Bool",
+    "modbus_address": 20041,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_50",
+    "logical_address": "%M5.2",
+    "data_type": "Bool",
+    "modbus_address": 20042,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_51",
+    "logical_address": "%M5.3",
+    "data_type": "Bool",
+    "modbus_address": 20043,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_52",
+    "logical_address": "%M5.4",
+    "data_type": "Bool",
+    "modbus_address": 20044,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_53",
+    "logical_address": "%M5.5",
+    "data_type": "Bool",
+    "modbus_address": 20045,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_55",
+    "logical_address": "%M5.6",
+    "data_type": "Bool",
+    "modbus_address": 20046,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_56",
+    "logical_address": "%M5.7",
+    "data_type": "Bool",
+    "modbus_address": 20047,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_57",
+    "logical_address": "%M6.0",
+    "data_type": "Bool",
+    "modbus_address": 20048,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_58",
+    "logical_address": "%M6.1",
+    "data_type": "Bool",
+    "modbus_address": 20049,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_60",
+    "logical_address": "%M6.2",
+    "data_type": "Bool",
+    "modbus_address": 20050,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_61",
+    "logical_address": "%M6.3",
+    "data_type": "Bool",
+    "modbus_address": 20051,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_62",
+    "logical_address": "%M6.4",
+    "data_type": "Bool",
+    "modbus_address": 20052,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_63",
+    "logical_address": "%M6.5",
+    "data_type": "Bool",
+    "modbus_address": 20053,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_65",
+    "logical_address": "%M6.6",
+    "data_type": "Bool",
+    "modbus_address": 20054,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_66",
+    "logical_address": "%M6.7",
+    "data_type": "Bool",
+    "modbus_address": 20055,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_67",
+    "logical_address": "%M7.0",
+    "data_type": "Bool",
+    "modbus_address": 20056,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_68",
+    "logical_address": "%M7.1",
+    "data_type": "Bool",
+    "modbus_address": 20057,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_70",
+    "logical_address": "%M7.2",
+    "data_type": "Bool",
+    "modbus_address": 20058,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_71",
+    "logical_address": "%M7.3",
+    "data_type": "Bool",
+    "modbus_address": 20059,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_72",
+    "logical_address": "%M7.4",
+    "data_type": "Bool",
+    "modbus_address": 20060,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_73",
+    "logical_address": "%M7.5",
+    "data_type": "Bool",
+    "modbus_address": 20061,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_75",
+    "logical_address": "%M7.6",
+    "data_type": "Bool",
+    "modbus_address": 20062,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_76",
+    "logical_address": "%M7.7",
+    "data_type": "Bool",
+    "modbus_address": 20063,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_77",
+    "logical_address": "%M8.0",
+    "data_type": "Bool",
+    "modbus_address": 20064,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_78",
+    "logical_address": "%M8.1",
+    "data_type": "Bool",
+    "modbus_address": 20065,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_80",
+    "logical_address": "%M8.2",
+    "data_type": "Bool",
+    "modbus_address": 20066,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_81",
+    "logical_address": "%M8.3",
+    "data_type": "Bool",
+    "modbus_address": 20067,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_82",
+    "logical_address": "%M8.4",
+    "data_type": "Bool",
+    "modbus_address": 20068,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_83",
+    "logical_address": "%M8.5",
+    "data_type": "Bool",
+    "modbus_address": 20069,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_85",
+    "logical_address": "%M8.6",
+    "data_type": "Bool",
+    "modbus_address": 20070,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_86",
+    "logical_address": "%M8.7",
+    "data_type": "Bool",
+    "modbus_address": 20071,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_87",
+    "logical_address": "%M9.0",
+    "data_type": "Bool",
+    "modbus_address": 20072,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_88",
+    "logical_address": "%M9.1",
+    "data_type": "Bool",
+    "modbus_address": 20073,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_90",
+    "logical_address": "%M9.2",
+    "data_type": "Bool",
+    "modbus_address": 20074,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_91",
+    "logical_address": "%M9.3",
+    "data_type": "Bool",
+    "modbus_address": 20075,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_92",
+    "logical_address": "%M9.4",
+    "data_type": "Bool",
+    "modbus_address": 20076,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_93",
+    "logical_address": "%M9.5",
+    "data_type": "Bool",
+    "modbus_address": 20077,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_95",
+    "logical_address": "%M9.6",
+    "data_type": "Bool",
+    "modbus_address": 20078,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_96",
+    "logical_address": "%M9.7",
+    "data_type": "Bool",
+    "modbus_address": 20079,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_97",
+    "logical_address": "%M10.0",
+    "data_type": "Bool",
+    "modbus_address": 20080,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_98",
+    "logical_address": "%M10.1",
+    "data_type": "Bool",
+    "modbus_address": 20081,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_100",
+    "logical_address": "%M10.2",
+    "data_type": "Bool",
+    "modbus_address": 20082,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_101",
+    "logical_address": "%M10.3",
+    "data_type": "Bool",
+    "modbus_address": 20083,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_102",
+    "logical_address": "%M10.4",
+    "data_type": "Bool",
+    "modbus_address": 20084,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_103",
+    "logical_address": "%M10.5",
+    "data_type": "Bool",
+    "modbus_address": 20085,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_105",
+    "logical_address": "%M10.6",
+    "data_type": "Bool",
+    "modbus_address": 20086,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_106",
+    "logical_address": "%M10.7",
+    "data_type": "Bool",
+    "modbus_address": 20087,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_107",
+    "logical_address": "%M11.0",
+    "data_type": "Bool",
+    "modbus_address": 20088,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_108",
+    "logical_address": "%M11.1",
+    "data_type": "Bool",
+    "modbus_address": 20089,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_110",
+    "logical_address": "%M11.2",
+    "data_type": "Bool",
+    "modbus_address": 20090,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_111",
+    "logical_address": "%M11.3",
+    "data_type": "Bool",
+    "modbus_address": 20091,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_112",
+    "logical_address": "%M11.4",
+    "data_type": "Bool",
+    "modbus_address": 20092,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_113",
+    "logical_address": "%M11.5",
+    "data_type": "Bool",
+    "modbus_address": 20093,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_115",
+    "logical_address": "%M11.6",
+    "data_type": "Bool",
+    "modbus_address": 20094,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_116",
+    "logical_address": "%M11.7",
+    "data_type": "Bool",
+    "modbus_address": 20095,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_117",
+    "logical_address": "%M12.0",
+    "data_type": "Bool",
+    "modbus_address": 20096,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_118",
+    "logical_address": "%M12.1",
+    "data_type": "Bool",
+    "modbus_address": 20097,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_120",
+    "logical_address": "%M23.1",
+    "data_type": "Bool",
+    "modbus_address": 20185,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_121",
+    "logical_address": "%M23.2",
+    "data_type": "Bool",
+    "modbus_address": 20186,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_123",
+    "logical_address": "%M24.1",
+    "data_type": "Bool",
+    "modbus_address": 20193,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_124",
+    "logical_address": "%M24.2",
+    "data_type": "Bool",
+    "modbus_address": 20194,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_125",
+    "logical_address": "%M24.3",
+    "data_type": "Bool",
+    "modbus_address": 20195,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_126",
+    "logical_address": "%M24.4",
+    "data_type": "Bool",
+    "modbus_address": 20196,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_128",
+    "logical_address": "%M25.1",
+    "data_type": "Bool",
+    "modbus_address": 20201,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_129",
+    "logical_address": "%M25.2",
+    "data_type": "Bool",
+    "modbus_address": 20202,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_130",
+    "logical_address": "%M25.3",
+    "data_type": "Bool",
+    "modbus_address": 20203,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_131",
+    "logical_address": "%M25.4",
+    "data_type": "Bool",
+    "modbus_address": 20204,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_133",
+    "logical_address": "%M26.1",
+    "data_type": "Bool",
+    "modbus_address": 20209,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_134",
+    "logical_address": "%M26.2",
+    "data_type": "Bool",
+    "modbus_address": 20210,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_135",
+    "logical_address": "%M26.3",
+    "data_type": "Bool",
+    "modbus_address": 20211,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_136",
+    "logical_address": "%M26.4",
+    "data_type": "Bool",
+    "modbus_address": 20212,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_138",
+    "logical_address": "%M27.1",
+    "data_type": "Bool",
+    "modbus_address": 20217,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_139",
+    "logical_address": "%M27.2",
+    "data_type": "Bool",
+    "modbus_address": 20218,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_140",
+    "logical_address": "%M27.3",
+    "data_type": "Bool",
+    "modbus_address": 20219,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_141",
+    "logical_address": "%M27.4",
+    "data_type": "Bool",
+    "modbus_address": 20220,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_142",
+    "logical_address": "%M28.4",
+    "data_type": "Bool",
+    "modbus_address": 20228,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_143",
+    "logical_address": "%M28.3",
+    "data_type": "Bool",
+    "modbus_address": 20227,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_144",
+    "logical_address": "%M28.2",
+    "data_type": "Bool",
+    "modbus_address": 20226,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_145",
+    "logical_address": "%M28.1",
+    "data_type": "Bool",
+    "modbus_address": 20225,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_146",
+    "logical_address": "%M0.1",
+    "data_type": "Bool",
+    "modbus_address": 20001,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_147",
+    "logical_address": "%M0.2",
+    "data_type": "Bool",
+    "modbus_address": 20002,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_148",
+    "logical_address": "%MD104",
+    "data_type": "Real",
+    "modbus_address": 40052,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_149",
+    "logical_address": "%MD112",
+    "data_type": "Time",
+    "modbus_address": 40056,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_150",
+    "logical_address": "%MD116",
+    "data_type": "Time",
+    "modbus_address": 40058,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_151",
+    "logical_address": "%MD108",
+    "data_type": "Real",
+    "modbus_address": 40054,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_152",
+    "logical_address": "%MD120",
+    "data_type": "Real",
+    "modbus_address": 40060,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_153",
+    "logical_address": "%MD124",
+    "data_type": "Real",
+    "modbus_address": 40062,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_199",
+    "logical_address": "%MD128",
+    "data_type": "Time",
+    "modbus_address": 40064,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_201",
+    "logical_address": "%M29.1",
+    "data_type": "Bool",
+    "modbus_address": 20233,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_202",
+    "logical_address": "%M29.2",
+    "data_type": "Bool",
+    "modbus_address": 20234,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_203",
+    "logical_address": "%M29.3",
+    "data_type": "Bool",
+    "modbus_address": 20235,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_204",
+    "logical_address": "%M29.4",
+    "data_type": "Bool",
+    "modbus_address": 20236,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_205",
+    "logical_address": "%M30.1",
+    "data_type": "Bool",
+    "modbus_address": 20241,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_206",
+    "logical_address": "%M30.2",
+    "data_type": "Bool",
+    "modbus_address": 20242,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_207",
+    "logical_address": "%M30.3",
+    "data_type": "Bool",
+    "modbus_address": 20243,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_208",
+    "logical_address": "%M30.4",
+    "data_type": "Bool",
+    "modbus_address": 20244,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_209",
+    "logical_address": "%M31.1",
+    "data_type": "Bool",
+    "modbus_address": 20249,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_210",
+    "logical_address": "%M32.2",
+    "data_type": "Bool",
+    "modbus_address": 20258,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_211",
+    "logical_address": "%M31.3",
+    "data_type": "Bool",
+    "modbus_address": 20251,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_212",
+    "logical_address": "%M31.4",
+    "data_type": "Bool",
+    "modbus_address": 20252,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_213",
+    "logical_address": "%M32.1",
+    "data_type": "Bool",
+    "modbus_address": 20257,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_214",
+    "logical_address": "%M32.3",
+    "data_type": "Bool",
+    "modbus_address": 20259,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_215",
+    "logical_address": "%M32.4",
+    "data_type": "Bool",
+    "modbus_address": 20260,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_216",
+    "logical_address": "%M33.1",
+    "data_type": "Bool",
+    "modbus_address": 20265,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_217",
+    "logical_address": "%M33.2",
+    "data_type": "Bool",
+    "modbus_address": 20266,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_218",
+    "logical_address": "%M33.3",
+    "data_type": "Bool",
+    "modbus_address": 20267,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_219",
+    "logical_address": "%M33.4",
+    "data_type": "Bool",
+    "modbus_address": 20268,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_220",
+    "logical_address": "%M34.1",
+    "data_type": "Bool",
+    "modbus_address": 20273,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_221",
+    "logical_address": "%M34.2",
+    "data_type": "Bool",
+    "modbus_address": 20274,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_222",
+    "logical_address": "%M34.3",
+    "data_type": "Bool",
+    "modbus_address": 20275,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_223",
+    "logical_address": "%M34.4",
+    "data_type": "Bool",
+    "modbus_address": 20276,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_224",
+    "logical_address": "%M35.1",
+    "data_type": "Bool",
+    "modbus_address": 20281,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_225",
+    "logical_address": "%M35.2",
+    "data_type": "Bool",
+    "modbus_address": 20282,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_226",
+    "logical_address": "%M35.3",
+    "data_type": "Bool",
+    "modbus_address": 20283,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_227",
+    "logical_address": "%M35.4",
+    "data_type": "Bool",
+    "modbus_address": 20284,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_228",
+    "logical_address": "%M36.1",
+    "data_type": "Bool",
+    "modbus_address": 20289,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_229",
+    "logical_address": "%M36.2",
+    "data_type": "Bool",
+    "modbus_address": 20290,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_230",
+    "logical_address": "%M36.3",
+    "data_type": "Bool",
+    "modbus_address": 20291,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_231",
+    "logical_address": "%M36.4",
+    "data_type": "Bool",
+    "modbus_address": 20292,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_232",
+    "logical_address": "%M37.1",
+    "data_type": "Bool",
+    "modbus_address": 20297,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_233",
+    "logical_address": "%M37.2",
+    "data_type": "Bool",
+    "modbus_address": 20298,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_234",
+    "logical_address": "%M37.3",
+    "data_type": "Bool",
+    "modbus_address": 20299,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_235",
+    "logical_address": "%M37.4",
+    "data_type": "Bool",
+    "modbus_address": 20300,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_236",
+    "logical_address": "%M38.1",
+    "data_type": "Bool",
+    "modbus_address": 20305,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_237",
+    "logical_address": "%M38.2",
+    "data_type": "Bool",
+    "modbus_address": 20306,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_238",
+    "logical_address": "%M38.3",
+    "data_type": "Bool",
+    "modbus_address": 20307,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_239",
+    "logical_address": "%M38.4",
+    "data_type": "Bool",
+    "modbus_address": 20308,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_240",
+    "logical_address": "%M39.1",
+    "data_type": "Bool",
+    "modbus_address": 20313,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_241",
+    "logical_address": "%M39.2",
+    "data_type": "Bool",
+    "modbus_address": 20314,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_242",
+    "logical_address": "%M39.3",
+    "data_type": "Bool",
+    "modbus_address": 20315,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_243",
+    "logical_address": "%M39.4",
+    "data_type": "Bool",
+    "modbus_address": 20316,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_244",
+    "logical_address": "%M40.1",
+    "data_type": "Bool",
+    "modbus_address": 20321,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_245",
+    "logical_address": "%M40.2",
+    "data_type": "Bool",
+    "modbus_address": 20322,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_246",
+    "logical_address": "%M40.3",
+    "data_type": "Bool",
+    "modbus_address": 20323,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_247",
+    "logical_address": "%M40.4",
+    "data_type": "Bool",
+    "modbus_address": 20324,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_248",
+    "logical_address": "%M41.1",
+    "data_type": "Bool",
+    "modbus_address": 20329,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_249",
+    "logical_address": "%M41.2",
+    "data_type": "Bool",
+    "modbus_address": 20330,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_250",
+    "logical_address": "%M41.3",
+    "data_type": "Bool",
+    "modbus_address": 20331,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_251",
+    "logical_address": "%M41.4",
+    "data_type": "Bool",
+    "modbus_address": 20332,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_252",
+    "logical_address": "%M42.1",
+    "data_type": "Bool",
+    "modbus_address": 20337,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_253",
+    "logical_address": "%M42.2",
+    "data_type": "Bool",
+    "modbus_address": 20338,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_254",
+    "logical_address": "%M42.3",
+    "data_type": "Bool",
+    "modbus_address": 20339,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_255",
+    "logical_address": "%M42.4",
+    "data_type": "Bool",
+    "modbus_address": 20340,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_256",
+    "logical_address": "%M43.1",
+    "data_type": "Bool",
+    "modbus_address": 20345,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_257",
+    "logical_address": "%M43.2",
+    "data_type": "Bool",
+    "modbus_address": 20346,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_258",
+    "logical_address": "%M43.3",
+    "data_type": "Bool",
+    "modbus_address": 20347,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_259",
+    "logical_address": "%M43.4",
+    "data_type": "Bool",
+    "modbus_address": 20348,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_260",
+    "logical_address": "%M44.1",
+    "data_type": "Bool",
+    "modbus_address": 20353,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_261",
+    "logical_address": "%M44.2",
+    "data_type": "Bool",
+    "modbus_address": 20354,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_262",
+    "logical_address": "%M44.3",
+    "data_type": "Bool",
+    "modbus_address": 20355,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_263",
+    "logical_address": "%M44.4",
+    "data_type": "Bool",
+    "modbus_address": 20356,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_264",
+    "logical_address": "%M45.1",
+    "data_type": "Bool",
+    "modbus_address": 20361,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_265",
+    "logical_address": "%M45.2",
+    "data_type": "Bool",
+    "modbus_address": 20362,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_266",
+    "logical_address": "%M45.3",
+    "data_type": "Bool",
+    "modbus_address": 20363,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_267",
+    "logical_address": "%M45.4",
+    "data_type": "Bool",
+    "modbus_address": 20364,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_268",
+    "logical_address": "%M46.1",
+    "data_type": "Bool",
+    "modbus_address": 20369,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_269",
+    "logical_address": "%M46.2",
+    "data_type": "Bool",
+    "modbus_address": 20370,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_270",
+    "logical_address": "%M46.3",
+    "data_type": "Bool",
+    "modbus_address": 20371,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_271",
+    "logical_address": "%M46.4",
+    "data_type": "Bool",
+    "modbus_address": 20372,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_272",
+    "logical_address": "%M47.1",
+    "data_type": "Bool",
+    "modbus_address": 20377,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_273",
+    "logical_address": "%M47.2",
+    "data_type": "Bool",
+    "modbus_address": 20378,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_274",
+    "logical_address": "%M47.3",
+    "data_type": "Bool",
+    "modbus_address": 20379,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_275",
+    "logical_address": "%M47.4",
+    "data_type": "Bool",
+    "modbus_address": 20380,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_276",
+    "logical_address": "%M48.1",
+    "data_type": "Bool",
+    "modbus_address": 20385,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_277",
+    "logical_address": "%M48.2",
+    "data_type": "Bool",
+    "modbus_address": 20386,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_278",
+    "logical_address": "%M48.3",
+    "data_type": "Bool",
+    "modbus_address": 20387,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_279",
+    "logical_address": "%M48.4",
+    "data_type": "Bool",
+    "modbus_address": 20388,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_280",
+    "logical_address": "%M49.1",
+    "data_type": "Bool",
+    "modbus_address": 20393,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_281",
+    "logical_address": "%M49.2",
+    "data_type": "Bool",
+    "modbus_address": 20394,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_282",
+    "logical_address": "%M49.3",
+    "data_type": "Bool",
+    "modbus_address": 20395,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_283",
+    "logical_address": "%M49.4",
+    "data_type": "Bool",
+    "modbus_address": 20396,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_284",
+    "logical_address": "%M50.1",
+    "data_type": "Bool",
+    "modbus_address": 20401,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_285",
+    "logical_address": "%M50.2",
+    "data_type": "Bool",
+    "modbus_address": 20402,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_286",
+    "logical_address": "%M50.3",
+    "data_type": "Bool",
+    "modbus_address": 20403,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_287",
+    "logical_address": "%M50.4",
+    "data_type": "Bool",
+    "modbus_address": 20404,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_288",
+    "logical_address": "%M51.1",
+    "data_type": "Bool",
+    "modbus_address": 20409,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_289",
+    "logical_address": "%M51.2",
+    "data_type": "Bool",
+    "modbus_address": 20410,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_290",
+    "logical_address": "%M51.3",
+    "data_type": "Bool",
+    "modbus_address": 20411,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_291",
+    "logical_address": "%M51.4",
+    "data_type": "Bool",
+    "modbus_address": 20412,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_292",
+    "logical_address": "%M52.1",
+    "data_type": "Bool",
+    "modbus_address": 20417,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_293",
+    "logical_address": "%M52.2",
+    "data_type": "Bool",
+    "modbus_address": 20418,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_294",
+    "logical_address": "%M52.3",
+    "data_type": "Bool",
+    "modbus_address": 20419,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_295",
+    "logical_address": "%M52.4",
+    "data_type": "Bool",
+    "modbus_address": 20420,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_296",
+    "logical_address": "%M53.1",
+    "data_type": "Bool",
+    "modbus_address": 20425,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_297",
+    "logical_address": "%M53.2",
+    "data_type": "Bool",
+    "modbus_address": 20426,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_298",
+    "logical_address": "%M53.3",
+    "data_type": "Bool",
+    "modbus_address": 20427,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_299",
+    "logical_address": "%M53.4",
+    "data_type": "Bool",
+    "modbus_address": 20428,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_300",
+    "logical_address": "%M54.1",
+    "data_type": "Bool",
+    "modbus_address": 20433,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_301",
+    "logical_address": "%M54.2",
+    "data_type": "Bool",
+    "modbus_address": 20434,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_302",
+    "logical_address": "%M54.3",
+    "data_type": "Bool",
+    "modbus_address": 20435,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_303",
+    "logical_address": "%M54.4",
+    "data_type": "Bool",
+    "modbus_address": 20436,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_304",
+    "logical_address": "%M55.1",
+    "data_type": "Bool",
+    "modbus_address": 20441,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_305",
+    "logical_address": "%M55.2",
+    "data_type": "Bool",
+    "modbus_address": 20442,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_306",
+    "logical_address": "%M55.3",
+    "data_type": "Bool",
+    "modbus_address": 20443,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_307",
+    "logical_address": "%M55.4",
+    "data_type": "Bool",
+    "modbus_address": 20444,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_308",
+    "logical_address": "%M56.1",
+    "data_type": "Bool",
+    "modbus_address": 20449,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_309",
+    "logical_address": "%M56.2",
+    "data_type": "Bool",
+    "modbus_address": 20450,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_310",
+    "logical_address": "%M56.3",
+    "data_type": "Bool",
+    "modbus_address": 20451,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_311",
+    "logical_address": "%M56.4",
+    "data_type": "Bool",
+    "modbus_address": 20452,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_312",
+    "logical_address": "%M57.1",
+    "data_type": "Bool",
+    "modbus_address": 20457,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_313",
+    "logical_address": "%M57.2",
+    "data_type": "Bool",
+    "modbus_address": 20458,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_314",
+    "logical_address": "%M57.3",
+    "data_type": "Bool",
+    "modbus_address": 20459,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_315",
+    "logical_address": "%M57.4",
+    "data_type": "Bool",
+    "modbus_address": 20460,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_316",
+    "logical_address": "%M58.1",
+    "data_type": "Bool",
+    "modbus_address": 20465,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_317",
+    "logical_address": "%M58.2",
+    "data_type": "Bool",
+    "modbus_address": 20466,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_318",
+    "logical_address": "%M58.3",
+    "data_type": "Bool",
+    "modbus_address": 20467,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_319",
+    "logical_address": "%M58.4",
+    "data_type": "Bool",
+    "modbus_address": 20468,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_320",
+    "logical_address": "%M59.1",
+    "data_type": "Bool",
+    "modbus_address": 20473,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_321",
+    "logical_address": "%M59.2",
+    "data_type": "Bool",
+    "modbus_address": 20474,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_322",
+    "logical_address": "%M59.3",
+    "data_type": "Bool",
+    "modbus_address": 20475,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_323",
+    "logical_address": "%M59.4",
+    "data_type": "Bool",
+    "modbus_address": 20476,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_324",
+    "logical_address": "%M60.1",
+    "data_type": "Bool",
+    "modbus_address": 20481,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_325",
+    "logical_address": "%M60.2",
+    "data_type": "Bool",
+    "modbus_address": 20482,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_326",
+    "logical_address": "%M60.3",
+    "data_type": "Bool",
+    "modbus_address": 20483,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_327",
+    "logical_address": "%M60.4",
+    "data_type": "Bool",
+    "modbus_address": 20484,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_328",
+    "logical_address": "%M61.1",
+    "data_type": "Bool",
+    "modbus_address": 20489,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_329",
+    "logical_address": "%M62.2",
+    "data_type": "Bool",
+    "modbus_address": 20498,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_330",
+    "logical_address": "%M61.2",
+    "data_type": "Bool",
+    "modbus_address": 20490,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_331",
+    "logical_address": "%M61.3",
+    "data_type": "Bool",
+    "modbus_address": 20491,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_332",
+    "logical_address": "%M61.4",
+    "data_type": "Bool",
+    "modbus_address": 20492,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_333",
+    "logical_address": "%M62.1",
+    "data_type": "Bool",
+    "modbus_address": 20497,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_334",
+    "logical_address": "%M62.3",
+    "data_type": "Bool",
+    "modbus_address": 20499,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_335",
+    "logical_address": "%M62.4",
+    "data_type": "Bool",
+    "modbus_address": 20500,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_336",
+    "logical_address": "%M63.1",
+    "data_type": "Bool",
+    "modbus_address": 20505,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_337",
+    "logical_address": "%M63.2",
+    "data_type": "Bool",
+    "modbus_address": 20506,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_338",
+    "logical_address": "%M63.3",
+    "data_type": "Bool",
+    "modbus_address": 20507,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_339",
+    "logical_address": "%M63.4",
+    "data_type": "Bool",
+    "modbus_address": 20508,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_340",
+    "logical_address": "%M64.1",
+    "data_type": "Bool",
+    "modbus_address": 20513,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_341",
+    "logical_address": "%M64.2",
+    "data_type": "Bool",
+    "modbus_address": 20514,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_342",
+    "logical_address": "%M64.3",
+    "data_type": "Bool",
+    "modbus_address": 20515,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_343",
+    "logical_address": "%M64.4",
+    "data_type": "Bool",
+    "modbus_address": 20516,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_344",
+    "logical_address": "%M65.1",
+    "data_type": "Bool",
+    "modbus_address": 20521,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_345",
+    "logical_address": "%M65.2",
+    "data_type": "Bool",
+    "modbus_address": 20522,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_346",
+    "logical_address": "%M65.3",
+    "data_type": "Bool",
+    "modbus_address": 20523,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_347",
+    "logical_address": "%M65.4",
+    "data_type": "Bool",
+    "modbus_address": 20524,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_348",
+    "logical_address": "%M66.1",
+    "data_type": "Bool",
+    "modbus_address": 20529,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_349",
+    "logical_address": "%M66.2",
+    "data_type": "Bool",
+    "modbus_address": 20530,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_350",
+    "logical_address": "%M66.3",
+    "data_type": "Bool",
+    "modbus_address": 20531,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_351",
+    "logical_address": "%M66.4",
+    "data_type": "Bool",
+    "modbus_address": 20532,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_352",
+    "logical_address": "%M67.1",
+    "data_type": "Bool",
+    "modbus_address": 20537,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_353",
+    "logical_address": "%M67.2",
+    "data_type": "Bool",
+    "modbus_address": 20538,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_354",
+    "logical_address": "%M67.3",
+    "data_type": "Bool",
+    "modbus_address": 20539,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_355",
+    "logical_address": "%M67.4",
+    "data_type": "Bool",
+    "modbus_address": 20540,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_356",
+    "logical_address": "%M68.1",
+    "data_type": "Bool",
+    "modbus_address": 20545,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_357",
+    "logical_address": "%M68.2",
+    "data_type": "Bool",
+    "modbus_address": 20546,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_358",
+    "logical_address": "%M68.3",
+    "data_type": "Bool",
+    "modbus_address": 20547,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_359",
+    "logical_address": "%M68.4",
+    "data_type": "Bool",
+    "modbus_address": 20548,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_360",
+    "logical_address": "%M69.1",
+    "data_type": "Bool",
+    "modbus_address": 20553,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_361",
+    "logical_address": "%M69.2",
+    "data_type": "Bool",
+    "modbus_address": 20554,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_362",
+    "logical_address": "%M69.3",
+    "data_type": "Bool",
+    "modbus_address": 20555,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_363",
+    "logical_address": "%M69.4",
+    "data_type": "Bool",
+    "modbus_address": 20556,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_364",
+    "logical_address": "%M70.1",
+    "data_type": "Bool",
+    "modbus_address": 20561,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_365",
+    "logical_address": "%M70.2",
+    "data_type": "Bool",
+    "modbus_address": 20562,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_366",
+    "logical_address": "%M70.3",
+    "data_type": "Bool",
+    "modbus_address": 20563,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_367",
+    "logical_address": "%M70.4",
+    "data_type": "Bool",
+    "modbus_address": 20564,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_368",
+    "logical_address": "%M71.1",
+    "data_type": "Bool",
+    "modbus_address": 20569,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_369",
+    "logical_address": "%M71.2",
+    "data_type": "Bool",
+    "modbus_address": 20570,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_370",
+    "logical_address": "%M71.3",
+    "data_type": "Bool",
+    "modbus_address": 20571,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_371",
+    "logical_address": "%M71.4",
+    "data_type": "Bool",
+    "modbus_address": 20572,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_372",
+    "logical_address": "%M72.1",
+    "data_type": "Bool",
+    "modbus_address": 20577,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_373",
+    "logical_address": "%M72.2",
+    "data_type": "Bool",
+    "modbus_address": 20578,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_374",
+    "logical_address": "%M72.3",
+    "data_type": "Bool",
+    "modbus_address": 20579,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_375",
+    "logical_address": "%M72.4",
+    "data_type": "Bool",
+    "modbus_address": 20580,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_376",
+    "logical_address": "%M31.2",
+    "data_type": "Bool",
+    "modbus_address": 20250,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_377",
+    "logical_address": "%M100.1",
+    "data_type": "Bool",
+    "modbus_address": 20801,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_378",
+    "logical_address": "%M100.2",
+    "data_type": "Bool",
+    "modbus_address": 20802,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_379",
+    "logical_address": "%M200.0",
+    "data_type": "Bool",
+    "modbus_address": 21600,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_380",
+    "logical_address": "%M200.2",
+    "data_type": "Bool",
+    "modbus_address": 21602,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_381",
+    "logical_address": "%M101.1",
+    "data_type": "Bool",
+    "modbus_address": 20809,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_382",
+    "logical_address": "%M101.2",
+    "data_type": "Bool",
+    "modbus_address": 20810,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_383",
+    "logical_address": "%M102.1",
+    "data_type": "Bool",
+    "modbus_address": 20817,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_384",
+    "logical_address": "%M102.2",
+    "data_type": "Bool",
+    "modbus_address": 20818,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_385",
+    "logical_address": "%M102.3",
+    "data_type": "Bool",
+    "modbus_address": 20819,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_386",
+    "logical_address": "%M300.0",
+    "data_type": "Bool",
+    "modbus_address": 22400,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_387",
+    "logical_address": "%M103.1",
+    "data_type": "Bool",
+    "modbus_address": 20825,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_388",
+    "logical_address": "%M103.2",
+    "data_type": "Bool",
+    "modbus_address": 20826,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_389",
+    "logical_address": "%M104.1",
+    "data_type": "Bool",
+    "modbus_address": 20833,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_390",
+    "logical_address": "%M104.2",
+    "data_type": "Bool",
+    "modbus_address": 20834,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_391",
+    "logical_address": "%M105.1",
+    "data_type": "Bool",
+    "modbus_address": 20841,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_392",
+    "logical_address": "%M105.2",
+    "data_type": "Bool",
+    "modbus_address": 20842,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_393",
+    "logical_address": "%M106.1",
+    "data_type": "Bool",
+    "modbus_address": 20849,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_394",
+    "logical_address": "%M106.2",
+    "data_type": "Bool",
+    "modbus_address": 20850,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_395",
+    "logical_address": "%M107.1",
+    "data_type": "Bool",
+    "modbus_address": 20857,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_396",
+    "logical_address": "%M107.2",
+    "data_type": "Bool",
+    "modbus_address": 20858,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_397",
+    "logical_address": "%M108.1",
+    "data_type": "Bool",
+    "modbus_address": 20865,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_398",
+    "logical_address": "%M108.2",
+    "data_type": "Bool",
+    "modbus_address": 20866,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_399",
+    "logical_address": "%M109.1",
+    "data_type": "Bool",
+    "modbus_address": 20873,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_400",
+    "logical_address": "%M109.2",
+    "data_type": "Bool",
+    "modbus_address": 20874,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_401",
+    "logical_address": "%M110.1",
+    "data_type": "Bool",
+    "modbus_address": 20881,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_402",
+    "logical_address": "%M110.2",
+    "data_type": "Bool",
+    "modbus_address": 20882,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_403",
+    "logical_address": "%M111.1",
+    "data_type": "Bool",
+    "modbus_address": 20889,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_404",
+    "logical_address": "%M111.2",
+    "data_type": "Bool",
+    "modbus_address": 20890,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_405",
+    "logical_address": "%M112.1",
+    "data_type": "Bool",
+    "modbus_address": 20897,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_406",
+    "logical_address": "%M112.2",
+    "data_type": "Bool",
+    "modbus_address": 20898,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_407",
+    "logical_address": "%M113.1",
+    "data_type": "Bool",
+    "modbus_address": 20905,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_408",
+    "logical_address": "%M113.2",
+    "data_type": "Bool",
+    "modbus_address": 20906,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_409",
+    "logical_address": "%M114.1",
+    "data_type": "Bool",
+    "modbus_address": 20913,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_410",
+    "logical_address": "%M114.2",
+    "data_type": "Bool",
+    "modbus_address": 20914,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_411",
+    "logical_address": "%M115.1",
+    "data_type": "Bool",
+    "modbus_address": 20921,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_412",
+    "logical_address": "%M115.2",
+    "data_type": "Bool",
+    "modbus_address": 20922,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_413",
+    "logical_address": "%M116.1",
+    "data_type": "Bool",
+    "modbus_address": 20929,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_414",
+    "logical_address": "%M116.2",
+    "data_type": "Bool",
+    "modbus_address": 20930,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_415",
+    "logical_address": "%M117.1",
+    "data_type": "Bool",
+    "modbus_address": 20937,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_416",
+    "logical_address": "%M117.2",
+    "data_type": "Bool",
+    "modbus_address": 20938,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_417",
+    "logical_address": "%M118.1",
+    "data_type": "Bool",
+    "modbus_address": 20945,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_418",
+    "logical_address": "%M118.2",
+    "data_type": "Bool",
+    "modbus_address": 20946,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_419",
+    "logical_address": "%M119.1",
+    "data_type": "Bool",
+    "modbus_address": 20953,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_420",
+    "logical_address": "%M119.2",
+    "data_type": "Bool",
+    "modbus_address": 20954,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_421",
+    "logical_address": "%M120.1",
+    "data_type": "Bool",
+    "modbus_address": 20961,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_422",
+    "logical_address": "%M120.2",
+    "data_type": "Bool",
+    "modbus_address": 20962,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_423",
+    "logical_address": "%M121.1",
+    "data_type": "Bool",
+    "modbus_address": 20969,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_424",
+    "logical_address": "%M121.2",
+    "data_type": "Bool",
+    "modbus_address": 20970,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_425",
+    "logical_address": "%M122.1",
+    "data_type": "Bool",
+    "modbus_address": 20977,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_426",
+    "logical_address": "%M122.2",
+    "data_type": "Bool",
+    "modbus_address": 20978,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_427",
+    "logical_address": "%M123.1",
+    "data_type": "Bool",
+    "modbus_address": 20985,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_428",
+    "logical_address": "%M123.2",
+    "data_type": "Bool",
+    "modbus_address": 20986,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_429",
+    "logical_address": "%M124.1",
+    "data_type": "Bool",
+    "modbus_address": 20993,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_430",
+    "logical_address": "%M124.2",
+    "data_type": "Bool",
+    "modbus_address": 20994,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_431",
+    "logical_address": "%M125.1",
+    "data_type": "Bool",
+    "modbus_address": 21001,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_432",
+    "logical_address": "%M125.2",
+    "data_type": "Bool",
+    "modbus_address": 21002,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_433",
+    "logical_address": "%M126.1",
+    "data_type": "Bool",
+    "modbus_address": 21009,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_434",
+    "logical_address": "%M126.2",
+    "data_type": "Bool",
+    "modbus_address": 21010,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_435",
+    "logical_address": "%M127.1",
+    "data_type": "Bool",
+    "modbus_address": 21017,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_436",
+    "logical_address": "%M127.2",
+    "data_type": "Bool",
+    "modbus_address": 21018,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_437",
+    "logical_address": "%M128.1",
+    "data_type": "Bool",
+    "modbus_address": 21025,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_438",
+    "logical_address": "%M128.2",
+    "data_type": "Bool",
+    "modbus_address": 21026,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_439",
+    "logical_address": "%M129.1",
+    "data_type": "Bool",
+    "modbus_address": 21033,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_440",
+    "logical_address": "%M129.2",
+    "data_type": "Bool",
+    "modbus_address": 21034,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_441",
+    "logical_address": "%M130.1",
+    "data_type": "Bool",
+    "modbus_address": 21041,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_442",
+    "logical_address": "%M130.2",
+    "data_type": "Bool",
+    "modbus_address": 21042,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_443",
+    "logical_address": "%M131.1",
+    "data_type": "Bool",
+    "modbus_address": 21049,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_444",
+    "logical_address": "%M131.2",
+    "data_type": "Bool",
+    "modbus_address": 21050,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_445",
+    "logical_address": "%M132.1",
+    "data_type": "Bool",
+    "modbus_address": 21057,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_446",
+    "logical_address": "%M132.2",
+    "data_type": "Bool",
+    "modbus_address": 21058,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_447",
+    "logical_address": "%M133.1",
+    "data_type": "Bool",
+    "modbus_address": 21065,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_448",
+    "logical_address": "%M133.2",
+    "data_type": "Bool",
+    "modbus_address": 21066,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_449",
+    "logical_address": "%M134.1",
+    "data_type": "Bool",
+    "modbus_address": 21073,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_450",
+    "logical_address": "%M134.2",
+    "data_type": "Bool",
+    "modbus_address": 21074,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_451",
+    "logical_address": "%M135.1",
+    "data_type": "Bool",
+    "modbus_address": 21081,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_452",
+    "logical_address": "%M135.2",
+    "data_type": "Bool",
+    "modbus_address": 21082,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_453",
+    "logical_address": "%M136.1",
+    "data_type": "Bool",
+    "modbus_address": 21089,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_454",
+    "logical_address": "%M136.2",
+    "data_type": "Bool",
+    "modbus_address": 21090,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_455",
+    "logical_address": "%M137.1",
+    "data_type": "Bool",
+    "modbus_address": 21097,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_456",
+    "logical_address": "%M137.2",
+    "data_type": "Bool",
+    "modbus_address": 21098,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_457",
+    "logical_address": "%M138.1",
+    "data_type": "Bool",
+    "modbus_address": 21105,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_458",
+    "logical_address": "%M138.2",
+    "data_type": "Bool",
+    "modbus_address": 21106,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_459",
+    "logical_address": "%M139.1",
+    "data_type": "Bool",
+    "modbus_address": 21113,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_460",
+    "logical_address": "%M139.2",
+    "data_type": "Bool",
+    "modbus_address": 21114,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_461",
+    "logical_address": "%M140.1",
+    "data_type": "Bool",
+    "modbus_address": 21121,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_462",
+    "logical_address": "%M140.2",
+    "data_type": "Bool",
+    "modbus_address": 21122,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_463",
+    "logical_address": "%M141.1",
+    "data_type": "Bool",
+    "modbus_address": 21129,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_464",
+    "logical_address": "%M141.2",
+    "data_type": "Bool",
+    "modbus_address": 21130,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_465",
+    "logical_address": "%M142.1",
+    "data_type": "Bool",
+    "modbus_address": 21137,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_466",
+    "logical_address": "%M142.2",
+    "data_type": "Bool",
+    "modbus_address": 21138,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_467",
+    "logical_address": "%M143.1",
+    "data_type": "Bool",
+    "modbus_address": 21145,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_468",
+    "logical_address": "%M143.2",
+    "data_type": "Bool",
+    "modbus_address": 21146,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_469",
+    "logical_address": "%M144.1",
+    "data_type": "Bool",
+    "modbus_address": 21153,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_470",
+    "logical_address": "%M144.2",
+    "data_type": "Bool",
+    "modbus_address": 21154,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_471",
+    "logical_address": "%M145.1",
+    "data_type": "Bool",
+    "modbus_address": 21161,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_472",
+    "logical_address": "%M145.2",
+    "data_type": "Bool",
+    "modbus_address": 21162,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_473",
+    "logical_address": "%M146.1",
+    "data_type": "Bool",
+    "modbus_address": 21169,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_474",
+    "logical_address": "%M146.2",
+    "data_type": "Bool",
+    "modbus_address": 21170,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_475",
+    "logical_address": "%M147.1",
+    "data_type": "Bool",
+    "modbus_address": 21177,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_476",
+    "logical_address": "%M147.2",
+    "data_type": "Bool",
+    "modbus_address": 21178,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_477",
+    "logical_address": "%M148.1",
+    "data_type": "Bool",
+    "modbus_address": 21185,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_478",
+    "logical_address": "%M148.2",
+    "data_type": "Bool",
+    "modbus_address": 21186,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_479",
+    "logical_address": "%M149.1",
+    "data_type": "Bool",
+    "modbus_address": 21193,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_480",
+    "logical_address": "%M149.2",
+    "data_type": "Bool",
+    "modbus_address": 21194,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_481",
+    "logical_address": "%M150.1",
+    "data_type": "Bool",
+    "modbus_address": 21201,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_482",
+    "logical_address": "%M150.2",
+    "data_type": "Bool",
+    "modbus_address": 21202,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_483",
+    "logical_address": "%M151.1",
+    "data_type": "Bool",
+    "modbus_address": 21209,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_484",
+    "logical_address": "%M151.2",
+    "data_type": "Bool",
+    "modbus_address": 21210,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_485",
+    "logical_address": "%M152.1",
+    "data_type": "Bool",
+    "modbus_address": 21217,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_486",
+    "logical_address": "%M152.2",
+    "data_type": "Bool",
+    "modbus_address": 21218,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_487",
+    "logical_address": "%M153.1",
+    "data_type": "Bool",
+    "modbus_address": 21225,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_488",
+    "logical_address": "%M153.2",
+    "data_type": "Bool",
+    "modbus_address": 21226,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_489",
+    "logical_address": "%M154.1",
+    "data_type": "Bool",
+    "modbus_address": 21233,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_490",
+    "logical_address": "%M154.2",
+    "data_type": "Bool",
+    "modbus_address": 21234,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_491",
+    "logical_address": "%M155.1",
+    "data_type": "Bool",
+    "modbus_address": 21241,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_492",
+    "logical_address": "%M155.2",
+    "data_type": "Bool",
+    "modbus_address": 21242,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_493",
+    "logical_address": "%M156.1",
+    "data_type": "Bool",
+    "modbus_address": 21249,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_494",
+    "logical_address": "%M156.2",
+    "data_type": "Bool",
+    "modbus_address": 21250,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_495",
+    "logical_address": "%M157.1",
+    "data_type": "Bool",
+    "modbus_address": 21257,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_496",
+    "logical_address": "%M157.2",
+    "data_type": "Bool",
+    "modbus_address": 21258,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_497",
+    "logical_address": "%M158.1",
+    "data_type": "Bool",
+    "modbus_address": 21265,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_498",
+    "logical_address": "%M158.2",
+    "data_type": "Bool",
+    "modbus_address": 21266,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_499",
+    "logical_address": "%M159.1",
+    "data_type": "Bool",
+    "modbus_address": 21273,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_500",
+    "logical_address": "%M159.2",
+    "data_type": "Bool",
+    "modbus_address": 21274,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_501",
+    "logical_address": "%M160.1",
+    "data_type": "Bool",
+    "modbus_address": 21281,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_502",
+    "logical_address": "%M160.2",
+    "data_type": "Bool",
+    "modbus_address": 21282,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_503",
+    "logical_address": "%M161.1",
+    "data_type": "Bool",
+    "modbus_address": 21289,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_504",
+    "logical_address": "%M161.2",
+    "data_type": "Bool",
+    "modbus_address": 21290,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_505",
+    "logical_address": "%M162.1",
+    "data_type": "Bool",
+    "modbus_address": 21297,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_506",
+    "logical_address": "%M162.2",
+    "data_type": "Bool",
+    "modbus_address": 21298,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_507",
+    "logical_address": "%M163.1",
+    "data_type": "Bool",
+    "modbus_address": 21305,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_508",
+    "logical_address": "%M163.2",
+    "data_type": "Bool",
+    "modbus_address": 21306,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_509",
+    "logical_address": "%M164.1",
+    "data_type": "Bool",
+    "modbus_address": 21313,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_510",
+    "logical_address": "%M164.2",
+    "data_type": "Bool",
+    "modbus_address": 21314,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_511",
+    "logical_address": "%M165.1",
+    "data_type": "Bool",
+    "modbus_address": 21321,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_512",
+    "logical_address": "%M165.2",
+    "data_type": "Bool",
+    "modbus_address": 21322,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_513",
+    "logical_address": "%M166.1",
+    "data_type": "Bool",
+    "modbus_address": 21329,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_514",
+    "logical_address": "%M166.2",
+    "data_type": "Bool",
+    "modbus_address": 21330,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_515",
+    "logical_address": "%M167.1",
+    "data_type": "Bool",
+    "modbus_address": 21337,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_516",
+    "logical_address": "%M167.2",
+    "data_type": "Bool",
+    "modbus_address": 21338,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_517",
+    "logical_address": "%M168.1",
+    "data_type": "Bool",
+    "modbus_address": 21345,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_518",
+    "logical_address": "%M168.2",
+    "data_type": "Bool",
+    "modbus_address": 21346,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_519",
+    "logical_address": "%M169.1",
+    "data_type": "Bool",
+    "modbus_address": 21353,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_520",
+    "logical_address": "%M169.2",
+    "data_type": "Bool",
+    "modbus_address": 21354,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_521",
+    "logical_address": "%M170.1",
+    "data_type": "Bool",
+    "modbus_address": 21361,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_522",
+    "logical_address": "%M170.2",
+    "data_type": "Bool",
+    "modbus_address": 21362,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_523",
+    "logical_address": "%M171.1",
+    "data_type": "Bool",
+    "modbus_address": 21369,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_524",
+    "logical_address": "%M171.2",
+    "data_type": "Bool",
+    "modbus_address": 21370,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_525",
+    "logical_address": "%M172.1",
+    "data_type": "Bool",
+    "modbus_address": 21377,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_526",
+    "logical_address": "%M172.2",
+    "data_type": "Bool",
+    "modbus_address": 21378,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_527",
+    "logical_address": "%M173.0",
+    "data_type": "Bool",
+    "modbus_address": 21384,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_528",
+    "logical_address": "%M0.3",
+    "data_type": "Bool",
+    "modbus_address": 20003,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_529",
+    "logical_address": "%M73.1",
+    "data_type": "Bool",
+    "modbus_address": 20585,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_530",
+    "logical_address": "%M73.2",
+    "data_type": "Bool",
+    "modbus_address": 20586,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_531",
+    "logical_address": "%M0.4",
+    "data_type": "Bool",
+    "modbus_address": 20004,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_532",
+    "logical_address": "%M0.5",
+    "data_type": "Bool",
+    "modbus_address": 20005,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_533",
+    "logical_address": "%M0.6",
+    "data_type": "Bool",
+    "modbus_address": 20006,
+    "register_type": "coil",
+    "bit_offset": 6,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_535",
+    "logical_address": "%M80.0",
+    "data_type": "Bool",
+    "modbus_address": 20640,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_536",
+    "logical_address": "%M80.1",
+    "data_type": "Bool",
+    "modbus_address": 20641,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_537",
+    "logical_address": "%M0.7",
+    "data_type": "Bool",
+    "modbus_address": 20007,
+    "register_type": "coil",
+    "bit_offset": 7,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_538",
+    "logical_address": "%M80.2",
+    "data_type": "Bool",
+    "modbus_address": 20642,
+    "register_type": "coil",
+    "bit_offset": 2,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_539",
+    "logical_address": "%M80.3",
+    "data_type": "Bool",
+    "modbus_address": 20643,
+    "register_type": "coil",
+    "bit_offset": 3,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_540",
+    "logical_address": "%M80.4",
+    "data_type": "Bool",
+    "modbus_address": 20644,
+    "register_type": "coil",
+    "bit_offset": 4,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_541",
+    "logical_address": "%M80.5",
+    "data_type": "Bool",
+    "modbus_address": 20645,
+    "register_type": "coil",
+    "bit_offset": 5,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_542",
+    "logical_address": "%MD132",
+    "data_type": "Real",
+    "modbus_address": 40066,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_543",
+    "logical_address": "%MD136",
+    "data_type": "UDInt",
+    "modbus_address": 40068,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_544",
+    "logical_address": "%MD140",
+    "data_type": "UDInt",
+    "modbus_address": 40070,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_545",
+    "logical_address": "%MD144",
+    "data_type": "UDInt",
+    "modbus_address": 40072,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_546",
+    "logical_address": "%MD148",
+    "data_type": "Real",
+    "modbus_address": 40074,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_547",
+    "logical_address": "%MD152",
+    "data_type": "Real",
+    "modbus_address": 40076,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_548",
+    "logical_address": "%MD156",
+    "data_type": "UDInt",
+    "modbus_address": 40078,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_154",
+    "logical_address": "%MD160",
+    "data_type": "Real",
+    "modbus_address": 40080,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_549",
+    "logical_address": "%MD164",
+    "data_type": "Real",
+    "modbus_address": 40082,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_550",
+    "logical_address": "%MD168",
+    "data_type": "DInt",
+    "modbus_address": 40084,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_551",
+    "logical_address": "%MD12",
+    "data_type": "Time",
+    "modbus_address": 40006,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_552",
+    "logical_address": "%M90.0",
+    "data_type": "Bool",
+    "modbus_address": 20720,
+    "register_type": "coil",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_553",
+    "logical_address": "%M90.1",
+    "data_type": "Bool",
+    "modbus_address": 20721,
+    "register_type": "coil",
+    "bit_offset": 1,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_554",
+    "logical_address": "%MD16",
+    "data_type": "Time",
+    "modbus_address": 40008,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  },
+  {
+    "name": "Tag_555",
+    "logical_address": "%MD20",
+    "data_type": "Time",
+    "modbus_address": 40010,
+    "register_type": "holding",
+    "bit_offset": 0,
+    "comment": NaN
+  }
+]

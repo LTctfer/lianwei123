@@ -1,98 +1,101 @@
 {
   "plc_settings": {
-    "host": "192.168.1.100",
+    "host": "192.168.0.1",
     "port": 502,
     "unit_id": 1,
-    "timeout": 5.0
+    "timeout": 5.0,
+    "description": "PLC Modbus TCP/IP配置"
   },
-  "registers": [
-    {
-      "name": "pm25",
-      "address": 40001,
-      "register_type": "holding",
-      "data_type": "float32",
-      "count": 2,
-      "scale": 1.0,
-      "offset": 0.0,
-      "unit": "μg/m³",
-      "description": "PM2.5浓度"
+  "address_mapping_rules": {
+    "description": "地址映射规则说明",
+    "Q_area": {
+      "description": "输出线圈区域",
+      "base_address": 0,
+      "formula": "Q字节号 * 8 + 位号",
+      "examples": {
+        "Q0.0": 0,
+        "Q0.1": 1,
+        "Q10.1": 81,
+        "Q20.0": 160
+      }
     },
-    {
-      "name": "pm10",
-      "address": 40003,
-      "register_type": "holding",
-      "data_type": "float32",
-      "count": 2,
-      "scale": 1.0,
-      "offset": 0.0,
-      "unit": "μg/m³",
-      "description": "PM10浓度"
+    "I_area": {
+      "description": "输入线圈区域", 
+      "base_address": 10000,
+      "formula": "10000 + I字节号 * 8 + 位号",
+      "examples": {
+        "I0.0": 10000,
+        "I0.7": 10007
+      }
     },
-    {
-      "name": "wind_speed",
-      "address": 40005,
-      "register_type": "holding",
-      "data_type": "uint16",
-      "count": 1,
-      "scale": 0.1,
-      "offset": 0.0,
-      "unit": "m/s",
-      "description": "风速"
+    "M_area": {
+      "description": "标志位区域",
+      "base_address": 20000,
+      "formula": "20000 + M字节号 * 8 + 位号",
+      "examples": {
+        "M0.0": 20000,
+        "M1.1": 20009,
+        "M100.0": 20800
+      }
     },
-    {
-      "name": "wind_direction",
-      "address": 40006,
-      "register_type": "holding",
-      "data_type": "uint16",
-      "count": 1,
-      "scale": 1.0,
-      "offset": 0.0,
-      "unit": "度",
-      "description": "风向"
-    },
-    {
-      "name": "temperature",
-      "address": 40007,
-      "register_type": "holding",
-      "data_type": "int16",
-      "count": 1,
-      "scale": 0.1,
-      "offset": 0.0,
-      "unit": "°C",
-      "description": "温度"
-    },
-    {
-      "name": "humidity",
-      "address": 40008,
-      "register_type": "holding",
-      "data_type": "uint16",
-      "count": 1,
-      "scale": 0.1,
-      "offset": 0.0,
-      "unit": "%",
-      "description": "相对湿度"
-    },
-    {
-      "name": "pressure",
-      "address": 40009,
-      "register_type": "holding",
-      "data_type": "uint16",
-      "count": 1,
-      "scale": 0.1,
-      "offset": 900.0,
-      "unit": "hPa",
-      "description": "大气压力"
-    },
-    {
-      "name": "device_status",
-      "address": 1,
-      "register_type": "coil",
-      "data_type": "bool",
-      "count": 1,
-      "scale": 1.0,
-      "offset": 0.0,
-      "unit": "",
-      "description": "设备状态"
+    "MW_area": {
+      "description": "标志字区域",
+      "base_address": 40000,
+      "formula": "40000 + MW地址",
+      "examples": {
+        "MW100": 40100,
+        "MD100": 40050
+      }
     }
-  ]
+  },
+  "data_types": {
+    "Bool": {
+      "size_bits": 1,
+      "description": "布尔值"
+    },
+    "Word": {
+      "size_bits": 16,
+      "description": "16位无符号整数"
+    },
+    "DWord": {
+      "size_bits": 32,
+      "description": "32位无符号整数"
+    },
+    "UDInt": {
+      "size_bits": 32,
+      "description": "32位无符号整数"
+    },
+    "DInt": {
+      "size_bits": 32,
+      "description": "32位有符号整数"
+    },
+    "Real": {
+      "size_bits": 32,
+      "description": "32位IEEE754浮点数"
+    },
+    "Time": {
+      "size_bits": 32,
+      "description": "时间类型(毫秒)"
+    }
+  },
+  "key_tags": [
+    "横轴_脉冲",
+    "横轴_方向", 
+    "竖轴_脉冲",
+    "竖轴_方向",
+    "横轴_LowHwLimitSwitch",
+    "横轴_HighHwLimitSwitch",
+    "横轴_归位开关",
+    "竖轴_HighHwLimitSwitch",
+    "竖轴_LowHwLimitSwitch",
+    "竖轴_归位开关",
+    "Tag_4",
+    "Tag_8"
+  ],
+  "monitoring": {
+    "poll_interval": 1.0,
+    "log_changes_only": true,
+    "save_to_csv": true,
+    "csv_filename": "plc_data_log.csv"
+  }
 }

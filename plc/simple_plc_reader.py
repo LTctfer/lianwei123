@@ -15,8 +15,8 @@ from datetime import datetime
 
 # 尝试导入pymodbus，如果没有则使用原生socket
 try:
-    from pymodbus.client.sync import ModbusTcpClient
-    from pymodbus.payload import BinaryPayloadDecoder
+    from pymodbus.client import ModbusTcpClient
+    from pymodbus.utilities import BinaryPayloadDecoder
     from pymodbus.constants import Endian
     USE_PYMODBUS = True
     print("✅ 使用pymodbus库")

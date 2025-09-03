@@ -374,7 +374,7 @@ class PerformanceBenchmark:
         axes[1, 1].tick_params(axis='x', rotation=45)
         
         plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "性能对比图表.png"), dpi=300, bbox_inches='tight')
+        plt.savefig("可视化结果/性能对比图表.png", dpi=300, bbox_inches='tight')
         plt.close()
         
         # 2. 性能提升雷达图
@@ -421,7 +421,7 @@ class PerformanceBenchmark:
         ax.grid(True)
         
         plt.title('算法优化性能提升雷达图', size=16, fontweight='bold', pad=20)
-        plt.savefig(os.path.join(output_dir, "性能提升雷达图.png"), dpi=300, bbox_inches='tight')
+        plt.savefig("可视化结果/性能提升雷达图.png", dpi=300, bbox_inches='tight')
         plt.close()
 
 

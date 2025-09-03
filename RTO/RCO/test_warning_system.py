@@ -158,7 +158,7 @@ def run_warning_test():
                 violations,
                 warning_system.rule_engine.warning_records,
                 summary,
-                "test_reports"
+                "D:/GitHub/lianwei123/RTO/RCO/可视化结果"
             )
             
         else:
@@ -242,10 +242,10 @@ def test_visualization():
         visualizer = WarningVisualizer()
         
         # 测试严重程度分布图
-        visualizer.plot_severity_distribution(summary, "test_severity.png")
+        visualizer.plot_severity_distribution(summary, "D:/GitHub/lianwei123/RTO/RCO/可视化结果/test_severity.png")
         
         # 测试设备违规统计图
-        visualizer.plot_equipment_violations(summary, "test_equipment.png")
+        visualizer.plot_equipment_violations(summary, "D:/GitHub/lianwei123/RTO/RCO/可视化结果/test_equipment.png")
         
         print("✅ 可视化测试完成，图片已保存")
         
@@ -276,8 +276,8 @@ def main():
     print("🎊 所有测试完成!")
     print("\n💡 查看生成的文件:")
     print("  - test_equipment_data.xlsx (测试数据)")
-    print("  - test_reports/ (可视化报告)")
-    print("  - test_*.png (测试图片)")
+    print("  - D:/GitHub/lianwei123/RTO/RCO/可视化结果/ (可视化报告)")
+    print("  - D:/GitHub/lianwei123/RTO/RCO/可视化结果/*.png (测试图片)")
 
 if __name__ == "__main__":
     main()

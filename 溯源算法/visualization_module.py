@@ -40,7 +40,7 @@ class PollutionSourceVisualizer:
                                z_height: float = 2.0,
                                grid_size: int = 100,
                                sensor_data: Optional[List[OptimizedSensorData]] = None,
-                               save_path: Optional[str] = None) -> plt.Figure:
+                               save_path: str = "可视化结果/concentration_field.png") -> plt.Figure:
         """
         绘制污染物浓度场
         
@@ -128,7 +128,7 @@ class PollutionSourceVisualizer:
                              sensor_data: List[OptimizedSensorData],
                              meteo_data: MeteoData,
                              true_source: Optional[PollutionSource] = None,
-                             save_path: Optional[str] = None) -> plt.Figure:
+                             save_path: str = "可视化结果/inversion_results.png") -> plt.Figure:
         """
         绘制反算结果综合图
         

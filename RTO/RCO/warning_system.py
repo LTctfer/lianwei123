@@ -483,7 +483,7 @@ class WarningVisualizer:
         plt.show()
 
     def generate_violation_report(self, violations: List[Dict], records: List[WarningRecord],
-                                summary: Dict, output_dir: str = "reports"):
+                                summary: Dict, output_dir: str = "D:/GitHub/lianwei123/RTO/RCO/可视化结果"):
         """生成违规报告"""
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)

@@ -806,6 +806,19 @@ class InteractiveDashboardServer:
         <div class="panel" onclick="showDetail('trend')">
             <div class="panel-title">📊 实时趋势</div>
             <div class="chart-container">
+                <div style="display:flex;align-items:center;gap:8px;padding:6px 8px 4px 8px;">
+                    <label for="metricSelect">选择指标:</label>
+                    <select id="metricSelect" onchange="resetTrend()">
+                        <option value="temperature_combustion" data-threshold="760" data-unit="℃">燃烧室温度</option>
+                        <option value="concentration_out" data-threshold="50" data-unit="mg/m³">出口浓度</option>
+                        <option value="temperature_outlet" data-threshold="60" data-unit="℃">出口温度</option>
+                        <option value="temperature_reactor_outlet" data-threshold="600" data-unit="℃">反应器出口温度</option>
+                        <option value="temperature_adsorption" data-threshold="40" data-unit="℃">吸附温度</option>
+                        <option value="pressure_loss_catalytic" data-threshold="2" data-unit="kPa">压力损失</option>
+                        <option value="particle_content" data-threshold="10" data-unit="mg/m³">颗粒物</option>
+                        <option value="efficiency" data-threshold="90" data-unit="%">效率</option>
+                    </select>
+                </div>
                 <canvas id="trendChart" class="trend-chart"></canvas>
             </div>
         </div>
@@ -851,6 +864,9 @@ class InteractiveDashboardServer:
         let alertHistory = [];
         let currentAlertIndex = 0;
         let chart = null;
+        let currentMetric = 'temperature_combustion';
+        let currentThreshold = 760;
+        let currentUnit = '℃';
         
         function updateTime() {
             document.getElementById('timeDisplay').textContent = new Date().toLocaleString('zh-CN');
@@ -1001,37 +1017,119 @@ class InteractiveDashboardServer:
             const canvas = document.getElementById('trendChart');
             const ctx = canvas.getContext('2d');
             
+            // 读取当前选择
+            const select = document.getElementById('metricSelect');
+            if (select) {
+                currentMetric = select.value;
+                const opt = select.options[select.selectedIndex];
+                currentThreshold = parseFloat(opt.getAttribute('data-threshold'));
+                currentUnit = opt.getAttribute('data-unit') || '';
+            }
+
             // 添加新数据点
-            trendData.push({
-                time: new Date().toLocaleTimeString(),
-                temp: data.temperature_combustion,
-                concentration: data.concentration_out,
-                efficiency: data.efficiency
-            });
+            const value = data[currentMetric];
+            trendData.push({ time: new Date().toLocaleTimeString(), value: value });
             
             // 保持最近20个数据点
             if (trendData.length > 20) {
                 trendData.shift();
             }
             
-            // 绘制简单趋势图
+            // 绘制带轴与阈值线的趋势图
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const values = trendData.map(d => d.value).filter(v => v !== undefined && !isNaN(v));
+            if (values.length === 0) return;
+            const vMin = Math.min(...values.concat(isFinite(currentThreshold) ? [currentThreshold] : []));
+            const vMax = Math.max(...values.concat(isFinite(currentThreshold) ? [currentThreshold] : []));
+            const pad = (vMax - vMin) * 0.2 || 1;
+            const yMin = vMin - pad;
+            const yMax = vMax + pad;
+
+            // 坐标轴
+            ctx.strokeStyle = '#2a5670';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(40, 10);
+            ctx.lineTo(40, canvas.height - 25);
+            ctx.lineTo(canvas.width - 10, canvas.height - 25);
+            ctx.stroke();
+
+            // Y轴刻度和网格
+            ctx.fillStyle = '#00d4ff';
+            ctx.font = '12px Arial';
+            const ticks = 4;
+            for (let i = 0; i <= ticks; i++) {
+                const val = yMin + (i / ticks) * (yMax - yMin);
+                const y = mapY(val, yMin, yMax, canvas.height);
+                ctx.fillText(val.toFixed(1), 5, y + 4);
+                ctx.strokeStyle = 'rgba(0,212,255,0.15)';
+                ctx.beginPath();
+                ctx.moveTo(40, y);
+                ctx.lineTo(canvas.width - 10, y);
+                ctx.stroke();
+            }
+
+            // 阈值线
+            if (!isNaN(currentThreshold) && isFinite(currentThreshold)) {
+                const yTh = mapY(currentThreshold, yMin, yMax, canvas.height);
+                ctx.strokeStyle = '#ffaa00';
+                ctx.setLineDash([6, 6]);
+                ctx.beginPath();
+                ctx.moveTo(40, yTh);
+                ctx.lineTo(canvas.width - 10, yTh);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillText(`阈值 ${currentThreshold}${currentUnit}`, canvas.width - 130, yTh - 6);
+            }
+
+            // 折线
             ctx.strokeStyle = '#00ffff';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            
-            trendData.forEach((point, index) => {
-                const x = (index / (trendData.length - 1)) * canvas.width;
-                const y = canvas.height - ((point.temp - 700) / 100) * canvas.height;
-                
-                if (index === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
+            trendData.forEach((p, i) => {
+                const x = mapX(i, trendData.length, canvas.width);
+                const y = mapY(p.value, yMin, yMax, canvas.height);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
             });
-            
             ctx.stroke();
+
+            // 数据点（超限标红；效率低于阈值标红）
+            trendData.forEach((p, i) => {
+                const x = mapX(i, trendData.length, canvas.width);
+                const y = mapY(p.value, yMin, yMax, canvas.height);
+                let exceed = false;
+                if (!isNaN(currentThreshold) && isFinite(currentThreshold)) {
+                    if (currentMetric === 'efficiency') {
+                        exceed = p.value < currentThreshold;
+                    } else {
+                        exceed = p.value > currentThreshold;
+                    }
+                }
+                ctx.fillStyle = exceed ? '#ff0040' : '#00ffff';
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 轴标题
+            ctx.fillStyle = '#00d4ff';
+            ctx.fillText('时间', canvas.width - 40, canvas.height - 8);
+            ctx.fillText(`${currentMetric} (${currentUnit})`, 50, 20);
+
+            function mapX(i, n, width) {
+                const plotW = width - 50;
+                return 40 + (i / Math.max(1, n - 1)) * (plotW - 10);
+            }
+            function mapY(val, minV, maxV, height) {
+                const plotH = height - 35;
+                const r = (val - minV) / Math.max(1e-9, (maxV - minV));
+                return 10 + (1 - r) * (plotH - 10);
+            }
+        }
+
+        function resetTrend() {
+            trendData = [];
         }
         
         function showDetail(type) {
@@ -1226,35 +1324,59 @@ class InteractiveDashboardServer:
         function updateAlertsDetail(data) {
             const alertDetail = document.getElementById('alertDetail');
             const alerts = data.alerts;
+            const cycles = (data.alert_cycles || []).slice(-10);
             
-            if (alerts.length === 0) {
-                alertDetail.innerHTML = '<div style="color: #00ff41; text-align: center; padding: 20px;">暂无报警记录</div>';
-                return;
+            let html = '';
+            // 周期表
+            if (cycles.length > 0) {
+                html += '<h3>报警周期</h3>';
+                html += '<table class="data-table">';
+                html += '<tr><th>报警类型</th><th>设备</th><th>严重程度</th><th>开始时间</th><th>结束时间</th><th>持续时长</th><th>次数</th><th>最大值</th><th>最小值</th><th>阈值</th></tr>';
+                cycles.forEach(c => {
+                    const sevColor = c.severity === 'critical' ? '#ff0040' : c.severity === 'high' ? '#ff4500' : c.severity === 'medium' ? '#ffaa00' : '#00ff00';
+                    const dur = (c.duration_sec || 0);
+                    const durText = dur >= 3600 ? (dur/3600).toFixed(2) + ' 小时' : (dur/60).toFixed(1) + ' 分钟';
+                    html += `<tr>
+                        <td>${c.type}</td>
+                        <td>${c.equipment}</td>
+                        <td style="color:${sevColor};">${c.severity}</td>
+                        <td>${new Date(c.start_time).toLocaleString()}</td>
+                        <td>${new Date(c.end_time).toLocaleString()}</td>
+                        <td>${durText}</td>
+                        <td>${c.count}</td>
+                        <td>${(c.max_value ?? '').toFixed ? c.max_value.toFixed(1) : c.max_value}${c.unit || ''}</td>
+                        <td>${(c.min_value ?? '').toFixed ? c.min_value.toFixed(1) : c.min_value}${c.unit || ''}</td>
+                        <td>${c.threshold}${c.unit || ''}</td>
+                    </tr>`;
+                });
+                html += '</table>';
             }
-            
-            let html = '<table class="data-table">';
-            html += '<tr><th>报警类型</th><th>设备</th><th>数值</th><th>阈值</th><th>严重程度</th><th>时间</th></tr>';
-            
-            alerts.slice(-10).forEach(alert => {
-                const severityColor = alert.severity === 'critical' ? '#ff0040' : 
-                                    alert.severity === 'high' ? '#ff4500' : 
-                                    alert.severity === 'medium' ? '#ffaa00' : '#00ff00';
-                const severityText = alert.severity === 'critical' ? '严重' : 
-                                   alert.severity === 'high' ? '高' : 
-                                   alert.severity === 'medium' ? '中' : '低';
-                
-                html += `<tr>
-                    <td>${alert.type}</td>
-                    <td>${alert.equipment}</td>
-                    <td>${alert.value?.toFixed(1)}${alert.unit || ''}</td>
-                    <td>${alert.threshold}${alert.unit || ''}</td>
-                    <td style="color: ${severityColor};">${severityText}</td>
-                    <td>${new Date(alert.timestamp).toLocaleString()}</td>
-                </tr>`;
-            });
-            
-            html += '</table>';
-            alertDetail.innerHTML = html;
+
+            // 最近报警明细
+            if (alerts.length > 0) {
+                html += '<h3 style="margin-top:16px;">最近报警明细</h3>';
+                html += '<table class="data-table">';
+                html += '<tr><th>报警类型</th><th>设备</th><th>数值</th><th>阈值</th><th>严重程度</th><th>时间</th></tr>';
+                alerts.slice(-10).forEach(alert => {
+                    const severityColor = alert.severity === 'critical' ? '#ff0040' : alert.severity === 'high' ? '#ff4500' : alert.severity === 'medium' ? '#ffaa00' : '#00ff00';
+                    const severityText = alert.severity === 'critical' ? '严重' : alert.severity === 'high' ? '高' : alert.severity === 'medium' ? '中' : '低';
+                    html += `<tr>
+                        <td>${alert.type}</td>
+                        <td>${alert.equipment}</td>
+                        <td>${alert.value?.toFixed(1)}${alert.unit || ''}</td>
+                        <td>${alert.threshold}${alert.unit || ''}</td>
+                        <td style="color: ${severityColor};">${severityText}</td>
+                        <td>${new Date(alert.timestamp).toLocaleString()}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+            }
+
+            if (!html) {
+                alertDetail.innerHTML = '<div style="color: #00ff41; text-align: center; padding: 20px;">暂无报警记录</div>';
+            } else {
+                alertDetail.innerHTML = html;
+            }
         }
         
         function updatePressureDetail(data) {
@@ -1405,6 +1527,61 @@ class InteractiveDashboardServer:
                 """发送实时数据API"""
                 if hasattr(self, 'data_generator') and self.data_generator:
                     data = self.data_generator.generate_realtime_data()
+                    # 聚合连续报警为周期
+                    try:
+                        cycles = []
+                        # 使用最近历史进行聚合
+                        history = sorted(self.data_generator.alert_history, key=lambda a: (a.get('type'), a.get('equipment'), a.get('timestamp')))
+                        current = None
+                        gap_threshold = timedelta(seconds=10)  # 允许的间隔，连续报警界定
+                        for a in history:
+                            a_time = a.get('timestamp')
+                            key = (a.get('type'), a.get('equipment'))
+                            if current is None:
+                                current = {
+                                    'type': a.get('type'),
+                                    'equipment': a.get('equipment'),
+                                    'severity': a.get('severity'),
+                                    'threshold': a.get('threshold'),
+                                    'unit': a.get('unit'),
+                                    'start_time': a_time,
+                                    'end_time': a_time,
+                                    'max_value': a.get('value'),
+                                    'min_value': a.get('value'),
+                                    'count': 1
+                                }
+                            else:
+                                # 是否同一类型同一设备且间隔在阈值内
+                                if current['type'] == a.get('type') and current['equipment'] == a.get('equipment') and (a_time - current['end_time']) <= gap_threshold:
+                                    current['end_time'] = a_time
+                                    val = a.get('value')
+                                    if val is not None:
+                                        current['max_value'] = max(current['max_value'], val)
+                                        current['min_value'] = min(current['min_value'], val)
+                                    current['count'] += 1
+                                else:
+                                    # 结束上一个周期
+                                    current['duration_sec'] = (current['end_time'] - current['start_time']).total_seconds()
+                                    cycles.append(current)
+                                    # 开启新的周期
+                                    current = {
+                                        'type': a.get('type'),
+                                        'equipment': a.get('equipment'),
+                                        'severity': a.get('severity'),
+                                        'threshold': a.get('threshold'),
+                                        'unit': a.get('unit'),
+                                        'start_time': a_time,
+                                        'end_time': a_time,
+                                        'max_value': a.get('value'),
+                                        'min_value': a.get('value'),
+                                        'count': 1
+                                    }
+                        if current is not None:
+                            current['duration_sec'] = (current['end_time'] - current['start_time']).total_seconds()
+                            cycles.append(current)
+                        data['alert_cycles'] = cycles[-10:]
+                    except Exception as e:
+                        data['alert_cycles'] = []
                     
                     # 添加更多统计信息
                     data['statistics'] = {
@@ -1476,6 +1653,67 @@ class WarningSystem:
         if df_clean.empty:
             print("❌ 数据清洗后无有效数据")
             return [], {}
+
+        # 2.1 生成清洗前后对比可视化
+        try:
+            output_dir = Path("D:/GitHub/lianwei123/RTO/RCO/可视化结果")
+            output_dir.mkdir(exist_ok=True)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+            # 选择关键指标进行对比展示
+            compare_columns = [
+                'temperature_combustion', 'temperature_outlet',
+                'concentration_in', 'concentration_out'
+            ]
+
+            available_cols = [c for c in compare_columns if c in df.columns and c in df_clean.columns]
+            if len(available_cols) > 0:
+                num_plots = len(available_cols)
+                rows = (num_plots + 1) // 2
+                fig, axes = plt.subplots(rows, 2, figsize=(14, 4 * rows), constrained_layout=True)
+                if rows == 1:
+                    axes = np.array([axes])
+                for idx, col in enumerate(available_cols):
+                    ax = axes[idx // 2, idx % 2]
+                    try:
+                        # 时间序列覆盖绘制
+                        if 'timestamp' in df.columns:
+                            x_raw = pd.to_datetime(df['timestamp'], errors='coerce')
+                        else:
+                            x_raw = np.arange(len(df))
+                        if 'timestamp' in df_clean.columns:
+                            x_clean = pd.to_datetime(df_clean['timestamp'], errors='coerce')
+                        else:
+                            x_clean = np.arange(len(df_clean))
+
+                        ax.plot(x_raw, df[col], label='清洗前', color='#8892b0', alpha=0.5)
+                        ax.plot(x_clean, df_clean[col], label='清洗后', color='#00d4ff', linewidth=1.8)
+                        ax.set_title(f"{col} 清洗前后对比")
+                        ax.set_xlabel('时间/索引')
+                        ax.set_ylabel(col)
+                        ax.legend()
+                        ax.grid(True, alpha=0.3)
+                    except Exception:
+                        # 回退到分布直方图对比
+                        ax.hist(df[col].dropna(), bins=30, alpha=0.5, label='清洗前', color='#8892b0')
+                        ax.hist(df_clean[col].dropna(), bins=30, alpha=0.6, label='清洗后', color='#00d4ff')
+                        ax.set_title(f"{col} 分布对比")
+                        ax.set_xlabel(col)
+                        ax.set_ylabel('频数')
+                        ax.legend()
+
+                # 隐藏多余子图
+                total_axes = rows * 2
+                for j in range(len(available_cols), total_axes):
+                    fig.delaxes(axes[j // 2, j % 2])
+
+                compare_path = output_dir / f"cleaning_compare_{timestamp}.png"
+                fig.suptitle('数据清洗前后对比', fontsize=16)
+                fig.savefig(compare_path, dpi=150)
+                plt.close(fig)
+                print(f"🖼️ 清洗对比图已生成: {compare_path}")
+        except Exception as e:
+            print(f"⚠️ 清洗对比图生成失败: {e}")
 
         # 3. 预警检测
         print("🚨 开始预警规则检测...")

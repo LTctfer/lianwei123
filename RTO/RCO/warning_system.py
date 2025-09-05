@@ -867,6 +867,7 @@ class InteractiveDashboardServer:
         let currentMetric = 'temperature_combustion';
         let currentThreshold = 760;
         let currentUnit = '℃';
+        let alertCycles = [];
         
         function updateTime() {
             document.getElementById('timeDisplay').textContent = new Date().toLocaleString('zh-CN');
@@ -941,6 +942,10 @@ class InteractiveDashboardServer:
             
             // 更新告警
             updateAlerts(data.alerts || []);
+            // 缓存报警周期（用于详情展示）
+            if (data.alert_cycles) {
+                alertCycles = data.alert_cycles;
+            }
             
             // 更新趋势图
             updateTrendChart(realtime);
@@ -1233,7 +1238,8 @@ class InteractiveDashboardServer:
                     particle_content: parseFloat(document.getElementById('particleContent').textContent)
                 },
                 equipment_status: getEquipmentStatus(),
-                alerts: alertHistory
+                alerts: alertHistory,
+                alert_cycles: alertCycles
             };
         }
         

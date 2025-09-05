@@ -490,11 +490,38 @@ class WarningVisualizer:
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-        # 生成图表
+        # 生成传统图表
         self.plot_violation_timeline(violations, f"{output_dir}/timeline_{timestamp}.png")
         self.plot_severity_distribution(summary, f"{output_dir}/severity_{timestamp}.png")
         self.plot_equipment_violations(summary, f"{output_dir}/equipment_{timestamp}.png")
         self.plot_violation_duration(records, f"{output_dir}/duration_{timestamp}.png")
+        
+        # 生成现代化可视化大屏
+        try:
+            from dashboard_visualizer import ModernDashboardVisualizer
+            modern_viz = ModernDashboardVisualizer()
+            modern_viz.generate_modern_dashboard(violations, records, summary, output_dir)
+            print("✅ 现代化仪表板已生成")
+        except Exception as e:
+            print(f"⚠️ 现代化仪表板生成失败: {e}")
+        
+        # 生成交互式可视化
+        try:
+            from interactive_dashboard import InteractiveDashboard
+            interactive_viz = InteractiveDashboard()
+            interactive_viz.generate_interactive_dashboard(violations, records, summary, output_dir)
+            print("✅ 交互式仪表板已生成")
+        except Exception as e:
+            print(f"⚠️ 交互式仪表板生成失败: {e}")
+        
+        # 生成超级大屏
+        try:
+            from mega_dashboard import MegaDashboard
+            mega_dashboard = MegaDashboard()
+            mega_dashboard.generate_mega_dashboard(violations, records, summary, output_dir)
+            print("✅ 超级大屏已生成")
+        except Exception as e:
+            print(f"⚠️ 超级大屏生成失败: {e}")
 
         # 生成Excel报告
         with pd.ExcelWriter(f"{output_dir}/violation_report_{timestamp}.xlsx") as writer:

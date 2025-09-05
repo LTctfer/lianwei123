@@ -210,47 +210,110 @@ def test_visualization():
     print("-" * 30)
     
     try:
+        # 测试传统可视化
         from warning_system import WarningVisualizer
         
         # 创建模拟违规数据
         violations = [
             {
-                'timestamp': datetime.now() - timedelta(hours=2),
+                'timestamp': datetime.now() - timedelta(hours=3),
                 'rule_name': '燃烧室温度不达标',
                 'severity': 'high',
                 'value': 720,
                 'threshold': 760
             },
             {
-                'timestamp': datetime.now() - timedelta(hours=1),
+                'timestamp': datetime.now() - timedelta(hours=2),
                 'rule_name': '出口温度超标',
                 'severity': 'medium',
                 'value': 75,
                 'threshold': 60
+            },
+            {
+                'timestamp': datetime.now() - timedelta(hours=1),
+                'rule_name': '应急阀门违规开启',
+                'severity': 'critical',
+                'value': 1,
+                'threshold': 0
+            },
+            {
+                'timestamp': datetime.now() - timedelta(minutes=30),
+                'rule_name': '吸附温度异常',
+                'severity': 'medium',
+                'value': 50,
+                'threshold': 40
             }
         ]
         
         summary = {
-            'total': 2,
-            'ongoing': 0,
-            'resolved': 2,
-            'by_severity': {'high': 1, 'medium': 1},
-            'by_equipment': {'燃烧室': 1, '废气出口': 1}
+            'total': 4,
+            'ongoing': 1,
+            'resolved': 3,
+            'by_severity': {'high': 1, 'medium': 2, 'critical': 1},
+            'by_equipment': {'燃烧室': 1, '废气出口': 1, '应急阀门': 1, '吸附设施': 1}
         }
         
-        # 创建可视化器
+        # 创建传统可视化器
         visualizer = WarningVisualizer()
         
-        # 测试严重程度分布图
-        visualizer.plot_severity_distribution(summary, "D:/GitHub/lianwei123/RTO/RCO/可视化结果/test_severity.png")
+        # 确保输出目录存在
+        output_dir = "D:/GitHub/lianwei123/RTO/RCO/可视化结果"
+        Path(output_dir).mkdir(exist_ok=True)
         
-        # 测试设备违规统计图
-        visualizer.plot_equipment_violations(summary, "D:/GitHub/lianwei123/RTO/RCO/可视化结果/test_equipment.png")
+        # 测试传统图表
+        visualizer.plot_severity_distribution(summary, f"{output_dir}/test_severity.png")
+        visualizer.plot_equipment_violations(summary, f"{output_dir}/test_equipment.png")
+        visualizer.plot_violation_timeline(violations, f"{output_dir}/test_timeline.png")
         
-        print("✅ 可视化测试完成，图片已保存")
+        print("✅ 传统可视化测试完成，图片已保存")
         
     except Exception as e:
-        print(f"❌ 可视化测试失败: {e}")
+        print(f"❌ 传统可视化测试失败: {e}")
+    
+    # 测试现代化可视化
+    try:
+        from dashboard_visualizer import ModernDashboardVisualizer
+        
+        # 创建现代化可视化器
+        modern_viz = ModernDashboardVisualizer()
+        
+        # 生成现代化仪表板
+        modern_viz.generate_modern_dashboard(violations, [], summary)
+        
+        print("✅ 现代化可视化测试完成")
+        
+    except Exception as e:
+        print(f"❌ 现代化可视化测试失败: {e}")
+    
+    # 测试交互式可视化
+    try:
+        from interactive_dashboard import InteractiveDashboard
+        
+        # 创建交互式可视化器
+        interactive_viz = InteractiveDashboard()
+        
+        # 生成交互式仪表板
+        interactive_viz.generate_interactive_dashboard(violations, [], summary)
+        
+        print("✅ 交互式可视化测试完成")
+        
+    except Exception as e:
+        print(f"❌ 交互式可视化测试失败: {e}")
+    
+    # 测试超级大屏
+    try:
+        from mega_dashboard import MegaDashboard
+        
+        # 创建超级大屏
+        mega_dashboard = MegaDashboard()
+        
+        # 生成超级大屏
+        mega_dashboard.generate_mega_dashboard(violations, [], summary)
+        
+        print("✅ 超级大屏测试完成")
+        
+    except Exception as e:
+        print(f"❌ 超级大屏测试失败: {e}")
 
 def main():
     """主函数"""
@@ -277,7 +340,14 @@ def main():
     print("\n💡 查看生成的文件:")
     print("  - test_equipment_data.xlsx (测试数据)")
     print("  - D:/GitHub/lianwei123/RTO/RCO/可视化结果/ (可视化报告)")
-    print("  - D:/GitHub/lianwei123/RTO/RCO/可视化结果/*.png (测试图片)")
+    print("\n🎨 可视化大屏文件:")
+    print("  - test_*.png (传统测试图片)")
+    print("  - modern_*.png (现代化仪表板)")
+    print("  - animated_*.gif (动画时间线)")
+    print("  - cyber_*.png (赛博朋克风格)")
+    print("  - holographic_*.png (全息风格)")
+    print("  - mega_dashboard_*.png (超级大屏)")
+    print("\n🚀 推荐使用超级大屏进行演示!")
 
 if __name__ == "__main__":
     main()

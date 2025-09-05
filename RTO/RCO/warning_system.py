@@ -759,6 +759,8 @@ class InteractiveDashboardServer:
             width: 80%;
             max-width: 800px;
             color: #00d4ff;
+            max-height: 85vh;
+            overflow: hidden;
         }
         .close {
             color: #aaa;
@@ -993,8 +995,8 @@ class InteractiveDashboardServer:
         function updateAlerts(alerts) {
             if (alerts.length > 0) {
                 alertHistory = [...alertHistory, ...alerts];
-                if (alertHistory.length > 10) {
-                    alertHistory = alertHistory.slice(-10);
+                if (alertHistory.length > 500) {
+                    alertHistory = alertHistory.slice(-500);
                 }
             }
             
@@ -1381,7 +1383,7 @@ class InteractiveDashboardServer:
             if (!html) {
                 alertDetail.innerHTML = '<div style="color: #00ff41; text-align: center; padding: 20px;">暂无报警记录</div>';
             } else {
-                alertDetail.innerHTML = html;
+                alertDetail.innerHTML = `<div style="max-height:70vh; overflow-y:auto; padding-right:6px;">${html}</div>`;
             }
         }
         

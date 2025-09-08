@@ -213,88 +213,6 @@ class RealTimeDataGenerator:
             'trend_data': self.data_history[-20:] if len(self.data_history) >= 20 else self.data_history
         }
 
-class FileDataPlayer:
-    """文件数据播放器：按行输出数据供大屏使用"""
-    
-    def __init__(self):
-        self.df: Optional[pd.DataFrame] = None
-        self.file_path: Optional[str] = None
-        self.index: int = 0
-        self.loop: bool = True
-        self.speed_seconds: float = 2.0  # 每条记录间隔，默认与前端轮询一致
-        self.last_emit_time: Optional[datetime] = None
-
-    def load_file(self, path: str, speed_seconds: float = 2.0, loop: bool = True) -> Tuple[bool, str]:
-        try:
-            p = Path(path)
-            if not p.exists():
-                return False, f"文件不存在: {path}"
-            if str(p).lower().endswith('.csv'):
-                df = pd.read_csv(p, encoding='utf-8')
-            elif str(p).lower().endswith(('.xlsx', '.xls')):
-                df = pd.read_excel(p)
-            else:
-                return False, f"不支持的文件类型: {p.suffix}"
-
-            # 规范时间列
-            if 'timestamp' in df.columns:
-                df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
-            else:
-                df['timestamp'] = pd.date_range(start=datetime.now(), periods=len(df), freq='1min')
-
-            self.df = df.reset_index(drop=True)
-            self.file_path = str(p)
-            self.index = 0
-            self.loop = bool(loop)
-            self.speed_seconds = max(0.1, float(speed_seconds))
-            self.last_emit_time = None
-            return True, f"已加载 {len(self.df)} 行: {self.file_path}"
-        except Exception as e:
-            return False, f"加载失败: {e}"
-
-    def has_data(self) -> bool:
-        return self.df is not None and len(self.df) > 0
-
-    def get_next(self) -> Optional[Dict[str, Any]]:
-        """按节奏返回下一行数据。若未到时间，返回None。"""
-        if not self.has_data():
-            return None
-
-        now = datetime.now()
-        if self.last_emit_time is not None:
-            if (now - self.last_emit_time).total_seconds() < self.speed_seconds:
-                return None
-
-        if self.index >= len(self.df):
-            if self.loop:
-                self.index = 0
-            else:
-                # 播放结束
-                self.last_emit_time = now
-                return None
-
-        row = self.df.iloc[self.index].to_dict()
-        # 确保字段名与实时数据一致（存在的直接透传）
-        row.setdefault('temperature_combustion', row.get('temperature_combustion'))
-        row.setdefault('temperature_outlet', row.get('temperature_outlet'))
-        row.setdefault('concentration_in', row.get('concentration_in'))
-        row.setdefault('concentration_out', row.get('concentration_out'))
-        row.setdefault('temperature_adsorption', row.get('temperature_adsorption'))
-        row.setdefault('temperature_desorption', row.get('temperature_desorption'))
-        row.setdefault('temperature_reactor_outlet', row.get('temperature_reactor_outlet'))
-        row.setdefault('pressure', row.get('pressure'))
-        row.setdefault('flow_rate', row.get('flow_rate'))
-        row.setdefault('efficiency', row.get('efficiency'))
-        row.setdefault('emergency_valve', row.get('emergency_valve', 0))
-        row.setdefault('pressure_loss_catalytic', row.get('pressure_loss_catalytic'))
-        row.setdefault('particle_content', row.get('particle_content'))
-
-        row['timestamp'] = row.get('timestamp', datetime.now())
-
-        self.index += 1
-        self.last_emit_time = now
-        return row
-
 @dataclass
 class WarningRule:
     """预警规则配置"""
@@ -725,31 +643,6 @@ class WarningRuleEngine:
         
         return summary
 
-    def evaluate_row_for_alerts(self, row_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """对单条记录进行评估，返回用于前端展示的告警列表"""
-        alerts: List[Dict[str, Any]] = []
-        row = pd.Series(row_dict)
-        timestamp = row_dict.get('timestamp', datetime.now())
-        for rule in self.rules:
-            if not rule.is_active:
-                continue
-            try:
-                if self._evaluate_rule(rule, row):
-                    value = self._get_rule_value(rule, row)
-                    alerts.append({
-                        'type': rule.rule_name,
-                        'value': value,
-                        'severity': rule.severity,
-                        'equipment': self._get_equipment_name(rule),
-                        'threshold': rule.threshold_value,
-                        'unit': rule.threshold_unit,
-                        'timestamp': timestamp,
-                        'id': f"alert_{rule.rule_id}_{int(datetime.now().timestamp())}"
-                    })
-            except Exception:
-                continue
-        return alerts
-
 class InteractiveDashboardServer:
     """交互式实时大屏服务器"""
     
@@ -759,8 +652,6 @@ class InteractiveDashboardServer:
         self.alert_history = []
         self.alert_rotation_index = 0
         self.rule_engine = WarningRuleEngine()  # 添加规则引擎实例
-        self.mode = 'realtime'  # 'realtime' | 'file'
-        self.file_player = FileDataPlayer()
         
     def start_server(self):
         """启动服务器"""
@@ -768,8 +659,6 @@ class InteractiveDashboardServer:
             def __init__(self, *args, **kwargs):
                 self.data_generator = kwargs.pop('data_generator', None)
                 self.rule_engine = kwargs.pop('rule_engine', None)
-                self.mode = kwargs.pop('mode_ref', None)
-                self.file_player = kwargs.pop('file_player', None)
                 super().__init__(*args, **kwargs)
             
             def do_GET(self):
@@ -781,8 +670,6 @@ class InteractiveDashboardServer:
                     self.send_rules_list()
                 elif self.path == '/api/rules/thresholds':
                     self.send_rules_thresholds()
-                elif self.path == '/api/data-source':
-                    self.send_data_source()
                 elif self.path.startswith('/api/rules/'):
                     rule_id = self.path.split('/')[-1]
                     self.send_rule_detail(rule_id)
@@ -794,10 +681,6 @@ class InteractiveDashboardServer:
                     self.update_rule_threshold()
                 elif self.path == '/api/rules/toggle-status':
                     self.toggle_rule_status()
-                elif self.path == '/api/load-data-file':
-                    self.load_data_file()
-                elif self.path == '/api/stop-file':
-                    self.stop_file_mode()
                 else:
                     self.send_error(404, "Not Found")
             
@@ -1210,12 +1093,6 @@ class InteractiveDashboardServer:
                 <div style="color: #00ff41; font-size: 0.9rem;">点击查看和修改规则</div>
             </div>
         </div>
-        <div class="panel" onclick="showDetail('datasource')">
-            <div class="panel-title">📂 数据源</div>
-            <div id="dataSourceStatus" style="color:#00ff41;line-height:1.6;">
-                模式: 实时模拟<br/>文件: -
-            </div>
-        </div>
     </div>
     
     <!-- 模态框 -->
@@ -1236,7 +1113,6 @@ class InteractiveDashboardServer:
         let currentUnit = '℃';
         let alertCycles = [];
         let thresholdsCache = {}; // 缓存阈值信息
-        let dataSourceInfo = { mode: 'realtime', file: null };
         
         function updateTime() {
             document.getElementById('timeDisplay').textContent = new Date().toLocaleString('zh-CN');
@@ -1264,20 +1140,6 @@ class InteractiveDashboardServer:
                 console.log('获取数据失败，使用模拟数据');
                 updateDashboard(generateMockData());
             }
-        }
-
-        async function fetchDataSource() {
-            try {
-                const res = await fetch('/api/data-source');
-                const result = await res.json();
-                if (result.success) {
-                    dataSourceInfo = result.data;
-                    const el = document.getElementById('dataSourceStatus');
-                    if (el) {
-                        el.innerHTML = `模式: ${dataSourceInfo.mode === 'file' ? '文件播放' : '实时模拟'}<br/>文件: ${dataSourceInfo.file || '-'}`;
-                    }
-                }
-            } catch (e) { }
         }
         
         function generateMockData() {
@@ -1457,12 +1319,9 @@ class InteractiveDashboardServer:
                 }
             }
 
-            // 添加新数据点（携带时间戳）
+            // 添加新数据点
             const value = data[currentMetric];
-            // 优先使用数据中的时间戳
-            let t = data.timestamp ? new Date(data.timestamp) : new Date();
-            const timeLabel = t.toLocaleTimeString();
-            trendData.push({ time: timeLabel, value: value });
+            trendData.push({ time: new Date().toLocaleTimeString(), value: value });
             
             // 保持最近20个数据点
             if (trendData.length > 20) {
@@ -1528,13 +1387,13 @@ class InteractiveDashboardServer:
             });
             ctx.stroke();
 
-            // 数据点（超限标红；效率/燃烧室温度低于阈值标红）
+            // 数据点（超限标红；效率低于阈值标红）
             trendData.forEach((p, i) => {
                 const x = mapX(i, trendData.length, canvas.width);
                 const y = mapY(p.value, yMin, yMax, canvas.height);
                 let exceed = false;
                 if (!isNaN(currentThreshold) && isFinite(currentThreshold)) {
-                    if (currentMetric === 'efficiency' || currentMetric === 'temperature_combustion') {
+                    if (currentMetric === 'efficiency') {
                         exceed = p.value < currentThreshold;
                     } else {
                         exceed = p.value > currentThreshold;
@@ -1545,17 +1404,6 @@ class InteractiveDashboardServer:
                 ctx.arc(x, y, 3, 0, Math.PI * 2);
                 ctx.fill();
             });
-
-            // X轴时间刻度标签（随数据滚动）
-            const maxLabels = 6; // 控制标签数量避免重叠
-            const step = Math.max(1, Math.floor(trendData.length / maxLabels));
-            ctx.fillStyle = '#00d4ff';
-            ctx.font = '12px Arial';
-            for (let i = 0; i < trendData.length; i += step) {
-                const x = mapX(i, trendData.length, canvas.width);
-                const label = trendData[i].time;
-                ctx.fillText(label, Math.max(40, Math.min(x - 18, canvas.width - 60)), canvas.height - 6);
-            }
 
             // 轴标题
             ctx.fillStyle = '#00d4ff';
@@ -1625,24 +1473,6 @@ class InteractiveDashboardServer:
                         <div id="rulesDetail"></div>
                     `;
                     break;
-                case 'datasource':
-                    detailContent = `
-                        <h2>📂 数据源设置</h2>
-                        <div style="margin:10px 0;">
-                            <div>当前模式: <span id="dsMode">${dataSourceInfo.mode}</span></div>
-                            <div style="margin-top:8px;">
-                                <input id="filePathInput" placeholder="输入服务器可访问的文件路径" style="width:70%;"/>
-                                <input id="fileSpeedInput" type="number" step="0.1" value="2" style="width:80px;margin-left:6px;"/> 秒/条
-                                <label style="margin-left:10px;color:#00d4ff;"><input id="fileLoopInput" type="checkbox" checked/> 循环播放</label>
-                            </div>
-                            <div style="margin-top:10px;">
-                                <button class="rule-btn" onclick="loadDataFile()">加载文件</button>
-                                <button class="rule-btn danger" onclick="stopFileMode()">停止文件模式</button>
-                            </div>
-                            <div id="dsMsg" style="margin-top:10px;color:#00ff41;"></div>
-                        </div>
-                    `;
-                    break;
                 default:
                     detailContent = `<h2>📊 ${type} 详情</h2><p>详细信息加载中...</p>`;
             }
@@ -1682,9 +1512,6 @@ class InteractiveDashboardServer:
                     break;
                 case 'trend':
                     updateTrendDetail(currentData);
-                    break;
-                case 'datasource':
-                    fetchDataSource();
                     break;
             }
         }
@@ -2008,35 +1835,6 @@ class InteractiveDashboardServer:
                     '<div style="color: #ff0040; text-align: center; padding: 20px;">网络错误: ' + error.message + '</div>';
             }
         }
-
-        async function loadDataFile() {
-            const path = document.getElementById('filePathInput')?.value?.trim();
-            const speed = parseFloat(document.getElementById('fileSpeedInput')?.value || '2');
-            const loop = document.getElementById('fileLoopInput')?.checked;
-            if (!path) { alert('请输入文件路径'); return; }
-            try {
-                const res = await fetch('/api/load-data-file', {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ path, speed_seconds: speed, loop })
-                });
-                const result = await res.json();
-                const msg = document.getElementById('dsMsg');
-                if (result.success) {
-                    msg.textContent = result.message;
-                    fetchDataSource();
-                } else { msg.textContent = result.error || '失败'; msg.style.color = '#ff0040'; }
-            } catch (e) { alert('网络错误: ' + e.message); }
-        }
-
-        async function stopFileMode() {
-            try {
-                const res = await fetch('/api/stop-file', { method: 'POST' });
-                const result = await res.json();
-                const msg = document.getElementById('dsMsg');
-                if (msg) msg.textContent = result.message || '';
-                fetchDataSource();
-            } catch (e) {}
-        }
         
         function displayRules(rules) {
             const container = document.getElementById('rulesDetail');
@@ -2184,7 +1982,6 @@ class InteractiveDashboardServer:
         fetchThresholds(); // 获取初始阈值信息
         fetchData();
         setInterval(fetchData, 2000);
-        setInterval(fetchDataSource, 3000);
         setInterval(fetchThresholds, 10000); // 每10秒更新一次阈值信息
         
         // 初始化趋势图
@@ -2203,41 +2000,7 @@ class InteractiveDashboardServer:
             def send_realtime_data(self):
                 """发送实时数据API"""
                 if hasattr(self, 'data_generator') and self.data_generator:
-                    # 文件模式优先（以是否有已加载数据为准）
-                    if hasattr(self, 'file_player') and self.file_player and self.file_player.has_data() and ((getattr(self, 'mode', None) is not None and self.mode[0] == 'file') or True):
-                        row = self.file_player.get_next()
-                        if row is None:
-                            # 若暂未到时间或播放结束，返回最近一次数据（若无则空）
-                            data = {
-                                'realtime': {}, 'alerts': [],
-                                'equipment_status': getattr(self.data_generator, 'equipment_status', {}),
-                                'alert_history': getattr(self.data_generator, 'alert_history', [])
-                            }
-                        else:
-                            # 利用规则引擎评估
-                            alerts = self.rule_engine.evaluate_row_for_alerts(row)
-                            # 更新历史与状态
-                            self.data_generator.data_history.append(row)
-                            if len(self.data_generator.data_history) > 100:
-                                self.data_generator.data_history.pop(0)
-                            severity_to_status = {'critical': 'critical', 'high': 'warning', 'medium': 'warning', 'low': 'normal'}
-                            for a in alerts:
-                                a['timestamp'] = row.get('timestamp', datetime.now())
-                                self.data_generator.alert_history.append(a)
-                                eq = a.get('equipment')
-                                if eq:
-                                    self.data_generator.equipment_status[eq] = severity_to_status.get(a.get('severity'), 'warning')
-                            cutoff_time = datetime.now() - timedelta(minutes=3)
-                            self.data_generator.alert_history = [a for a in self.data_generator.alert_history if a.get('timestamp', datetime.now()) > cutoff_time]
-                            data = {
-                                'realtime': row,
-                                'alerts': alerts,
-                                'alert_history': self.data_generator.alert_history,
-                                'equipment_status': self.data_generator.equipment_status,
-                                'trend_data': self.data_generator.data_history[-20:] if len(self.data_generator.data_history) >= 20 else self.data_generator.data_history
-                            }
-                    else:
-                        data = self.data_generator.generate_realtime_data()
+                    data = self.data_generator.generate_realtime_data()
                     # 聚合连续报警为周期
                     try:
                         cycles = []
@@ -2317,20 +2080,6 @@ class InteractiveDashboardServer:
                     }
                 
                 json_data = json.dumps(data, ensure_ascii=False, default=str)
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json; charset=utf-8')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json_data.encode('utf-8'))
-
-            def send_data_source(self):
-                info = {
-                    'mode': 'file' if (self.file_player and self.file_player.has_data() and (self.mode and self.mode[0] == 'file')) else 'realtime',
-                    'file': getattr(self.file_player, 'file_path', None),
-                    'loaded_rows': int(len(self.file_player.df) if (self.file_player and self.file_player.df is not None) else 0),
-                    'current_index': int(self.file_player.index if (self.file_player and self.file_player.df is not None) else 0)
-                }
-                json_data = json.dumps({'success': True, 'data': info}, ensure_ascii=False)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json; charset=utf-8')
                 self.send_header('Access-Control-Allow-Origin', '*')
@@ -2582,54 +2331,9 @@ class InteractiveDashboardServer:
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
                 self.wfile.write(json_data.encode('utf-8'))
-            
-            def load_data_file(self):
-                """加载CSV/XLSX文件并切换为文件模式"""
-                try:
-                    content_length = int(self.headers.get('Content-Length', '0'))
-                    body = self.rfile.read(content_length) if content_length > 0 else b''
-                    data = json.loads(body.decode('utf-8') or '{}')
-                    path = data.get('path')
-                    speed = float(data.get('speed_seconds', 2.0))
-                    loop = bool(data.get('loop', True))
-                    if not path:
-                        resp = {'success': False, 'error': '缺少参数: path'}
-                    else:
-                        ok, msg = self.file_player.load_file(path, speed_seconds=speed, loop=loop)
-                        if ok:
-                            # 用一个可变对象存储模式，便于在handler中共享/修改
-                            self.mode[0] = 'file'
-                            resp = {'success': True, 'message': msg}
-                        else:
-                            resp = {'success': False, 'error': msg}
-                except Exception as e:
-                    resp = {'success': False, 'error': f'加载失败: {e}'}
-
-                json_data = json.dumps(resp, ensure_ascii=False)
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json; charset=utf-8')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json_data.encode('utf-8'))
-
-            def stop_file_mode(self):
-                try:
-                    self.mode[0] = 'realtime'
-                    resp = {'success': True, 'message': '已切换到实时模拟模式'}
-                except Exception as e:
-                    resp = {'success': False, 'error': str(e)}
-                json_data = json.dumps(resp, ensure_ascii=False)
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json; charset=utf-8')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json_data.encode('utf-8'))
         
         def handler(*args, **kwargs):
-            # 使用列表包装mode以在handler实例之间共享与修改
-            if not hasattr(self, '_shared_mode_ref'):
-                self._shared_mode_ref = [self.mode]
-            return TechHTTPHandler(*args, data_generator=self.data_generator, rule_engine=self.rule_engine, mode_ref=self._shared_mode_ref, file_player=self.file_player, **kwargs)
+            return TechHTTPHandler(*args, data_generator=self.data_generator, rule_engine=self.rule_engine, **kwargs)
         
         with HTTPServer(('localhost', self.port), handler) as server:
             print(f"🚀 RTO/RCO交互式监控大屏启动成功!")
@@ -2645,9 +2349,6 @@ class InteractiveDashboardServer:
             print(f"   POST /api/rules/update-threshold - 更新规则阈值")
             print(f"   POST /api/rules/toggle-status - 切换规则状态")
             print(f"   PUT  /api/rules/{{rule_id}} - 更新规则详情")
-            print(f"   POST /api/load-data-file - 加载CSV/XLSX为数据源")
-            print(f"   POST /api/stop-file - 停止文件模式，恢复实时模拟")
-            print(f"   GET  /api/data-source - 获取当前数据源状态")
             print(f"🛑 按 Ctrl+C 停止服务")
             
             webbrowser.open(f'http://localhost:{self.port}')

@@ -1,0 +1,162 @@
+[
+  {
+    "rule_id": "R001",
+    "rule_name": "燃烧室温度不达标",
+    "description": "燃烧室温度未达到规定值760℃以上",
+    "condition": "temperature_combustion < 755.0",
+    "threshold_value": 755.0,
+    "threshold_unit": "℃",
+    "severity": "high",
+    "is_active": true
+  },
+  {
+    "rule_id": "R002",
+    "rule_name": "废气出口污染物浓度超标",
+    "description": "废气出口污染物浓度超标",
+    "condition": "concentration_out > threshold",
+    "threshold_value": 50,
+    "threshold_unit": "mg/m³",
+    "severity": "critical",
+    "is_active": true
+  },
+  {
+    "rule_id": "R003",
+    "rule_name": "应急阀门违规开启",
+    "description": "应急阀门违规开启",
+    "condition": "emergency_valve == 1",
+    "threshold_value": 1,
+    "threshold_unit": "",
+    "severity": "critical",
+    "is_active": true
+  },
+  {
+    "rule_id": "R004",
+    "rule_name": "处理效率不达标",
+    "description": "出口浓度/进口浓度 > 0.1",
+    "condition": "efficiency < 0.9",
+    "threshold_value": 0.9,
+    "threshold_unit": "",
+    "severity": "high",
+    "is_active": true
+  },
+  {
+    "rule_id": "R005",
+    "rule_name": "废气出口温度超标",
+    "description": "废气出口温度不能超过60℃",
+    "condition": "temperature_outlet > 60",
+    "threshold_value": 60,
+    "threshold_unit": "℃",
+    "severity": "medium",
+    "is_active": true
+  },
+  {
+    "rule_id": "R006",
+    "rule_name": "治污设备未先启后停",
+    "description": "治污设备未先启后停",
+    "condition": "equipment_sequence_error == 1",
+    "threshold_value": 1,
+    "threshold_unit": "",
+    "severity": "high",
+    "is_active": true
+  },
+  {
+    "rule_id": "R007",
+    "rule_name": "吸附温度异常",
+    "description": "吸附温度超过40℃",
+    "condition": "temperature_adsorption > 40",
+    "threshold_value": 40,
+    "threshold_unit": "℃",
+    "severity": "medium",
+    "is_active": true
+  },
+  {
+    "rule_id": "R008",
+    "rule_name": "脱附温度异常",
+    "description": "脱附温度不在90-120℃范围",
+    "condition": "temperature_desorption < 90 or temperature_desorption > 120",
+    "threshold_value": 90,
+    "threshold_unit": "℃",
+    "severity": "medium",
+    "is_active": true
+  },
+  {
+    "rule_id": "R009",
+    "rule_name": "脱附时长不符合",
+    "description": "脱附时长少于3小时",
+    "condition": "desorption_duration < 3",
+    "threshold_value": 3,
+    "threshold_unit": "小时",
+    "severity": "medium",
+    "is_active": true
+  },
+  {
+    "rule_id": "R010",
+    "rule_name": "长期未脱附",
+    "description": "超过1个月未脱附",
+    "condition": "days_since_last_desorption > 30",
+    "threshold_value": 30,
+    "threshold_unit": "天",
+    "severity": "high",
+    "is_active": true
+  },
+  {
+    "rule_id": "R011",
+    "rule_name": "过滤材料失效",
+    "description": "颗粒物含量超过10mg/m³或压力损失超过1KPA",
+    "condition": "particle_content > 10 or pressure_loss > 1",
+    "threshold_value": 10,
+    "threshold_unit": "mg/m³",
+    "severity": "medium",
+    "is_active": true
+  },
+  {
+    "rule_id": "R012",
+    "rule_name": "进气温度超标",
+    "description": "进入催化燃烧装置的废气温度超过400℃",
+    "condition": "temperature_inlet > 400",
+    "threshold_value": 400,
+    "threshold_unit": "℃",
+    "severity": "high",
+    "is_active": true
+  },
+  {
+    "rule_id": "R013",
+    "rule_name": "预热室温度异常",
+    "description": "预热室温度超过400℃或不在250-350℃范围",
+    "condition": "temperature_preheat > 400 or temperature_preheat < 250",
+    "threshold_value": 350,
+    "threshold_unit": "℃",
+    "severity": "medium",
+    "is_active": true
+  },
+  {
+    "rule_id": "R014",
+    "rule_name": "催化燃烧压力异常",
+    "description": "催化燃烧装置压力损失超过2kpa",
+    "condition": "pressure_loss_catalytic > 2",
+    "threshold_value": 2,
+    "threshold_unit": "kPa",
+    "severity": "medium",
+    "is_active": true
+  },
+  {
+    "rule_id": "R015",
+    "rule_name": "反应器出口温度异常",
+    "description": "反应器出口温度超过600℃",
+    "condition": "temperature_reactor_outlet > 600",
+    "threshold_value": 600,
+    "threshold_unit": "℃",
+    "severity": "critical",
+    "is_active": true
+  },
+  {
+    "rule_id": "R016",
+    "rule_name": "催化剂使用周期超标",
+    "description": "催化剂使用周期超标",
+    "condition": "catalyst_usage_days > 365",
+    "threshold_value": 365,
+    "threshold_unit": "天",
+    "severity": "high",
+    "is_active": true
+  }
+]

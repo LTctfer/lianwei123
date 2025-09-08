@@ -1,0 +1,25 @@
+{
+    "server": {
+        "port": 8090,
+        "host": "localhost"
+    },
+    "data_source": {
+        "default_mode": "realtime",
+        "file": {
+            "default_speed": 2.0,
+            "default_loop": true,
+            "supported_formats": [".csv", ".xlsx", ".xls"],
+            "clean_data": true
+        },
+        "realtime": {
+            "update_interval": 2.0,
+            "alert_probability": 0.4,
+            "history_length": 100
+        }
+    },
+    "visualization": {
+        "trend_points": 20,
+        "alert_history_minutes": 3,
+        "equipment_status_reset_probability": 0.3
+    }
+}

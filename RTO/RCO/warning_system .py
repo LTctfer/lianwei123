@@ -213,87 +213,7 @@ class RealTimeDataGenerator:
             'trend_data': self.data_history[-20:] if len(self.data_history) >= 20 else self.data_history
         }
 
-class FileDataPlayer:
-    """文件数据播放器：按行输出数据供大屏使用"""
-    
-    def __init__(self):
-        self.df: Optional[pd.DataFrame] = None
-        self.file_path: Optional[str] = None
-        self.index: int = 0
-        self.loop: bool = True
-        self.speed_seconds: float = 2.0  # 每条记录间隔，默认与前端轮询一致
-        self.last_emit_time: Optional[datetime] = None
-
-    def load_file(self, path: str, speed_seconds: float = 2.0, loop: bool = True) -> Tuple[bool, str]:
-        try:
-            p = Path(path)
-            if not p.exists():
-                return False, f"文件不存在: {path}"
-            if str(p).lower().endswith('.csv'):
-                df = pd.read_csv(p, encoding='utf-8')
-            elif str(p).lower().endswith(('.xlsx', '.xls')):
-                df = pd.read_excel(p)
-            else:
-                return False, f"不支持的文件类型: {p.suffix}"
-
-            # 规范时间列
-            if 'timestamp' in df.columns:
-                df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
-            else:
-                df['timestamp'] = pd.date_range(start=datetime.now(), periods=len(df), freq='1min')
-
-            self.df = df.reset_index(drop=True)
-            self.file_path = str(p)
-            self.index = 0
-            self.loop = bool(loop)
-            self.speed_seconds = max(0.1, float(speed_seconds))
-            self.last_emit_time = None
-            return True, f"已加载 {len(self.df)} 行: {self.file_path}"
-        except Exception as e:
-            return False, f"加载失败: {e}"
-
-    def has_data(self) -> bool:
-        return self.df is not None and len(self.df) > 0
-
-    def get_next(self) -> Optional[Dict[str, Any]]:
-        """按节奏返回下一行数据。若未到时间，返回None。"""
-        if not self.has_data():
-            return None
-
-        now = datetime.now()
-        if self.last_emit_time is not None:
-            if (now - self.last_emit_time).total_seconds() < self.speed_seconds:
-                return None
-
-        if self.index >= len(self.df):
-            if self.loop:
-                self.index = 0
-            else:
-                # 播放结束
-                self.last_emit_time = now
-                return None
-
-        row = self.df.iloc[self.index].to_dict()
-        # 确保字段名与实时数据一致（存在的直接透传）
-        row.setdefault('temperature_combustion', row.get('temperature_combustion'))
-        row.setdefault('temperature_outlet', row.get('temperature_outlet'))
-        row.setdefault('concentration_in', row.get('concentration_in'))
-        row.setdefault('concentration_out', row.get('concentration_out'))
-        row.setdefault('temperature_adsorption', row.get('temperature_adsorption'))
-        row.setdefault('temperature_desorption', row.get('temperature_desorption'))
-        row.setdefault('temperature_reactor_outlet', row.get('temperature_reactor_outlet'))
-        row.setdefault('pressure', row.get('pressure'))
-        row.setdefault('flow_rate', row.get('flow_rate'))
-        row.setdefault('efficiency', row.get('efficiency'))
-        row.setdefault('emergency_valve', row.get('emergency_valve', 0))
-        row.setdefault('pressure_loss_catalytic', row.get('pressure_loss_catalytic'))
-        row.setdefault('particle_content', row.get('particle_content'))
-
-        row['timestamp'] = row.get('timestamp', datetime.now())
-
-        self.index += 1
-        self.last_emit_time = now
-        return row
+from file_player import FileDataPlayer
 
 @dataclass
 class WarningRule:
@@ -1629,19 +1549,172 @@ class InteractiveDashboardServer:
                     detailContent = `
                         <h2>📂 数据源设置</h2>
                         <div style="margin:10px 0;">
-                            <div>当前模式: <span id="dsMode">${dataSourceInfo.mode}</span></div>
-                            <div style="margin-top:8px;">
-                                <input id="filePathInput" placeholder="输入服务器可访问的文件路径" style="width:70%;"/>
-                                <input id="fileSpeedInput" type="number" step="0.1" value="2" style="width:80px;margin-left:6px;"/> 秒/条
-                                <label style="margin-left:10px;color:#00d4ff;"><input id="fileLoopInput" type="checkbox" checked/> 循环播放</label>
+                            <div class="data-source-current">
+                                <div class="ds-info">
+                                    <span class="ds-label">当前模式:</span> 
+                                    <span id="dsMode" class="ds-value">${dataSourceInfo.mode === 'file' ? '文件播放' : '实时模拟'}</span>
+                                </div>
+                                <div class="ds-info" id="dsCurrentFile" style="display:${dataSourceInfo.mode === 'file' ? 'block' : 'none'}">
+                                    <span class="ds-label">当前文件:</span>
+                                    <span class="ds-value">${dataSourceInfo.file || '-'}</span>
+                                </div>
                             </div>
-                            <div style="margin-top:10px;">
-                                <button class="rule-btn" onclick="loadDataFile()">加载文件</button>
-                                <button class="rule-btn danger" onclick="stopFileMode()">停止文件模式</button>
+                            
+                            <div class="data-source-upload" style="margin-top:16px;">
+                                <div class="ds-form">
+                                    <div class="ds-form-row">
+                                        <input id="filePathInput" placeholder="输入服务器可访问的CSV或XLSX文件路径" 
+                                               class="ds-input full-width"/>
+                                    </div>
+                                    <div class="ds-form-row">
+                                        <div class="ds-form-group">
+                                            <label>播放速度:</label>
+                                            <input id="fileSpeedInput" type="number" step="0.1" value="2" min="0.1" 
+                                                   class="ds-input" style="width:80px;"/> 秒/条
+                                        </div>
+                                        <div class="ds-form-group">
+                                            <label class="ds-checkbox">
+                                                <input id="fileLoopInput" type="checkbox" checked/>
+                                                <span>循环播放</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="ds-form-row">
+                                        <button class="rule-btn" onclick="loadDataFile()">加载文件</button>
+                                        <button class="rule-btn danger" onclick="stopFileMode()">停止文件模式</button>
+                                    </div>
+                                </div>
                             </div>
-                            <div id="dsMsg" style="margin-top:10px;color:#00ff41;"></div>
+
+                            <div id="dsMsg" class="ds-message"></div>
+
+                            <!-- 文件预览区域 -->
+                            <div id="filePreview" class="file-preview" style="display:none;">
+                                <h3>📄 文件预览</h3>
+                                <div class="file-info">
+                                    <div class="info-row">
+                                        <span class="info-label">文件名:</span>
+                                        <span id="previewFileName" class="info-value"></span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">大小:</span>
+                                        <span id="previewFileSize" class="info-value"></span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">总行数:</span>
+                                        <span id="previewTotalRows" class="info-value"></span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">数据列:</span>
+                                        <span id="previewColumns" class="info-value"></span>
+                                    </div>
+                                </div>
+                                <div class="preview-data">
+                                    <table id="previewTable" class="data-table">
+                                        <thead>
+                                            <tr id="previewHeaders"></tr>
+                                        </thead>
+                                        <tbody id="previewBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     `;
+
+                    // 添加数据源相关样式
+                    const styleEl = document.createElement('style');
+                    styleEl.textContent = `
+                        .data-source-current {
+                            background: rgba(0,20,40,0.5);
+                            padding: 12px;
+                            border-radius: 8px;
+                            border: 1px solid #00d4ff;
+                        }
+                        .ds-info { margin: 4px 0; }
+                        .ds-label { color: #00d4ff; margin-right: 8px; }
+                        .ds-value { color: #00ffff; }
+                        .data-source-upload {
+                            background: rgba(0,20,40,0.5);
+                            padding: 16px;
+                            border-radius: 8px;
+                            border: 1px solid #00d4ff;
+                        }
+                        .ds-form { display: flex; flex-direction: column; gap: 12px; }
+                        .ds-form-row {
+                            display: flex;
+                            gap: 12px;
+                            align-items: center;
+                        }
+                        .ds-form-group {
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                        }
+                        .ds-input {
+                            background: rgba(0,0,0,0.3);
+                            border: 1px solid #00d4ff;
+                            color: #00ffff;
+                            padding: 8px 12px;
+                            border-radius: 4px;
+                        }
+                        .ds-input:focus {
+                            outline: none;
+                            border-color: #00ffff;
+                            box-shadow: 0 0 5px rgba(0,255,255,0.5);
+                        }
+                        .full-width { width: 100%; }
+                        .ds-checkbox {
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                            color: #00d4ff;
+                            cursor: pointer;
+                        }
+                        .ds-checkbox input { 
+                            width: 16px;
+                            height: 16px;
+                        }
+                        .ds-message {
+                            margin-top: 12px;
+                            padding: 8px;
+                            border-radius: 4px;
+                            font-size: 0.9em;
+                        }
+                        .file-preview {
+                            margin-top: 20px;
+                            background: rgba(0,20,40,0.5);
+                            padding: 16px;
+                            border-radius: 8px;
+                            border: 1px solid #00d4ff;
+                        }
+                        .file-preview h3 {
+                            margin: 0 0 12px 0;
+                            color: #00ffff;
+                        }
+                        .file-info {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                            gap: 12px;
+                            margin-bottom: 16px;
+                        }
+                        .info-row {
+                            background: rgba(0,0,0,0.2);
+                            padding: 8px;
+                            border-radius: 4px;
+                        }
+                        .info-label {
+                            color: #00d4ff;
+                            margin-right: 8px;
+                        }
+                        .info-value {
+                            color: #00ffff;
+                        }
+                        .preview-data {
+                            max-height: 300px;
+                            overflow: auto;
+                        }
+                    `;
+                    document.head.appendChild(styleEl);
                     break;
                 default:
                     detailContent = `<h2>📊 ${type} 详情</h2><p>详细信息加载中...</p>`;
@@ -2014,18 +2087,70 @@ class InteractiveDashboardServer:
             const speed = parseFloat(document.getElementById('fileSpeedInput')?.value || '2');
             const loop = document.getElementById('fileLoopInput')?.checked;
             if (!path) { alert('请输入文件路径'); return; }
+            
+            // 清除之前的预览
+            document.getElementById('filePreview').style.display = 'none';
+            
             try {
                 const res = await fetch('/api/load-data-file', {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({ path, speed_seconds: speed, loop })
                 });
                 const result = await res.json();
                 const msg = document.getElementById('dsMsg');
+                
                 if (result.success) {
                     msg.textContent = result.message;
+                    msg.style.color = '#00ff41';
                     fetchDataSource();
-                } else { msg.textContent = result.error || '失败'; msg.style.color = '#ff0040'; }
-            } catch (e) { alert('网络错误: ' + e.message); }
+                    
+                    // 显示文件预览
+                    if (result.preview && result.info) {
+                        const preview = document.getElementById('filePreview');
+                        preview.style.display = 'block';
+                        
+                        // 更新文件信息
+                        document.getElementById('previewFileName').textContent = result.info.filename;
+                        document.getElementById('previewFileSize').textContent = formatFileSize(result.info.size);
+                        document.getElementById('previewTotalRows').textContent = result.info.total_rows.toLocaleString();
+                        document.getElementById('previewColumns').textContent = result.info.columns.length;
+                        
+                        // 更新预览表格
+                        const headers = document.getElementById('previewHeaders');
+                        headers.innerHTML = result.preview.headers.map(h => 
+                            `<th>${h}</th>`
+                        ).join('');
+                        
+                        const body = document.getElementById('previewBody');
+                        body.innerHTML = result.preview.data.map(row => 
+                            `<tr>${result.preview.headers.map(h => 
+                                `<td>${formatValue(row[h])}</td>`
+                            ).join('')}</tr>`
+                        ).join('');
+                    }
+                } else { 
+                    msg.textContent = result.error || '失败'; 
+                    msg.style.color = '#ff0040'; 
+                }
+            } catch (e) { 
+                alert('网络错误: ' + e.message); 
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+        }
+        
+        function formatValue(value) {
+            if (value === null || value === undefined) return '-';
+            if (typeof value === 'number') return value.toLocaleString();
+            if (value instanceof Date) return value.toLocaleString();
+            return value;
         }
 
         async function stopFileMode() {
@@ -2595,13 +2720,24 @@ class InteractiveDashboardServer:
                     if not path:
                         resp = {'success': False, 'error': '缺少参数: path'}
                     else:
-                        ok, msg = self.file_player.load_file(path, speed_seconds=speed, loop=loop)
-                        if ok:
-                            # 用一个可变对象存储模式，便于在handler中共享/修改
-                            self.mode[0] = 'file'
-                            resp = {'success': True, 'message': msg}
+                        # 先预览文件
+                        preview = self.file_player.preview_file(path)
+                        if not preview['success']:
+                            resp = {'success': False, 'error': preview['error']}
                         else:
-                            resp = {'success': False, 'error': msg}
+                            # 预览成功再加载
+                            ok, msg = self.file_player.load_file(path, speed_seconds=speed, loop=loop)
+                            if ok:
+                                # 用一个可变对象存储模式，便于在handler中共享/修改
+                                self.mode[0] = 'file'
+                                resp = {
+                                    'success': True, 
+                                    'message': msg,
+                                    'preview': preview['preview'],
+                                    'info': preview['info']
+                                }
+                            else:
+                                resp = {'success': False, 'error': msg}
                 except Exception as e:
                     resp = {'success': False, 'error': f'加载失败: {e}'}
 

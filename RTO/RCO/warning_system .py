@@ -805,7 +805,7 @@ class InteractiveDashboardServer:
             <div><span class="metric-value" id="efficiency">95.2</span>% 效率</div>
             <div><span class="metric-value" id="concentrationIn">200</span>mg/m³ 进口</div>
         </div>
-        <div class="panel" onclick="showDetail('trend')">
+        <div class="panel">
             <div class="panel-title">📊 实时趋势</div>
             <div class="chart-container">
                 <div style="display:flex;align-items:center;gap:8px;padding:6px 8px 4px 8px;">

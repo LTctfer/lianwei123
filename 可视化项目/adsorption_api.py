@@ -217,69 +217,59 @@ class AdsorptionAPIWrapper:
             max_time_in_batch = 0.0  # 记录本批次的最大时间
             
             for idx, row in efficiency_data.iterrows():
-                # 获取当前批次的时间（小时）- 算法中已经计算好的时间坐标
-                current_time_hours = float(row['时间坐标'])  # 算法中时间坐标已经是小时单位
-                
-                # 应用时间偏移，实现累加
+                # 获取当前批次的时间（小时）
+                current_time_hours = float(row['时间坐标'])  
                 cumulative_time_hours = current_time_hours + time_offset
-                
-                # 更新本批次最大时间
                 max_time_in_batch = max(max_time_in_batch, cumulative_time_hours)
                 
-                # 获取穿透率（百分比）
-                breakthrough_ratio = float(row['穿透率']) * 100  # 转换为百分比
-                
-                # 获取处理效率
+                breakthrough_ratio = float(row['穿透率']) * 100  
                 efficiency = float(row['处理效率'])
                 
-                # 生成时间段标识
+                # === 修改后的时间段标识 ===
                 if 'window_start' in row and 'window_end' in row:
-                    # 使用算法中的时间窗口格式
                     start_time = pd.to_datetime(row['window_start'])
                     end_time = pd.to_datetime(row['window_end'])
-                    time_segment = f"{start_time.strftime('%m-%d %H:%M')}-{end_time.strftime('%H:%M')}"
+                    time_segment = f"{start_time.strftime('%m-%d %H:%M')} - {end_time.strftime('%m-%d %H:%M')}"
                 else:
-                    # 根据计算规则生成时间段标识
-                    if '计算规则' in row:
-                        rule = row['计算规则']
-                        if rule == '规则1-风速段' and '风速段' in row:
-                            time_segment = f"风速段{int(row['风速段'])}"
-                        elif rule == '规则2-拼接段' and '拼接时间段' in row:
-                            time_segment = f"拼接段{int(row['拼接时间段'])}"
+                    if '风速段' in row:
+                        if 'window_start' in row and 'window_end' in row:
+                            start_time = pd.to_datetime(row['window_start'])
+                            end_time = pd.to_datetime(row['window_end'])
+                            time_segment = f"{start_time.strftime('%m-%d %H:%M')} - {end_time.strftime('%m-%d %H:%M')}"
                         else:
-                            time_segment = f"时间段{idx+1}"
+                            time_segment = f"风速段{int(row['风速段'])}"
+                    elif '拼接时间段' in row:
+                        if 'window_start' in row and 'window_end' in row:
+                            start_time = pd.to_datetime(row['window_start'])
+                            end_time = pd.to_datetime(row['window_end'])
+                            time_segment = f"{start_time.strftime('%m-%d %H:%M')} - {end_time.strftime('%m-%d %H:%M')}"
+                        else:
+                            time_segment = f"拼接段{int(row['拼接时间段'])}"
                     else:
                         time_segment = f"时间段{idx+1}"
                 
-                # 按照算法内的标签格式：时间段、累计时长和穿透率（使用累加后的时间）
+                # 描述信息
                 label = f"时间段: {time_segment}, 累积时长: {cumulative_time_hours:.2f}小时, 穿透率: {breakthrough_ratio:.1f}%"
                 
-                # 数值格式化：保留2位小数，接近0则返回0
                 def format_number(value):
-                    """格式化数值，保留2位小数，接近0则返回0"""
-                    if abs(value) < 0.01:  # 小于0.01视为接近0
+                    if abs(value) < 0.01:
                         return 0.0
                     return round(value, 2)
                 
                 data_points.append({
-                    "x": format_number(cumulative_time_hours),  # X轴：累计运行时间（小时）
-                    "y": format_number(breakthrough_ratio),     # Y轴：穿透率（%）
-                    "description": label  # 描述信息：时间段、累计时间和穿透率
+                    "x": format_number(cumulative_time_hours),
+                    "y": format_number(breakthrough_ratio),
+                    "description": label
                 })
             
-            # 更新会话状态
             if session_id and max_time_in_batch > 0:
-                # 保存本批次的数据点到会话中（用于内部跟踪）
                 self.sessions[session_id]["data_points"].extend(data_points)
-                # 更新最后累计时间
                 self.sessions[session_id]["last_cumulative_time"] = max_time_in_batch
 
-            # 提取预警点（应用时间偏移）
             warning_points = self._extract_warning_points(processor, time_offset)
 
-            # 构建返回结果（只返回当前批次的累加数据点）
             result = {
-                "data_points": data_points  # 只返回当前批次处理后的数据点
+                "data_points": data_points
             }
 
             return result

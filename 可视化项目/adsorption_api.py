@@ -197,7 +197,7 @@ class AdsorptionAPIWrapper:
         return processor
 
     def _extract_visualization_data(self, processor: AdsorptionCurveProcessor, efficiency_data: pd.DataFrame, session_id: str = None) -> dict:
-        """从算法结果中提取可视化数据，支持累加模式"""
+        """从算法结果中提取可视化数据，累计时长按风速段(开始时间-结束时间)计算"""
         try:
             # 获取会话的时间偏移
             time_offset = 0.0
@@ -211,71 +211,71 @@ class AdsorptionAPIWrapper:
                 else:
                     # 获取上次的最后累计时间作为偏移
                     time_offset = self.sessions[session_id]["last_cumulative_time"]
-            
-            # 提取数据点
+
             data_points = []
-            max_time_in_batch = 0.0  # 记录本批次的最大时间
-            
+            max_cumulative_time = time_offset  # 记录本批次的最大累计时长
+
             for idx, row in efficiency_data.iterrows():
-                # 获取当前批次的时间（小时）
-                current_time_hours = float(row['时间坐标'])  
-                cumulative_time_hours = current_time_hours + time_offset
-                max_time_in_batch = max(max_time_in_batch, cumulative_time_hours)
-                
                 breakthrough_ratio = float(row['穿透率']) * 100  
                 efficiency = float(row['处理效率'])
-                
-                # === 修改后的时间段标识 ===
+
+                # === 优先用 window_start / window_end ===
                 if 'window_start' in row and 'window_end' in row:
                     start_time = pd.to_datetime(row['window_start'])
                     end_time = pd.to_datetime(row['window_end'])
-                    time_segment = f"{start_time.strftime('%m-%d %H:%M')} - {end_time.strftime('%m-%d %H:%M')}"
+
+                    # 当前段运行时长（小时）
+                    duration_hours = (end_time - start_time).total_seconds() / 3600
+                    cumulative_time_hours = time_offset + duration_hours
+                    max_cumulative_time = max(max_cumulative_time, cumulative_time_hours)
+
+                    # 格式化时间段字符串
+                    time_segment = f"{start_time.strftime('%Y-%m-%d %H:%M:%S')} {end_time.strftime('%Y-%m-%d %H:%M:%S')}"
                 else:
+                    # 没有时间字段时，fallback 到原来的逻辑
                     if '风速段' in row:
-                        if 'window_start' in row and 'window_end' in row:
-                            start_time = pd.to_datetime(row['window_start'])
-                            end_time = pd.to_datetime(row['window_end'])
-                            time_segment = f"{start_time.strftime('%m-%d %H:%M')} - {end_time.strftime('%m-%d %H:%M')}"
-                        else:
-                            time_segment = f"风速段{int(row['风速段'])}"
+                        time_segment = f"风速段{int(row['风速段'])}"
                     elif '拼接时间段' in row:
-                        if 'window_start' in row and 'window_end' in row:
-                            start_time = pd.to_datetime(row['window_start'])
-                            end_time = pd.to_datetime(row['window_end'])
-                            time_segment = f"{start_time.strftime('%m-%d %H:%M')} - {end_time.strftime('%m-%d %H:%M')}"
-                        else:
-                            time_segment = f"拼接段{int(row['拼接时间段'])}"
+                        time_segment = f"拼接段{int(row['拼接时间段'])}"
                     else:
                         time_segment = f"时间段{idx+1}"
-                
+
+                    # 如果没有 window_start/end，就用原来的时间坐标 + 偏移
+                    current_time_hours = float(row['时间坐标'])  
+                    cumulative_time_hours = current_time_hours + time_offset
+                    max_cumulative_time = max(max_cumulative_time, cumulative_time_hours)
+
                 # 描述信息
                 label = f"时间段: {time_segment}, 累积时长: {cumulative_time_hours:.2f}小时, 穿透率: {breakthrough_ratio:.1f}%"
-                
+
                 def format_number(value):
                     if abs(value) < 0.01:
                         return 0.0
                     return round(value, 2)
-                
+
                 data_points.append({
                     "x": format_number(cumulative_time_hours),
                     "y": format_number(breakthrough_ratio),
                     "description": label
                 })
-            
-            if session_id and max_time_in_batch > 0:
+
+            # 更新会话的累计时长
+            if session_id and max_cumulative_time > time_offset:
                 self.sessions[session_id]["data_points"].extend(data_points)
-                self.sessions[session_id]["last_cumulative_time"] = max_time_in_batch
+                self.sessions[session_id]["last_cumulative_time"] = max_cumulative_time
 
             warning_points = self._extract_warning_points(processor, time_offset)
 
             result = {
-                "data_points": data_points
+                "data_points": data_points,
+                "warning_points": warning_points
             }
 
             return result
-            
+
         except Exception as e:
             return {"error": f"数据提取失败: {str(e)}"}
+
     
     def _extract_warning_points(self, processor: AdsorptionCurveProcessor, time_offset: float = 0.0) -> list:
         """提取预警点（五角星标注的点），支持时间偏移"""

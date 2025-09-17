@@ -1516,7 +1516,9 @@ class AdsorptionCurveProcessor:
                     '出口浓度': avg_outlet,
                     '风速段': segment_id,
                     '数据点数': len(segment_data),
-                    '计算规则': '规则1-风速段'
+                    '计算规则': '规则1-风速段',
+                    'window_start': segment_start,
+                    'window_end': segment_end
                 })
                 
                 print(f"      风速段 {segment_id}: 时间 {time_hours:.2f}h, 效率 {avg_efficiency:.2f}%, 穿透率 {avg_breakthrough:.3f}")
@@ -1568,7 +1570,9 @@ class AdsorptionCurveProcessor:
                     '出口浓度': avg_outlet,
                     '拼接时间段': segment_id,
                     '数据点数': len(segment_data),
-                    '计算规则': '规则2-拼接段'
+                    '计算规则': '规则2-拼接段',
+                    'window_start': segment_start,
+                    'window_end': segment_end
                 })
                 
                 print(f"      拼接段 {segment_id}: 时间 {time_hours:.2f}h, 效率 {avg_efficiency:.2f}%, 穿透率 {avg_breakthrough:.3f}")

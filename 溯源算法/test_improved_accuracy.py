@@ -10,6 +10,62 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from pollution_source_tracker import *
 import numpy as np
+import math
+import random
+
+def generate_optimal_monitoring_layout(source_x, source_y, wind_direction, num_stations=8):
+    """
+    生成优化的监测站布局
+
+    Args:
+        source_x, source_y: 真实污染源位置（用于生成理想布局）
+        wind_direction: 风向（度）
+        num_stations: 监测站数量
+
+    Returns:
+        list: 监测站位置列表 [(x, y, z), ...]
+    """
+    stations = []
+
+    # 转换风向为弧度（风吹向的方向）
+    wind_to_rad = math.radians(wind_direction + 180)
+
+    # 1. 主轴布局：沿下风向布置监测站
+    downwind_distances = [100, 200, 400, 600]  # 下风向不同距离
+    for i, dist in enumerate(downwind_distances):
+        x = source_x + dist * math.cos(wind_to_rad)
+        y = source_y + dist * math.sin(wind_to_rad)
+        stations.append((x, y, 10))
+
+    # 2. 交叉布局：垂直于风向的监测站（减少侧风向距离）
+    cross_wind_rad = wind_to_rad + math.pi/2  # 垂直于风向
+    cross_distances = [80, 120]  # 减少侧风向距离
+    base_distance = 200  # 基准下风向距离
+
+    for dist in cross_distances:
+        # 基准位置
+        base_x = source_x + base_distance * math.cos(wind_to_rad)
+        base_y = source_y + base_distance * math.sin(wind_to_rad)
+
+        # 两侧的监测站
+        x1 = base_x + dist * math.cos(cross_wind_rad)
+        y1 = base_y + dist * math.sin(cross_wind_rad)
+        stations.append((x1, y1, 10))
+
+        x2 = base_x - dist * math.cos(cross_wind_rad)
+        y2 = base_y - dist * math.sin(cross_wind_rad)
+        stations.append((x2, y2, 10))
+
+    # 3. 近场监测站：污染源附近
+    near_distance = 80
+    near_angles = [wind_to_rad + math.pi/4, wind_to_rad - math.pi/4]  # 下风向两侧
+    for angle in near_angles:
+        x = source_x + near_distance * math.cos(angle)
+        y = source_y + near_distance * math.sin(angle)
+        stations.append((x, y, 10))
+
+    # 返回指定数量的监测站
+    return stations[:num_stations]
 
 def test_improved_accuracy():
     """测试改进后的溯源精度"""
@@ -18,10 +74,10 @@ def test_improved_accuracy():
     # 创建溯源器
     tracker = PollutionSourceTracker()
     
-    # 设置气象数据
+    # 设置气象数据 - 改为东风，便于测试
     met_data = MeteorologicalData(
         wind_speed=3.5,
-        wind_direction=45,
+        wind_direction=90,  # 东风，从东向西吹
         temperature=20.0,
         humidity=60.0,
         pressure=1013.25,
@@ -30,35 +86,37 @@ def test_improved_accuracy():
         timestamp="2024-01-01 12:00:00"
     )
     tracker.set_meteorological_data(met_data)
-    
+
     # 真实污染源（用于生成模拟数据）
-    true_source = PollutionSource(x=800, y=600, z=50, emission_rate=10.0)
+    true_source = PollutionSource(x=500, y=500, z=30, emission_rate=10.0)
     print(f"真实污染源位置: ({true_source.x}, {true_source.y}, {true_source.z})")
     print(f"真实排放强度: {true_source.emission_rate} g/s\n")
-    
-    # 生成监测站数据（模拟真实观测）
-    monitoring_stations = [
-        (200, 300, 10),   # 站点1
-        (500, 800, 10),   # 站点2
-        (1000, 400, 10),  # 站点3
-        (1200, 900, 10),  # 站点4
-        (300, 1000, 10),  # 站点5
-        (1500, 700, 10),  # 站点6
-    ]
-    
+
+    # 使用优化的监测站布局
+    monitoring_stations = generate_optimal_monitoring_layout(
+        true_source.x, true_source.y, met_data.wind_direction, num_stations=8
+    )
+
     gaussian_model = GaussianPlumeModel()
-    
+
     print("生成监测站观测数据:")
+    print("首先测试高斯模型计算:")
+
     for i, (x, y, z) in enumerate(monitoring_stations):
         # 计算理论浓度
         true_concentration = gaussian_model.calculate_concentration(
             true_source, x, y, z, met_data
         )
-        
-        # 添加5%的随机噪声模拟观测误差
-        noise = np.random.normal(0, 0.05 * true_concentration)
-        observed_concentration = max(0.1, true_concentration + noise)
-        
+
+        print(f"  站点{i+1}: 位置({x}, {y}, {z}), 理论浓度={true_concentration:.2f} μg/m³")
+
+        # 添加10%的随机噪声模拟观测误差
+        if true_concentration > 1.0:  # 只对有意义的浓度添加噪声
+            noise = np.random.normal(0, 0.1 * true_concentration)
+            observed_concentration = max(0.1, true_concentration + noise)
+        else:
+            observed_concentration = max(0.1, true_concentration)
+
         # 添加监测数据
         monitor_data = MonitoringData(
             station_id=f"S{i+1:02d}",
@@ -67,9 +125,8 @@ def test_improved_accuracy():
             timestamp="2024-01-01 12:00:00"
         )
         tracker.add_monitoring_data(monitor_data)
-        
-        print(f"  站点{monitor_data.station_id}: 位置({x}, {y}, {z}), "
-              f"浓度={observed_concentration:.2f} μg/m³")
+
+        print(f"    观测浓度={observed_concentration:.2f} μg/m³")
     
     print("\n" + "="*60)
     

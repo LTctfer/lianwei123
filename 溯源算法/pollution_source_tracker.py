@@ -114,7 +114,7 @@ class AtmosphericStability:
     @staticmethod
     def get_dispersion_coefficients(stability_class: str, distance: float) -> Tuple[float, float]:
         """
-        根据大气稳定度等级和距离计算扩散系数（改进的Pasquill-Gifford公式）
+        根据大气稳定度等级和距离计算扩散系数（标准Pasquill-Gifford公式）
 
         Args:
             stability_class: 大气稳定度等级
@@ -125,39 +125,38 @@ class AtmosphericStability:
         """
         # 限制距离范围
         distance = max(10.0, min(distance, 100000.0))  # 10m到100km
+        distance_km = distance / 1000.0  # 转换为公里
 
-        # 改进的扩散系数参数表（基于更精确的实验数据）
-        if stability_class == 'A':  # 极不稳定
-            sigma_y = 0.32 * distance * (1 + 0.0004 * distance) ** (-0.5)
-            sigma_z = 0.24 * distance * (1 + 0.001 * distance) ** (-0.5)
-        elif stability_class == 'B':  # 不稳定
-            sigma_y = 0.22 * distance * (1 + 0.0004 * distance) ** (-0.5)
-            sigma_z = 0.20 * distance
-        elif stability_class == 'C':  # 弱不稳定
-            sigma_y = 0.16 * distance * (1 + 0.0004 * distance) ** (-0.5)
-            sigma_z = 0.14 * distance * (1 + 0.0003 * distance) ** (-0.5)
-        elif stability_class == 'D':  # 中性
-            sigma_y = 0.11 * distance * (1 + 0.0004 * distance) ** (-0.5)
-            sigma_z = 0.08 * distance * (1 + 0.0015 * distance) ** (-0.5)
-        elif stability_class == 'E':  # 弱稳定
-            sigma_y = 0.08 * distance * (1 + 0.0004 * distance) ** (-0.5)
-            sigma_z = 0.06 * distance * (1 + 0.0003 * distance) ** (-1.0)
-        elif stability_class == 'F':  # 稳定
-            sigma_y = 0.05 * distance * (1 + 0.0004 * distance) ** (-0.5)
-            sigma_z = 0.04 * distance * (1 + 0.0003 * distance) ** (-1.0)
-        else:
-            # 默认中性条件
-            sigma_y = 0.11 * distance * (1 + 0.0004 * distance) ** (-0.5)
-            sigma_z = 0.08 * distance * (1 + 0.0015 * distance) ** (-0.5)
+        # 标准Pasquill-Gifford扩散系数参数表
+        # sigma_y = a * x^b, sigma_z = c * x^d (x为距离，单位km)
+        coefficients = {
+            'A': {'a_y': 213, 'b_y': 0.894, 'c_z': 440, 'd_z': 0.941},  # 极不稳定
+            'B': {'a_y': 156, 'b_y': 0.894, 'c_z': 106, 'd_z': 0.718},  # 不稳定
+            'C': {'a_y': 104, 'b_y': 0.894, 'c_z': 61, 'd_z': 0.718},   # 弱不稳定
+            'D': {'a_y': 68, 'b_y': 0.894, 'c_z': 33, 'd_z': 0.718},    # 中性
+            'E': {'a_y': 50.5, 'b_y': 0.894, 'c_z': 22.8, 'd_z': 0.718}, # 弱稳定
+            'F': {'a_y': 34, 'b_y': 0.894, 'c_z': 14.35, 'd_z': 0.718}   # 稳定
+        }
 
-        # 应用地表粗糙度修正
-        roughness_factor = 1.0  # 可以根据地表类型调整
-        sigma_y *= roughness_factor
-        sigma_z *= roughness_factor
+        if stability_class not in coefficients:
+            stability_class = 'D'  # 默认中性条件
 
-        # 确保最小值
-        sigma_y = max(sigma_y, 1.0)
-        sigma_z = max(sigma_z, 0.5)
+        coeff = coefficients[stability_class]
+
+        # 计算扩散系数 (结果单位为米)
+        sigma_y = coeff['a_y'] * (distance_km ** coeff['b_y'])
+        sigma_z = coeff['c_z'] * (distance_km ** coeff['d_z'])
+
+        # 对于近距离，增加扩散系数以避免过度集中
+        if distance < 1000:  # 1000米以内
+            min_sigma_y = 50.0  # 大幅增加最小水平扩散系数
+            min_sigma_z = 25.0  # 大幅增加最小垂直扩散系数
+            sigma_y = max(min_sigma_y, sigma_y)
+            sigma_z = max(min_sigma_z, sigma_z)
+
+        # 确保最小值，大幅增加扩散范围
+        sigma_y = max(sigma_y, 40.0)
+        sigma_z = max(sigma_z, 20.0)
 
         return sigma_y, sigma_z
 
@@ -185,20 +184,21 @@ class GaussianPlumeModel:
             污染物浓度 (μg/m³)
         """
         # 坐标转换到风向坐标系
-        wind_rad = math.radians(met_data.wind_direction)
-        
+        # 注意：气象风向是风吹来的方向，需要转换为风吹向的方向
+        wind_to_rad = math.radians(met_data.wind_direction + 180)  # 转换为风吹向的方向
+
         # 相对位置
         dx = receptor_x - source.x
         dy = receptor_y - source.y
         dz = receptor_z - source.z
-        
-        # 转换到风向坐标系 (x为下风向)
-        x = dx * math.cos(wind_rad) + dy * math.sin(wind_rad)
-        y = -dx * math.sin(wind_rad) + dy * math.cos(wind_rad)
+
+        # 转换到风向坐标系 (x为下风向，正值表示下风向)
+        x = dx * math.cos(wind_to_rad) + dy * math.sin(wind_to_rad)
+        y = -dx * math.sin(wind_to_rad) + dy * math.cos(wind_to_rad)
         z = receptor_z
         
-        # 只计算下风向的浓度
-        if x <= 0:
+        # 只计算下风向的浓度，但允许小的负值（考虑数值误差）
+        if x < -10.0:  # 允许10米的容差
             return 0.0
             
         # 获取大气稳定度
@@ -217,24 +217,48 @@ class GaussianPlumeModel:
             
         # 高斯烟羽模型公式
         try:
+            # 检查指数函数的参数，避免数值溢出
+            y_term = (y / sigma_y) ** 2
+            z_term1 = ((z - source.z) / sigma_z) ** 2
+            z_term2 = ((z + source.z) / sigma_z) ** 2
+
+            # 限制指数参数，避免数值下溢
+            max_exp_arg = 50.0  # exp(-50) ≈ 2e-22，足够小但不会下溢
+            y_term = min(y_term, max_exp_arg)
+            z_term1 = min(z_term1, max_exp_arg)
+            z_term2 = min(z_term2, max_exp_arg)
+
             # 水平扩散项
-            horizontal_term = math.exp(-0.5 * (y / sigma_y) ** 2)
-            
+            horizontal_term = math.exp(-0.5 * y_term)
+
             # 垂直扩散项 (考虑地面反射)
-            vertical_term1 = math.exp(-0.5 * ((z - source.z) / sigma_z) ** 2)
-            vertical_term2 = math.exp(-0.5 * ((z + source.z) / sigma_z) ** 2)
+            vertical_term1 = math.exp(-0.5 * z_term1)
+            vertical_term2 = math.exp(-0.5 * z_term2)
             vertical_term = vertical_term1 + vertical_term2
-            
+
+            # 分母计算
+            denominator = 2 * math.pi * met_data.wind_speed * sigma_y * sigma_z
+
+            # 检查分母是否过小
+            if denominator < 1e-10:
+                return 0.0
+
             # 浓度计算
-            concentration = (source.emission_rate / (2 * math.pi * met_data.wind_speed * sigma_y * sigma_z)) * \
-                          horizontal_term * vertical_term
-            
+            concentration = (source.emission_rate / denominator) * horizontal_term * vertical_term
+
+            # 检查计算结果是否合理
+            if not math.isfinite(concentration) or concentration < 0:
+                return 0.0
+
             # 单位转换: g/m³ -> μg/m³
             concentration *= 1e6
-            
+
+            # 设置合理的浓度范围
+            concentration = min(concentration, 1e6)  # 最大1000 mg/m³
+
             return max(0.0, concentration)
-            
-        except (OverflowError, ZeroDivisionError):
+
+        except (OverflowError, ZeroDivisionError, ValueError):
             return 0.0
     
     def simulate_dispersion(self, 
@@ -582,20 +606,29 @@ class PollutionSourceTracker:
                 source, monitor.x, monitor.y, monitor.z, self.meteorological_data
             )
 
-            if theoretical_conc > 0 and monitor.concentration > 0:
-                predicted_concentrations.append(theoretical_conc)
-                observed_concentrations.append(monitor.concentration)
+            # 改进的误差计算：处理零值预测
+            predicted_concentrations.append(theoretical_conc)
+            observed_concentrations.append(monitor.concentration)
 
-                # 计算相对误差
-                relative_error = abs(theoretical_conc - monitor.concentration) / monitor.concentration
-                total_relative_error += relative_error
-                max_relative_error = max(max_relative_error, relative_error)
+            # 如果预测值为0但观测值不为0，给予重惩罚
+            if theoretical_conc <= 0.01 and monitor.concentration > 0.1:
+                # 对于零预测但有观测值的情况，使用固定的大误差
+                relative_error = 10.0  # 1000%的误差
+                absolute_error = monitor.concentration
+            else:
+                # 正常的误差计算
+                if monitor.concentration > 0.01:
+                    relative_error = abs(theoretical_conc - monitor.concentration) / monitor.concentration
+                else:
+                    # 对于很小的观测值，使用绝对误差
+                    relative_error = abs(theoretical_conc - monitor.concentration)
 
-                # 计算绝对误差
                 absolute_error = abs(theoretical_conc - monitor.concentration)
-                total_absolute_error += absolute_error
 
-                valid_points += 1
+            total_relative_error += relative_error
+            max_relative_error = max(max_relative_error, relative_error)
+            total_absolute_error += absolute_error
+            valid_points += 1
 
         if valid_points == 0:
             return (0.0,)
@@ -624,22 +657,20 @@ class PollutionSourceTracker:
         # 目标3: 最大化相关系数 (权重: 0.2)
         fitness_correlation = max(0.0, correlation)
 
-        # 目标4: 位置合理性检查 (权重: 0.1)
-        min_distance = float('inf')
-        for monitor in self.monitoring_data:
-            distance = math.sqrt((x - monitor.x)**2 + (y - monitor.y)**2)
-            min_distance = min(min_distance, distance)
+        # 目标4: 空间约束检查 (权重: 0.15)
+        spatial_constraint = self._calculate_spatial_constraints(
+            source, predicted_concentrations, observed_concentrations
+        )
 
-        # 如果污染源距离最近监测站太近（<50米），给予惩罚
-        distance_penalty = 1.0
-        if min_distance < 50:
-            distance_penalty = min_distance / 50.0
+        # 目标5: 物理合理性检查 (权重: 0.05)
+        physical_constraint = self._calculate_physical_constraints(source)
 
         # 综合适应度
-        fitness = (0.4 * fitness_relative +
-                  0.3 * fitness_max_error +
+        fitness = (0.35 * fitness_relative +
+                  0.25 * fitness_max_error +
                   0.2 * fitness_correlation +
-                  0.1 * distance_penalty)
+                  0.15 * spatial_constraint +
+                  0.05 * physical_constraint)
 
         # 严格的精度要求：如果平均相对误差超过20%，大幅降低适应度
         if avg_relative_error > 0.2:
@@ -650,6 +681,124 @@ class PollutionSourceTracker:
             fitness *= 0.1
 
         return (fitness,)
+
+    def _calculate_spatial_constraints(self, source, predicted_concentrations, observed_concentrations):
+        """
+        计算空间约束项：检查浓度分布的空间合理性
+
+        Args:
+            source: 污染源
+            predicted_concentrations: 预测浓度列表
+            observed_concentrations: 观测浓度列表
+
+        Returns:
+            float: 空间约束得分 (0-1，越大越好)
+        """
+        if len(self.monitoring_data) < 3:
+            return 0.5  # 监测站太少，无法进行空间约束
+
+        constraint_score = 1.0
+
+        # 1. 距离-浓度关系检查
+        # 在下风向，距离污染源越近，浓度应该越高
+        wind_to_rad = math.radians(self.meteorological_data.wind_direction + 180)
+
+        downwind_stations = []
+        for i, monitor in enumerate(self.monitoring_data):
+            # 计算相对于污染源的位置
+            dx = monitor.x - source.x
+            dy = monitor.y - source.y
+
+            # 转换到风向坐标系
+            x_wind = dx * math.cos(wind_to_rad) + dy * math.sin(wind_to_rad)
+
+            # 只考虑下风向的监测站
+            if x_wind > 10:  # 下风向10米以外
+                distance = math.sqrt(dx**2 + dy**2)
+                downwind_stations.append((distance, predicted_concentrations[i], observed_concentrations[i]))
+
+        # 检查距离-浓度的单调性
+        if len(downwind_stations) >= 2:
+            downwind_stations.sort(key=lambda x: x[0])  # 按距离排序
+
+            # 检查浓度是否随距离递减（允许一定的波动）
+            violations = 0
+            for i in range(len(downwind_stations) - 1):
+                dist1, pred1, obs1 = downwind_stations[i]
+                dist2, pred2, obs2 = downwind_stations[i + 1]
+
+                # 如果远距离的浓度明显高于近距离，给予惩罚
+                if pred2 > pred1 * 1.5:  # 允许50%的波动
+                    violations += 1
+
+            if violations > 0:
+                constraint_score *= (1.0 - violations / len(downwind_stations))
+
+        # 2. 浓度梯度合理性检查
+        # 相邻监测站的浓度变化应该平滑
+        gradient_penalty = 0.0
+        for i in range(len(self.monitoring_data)):
+            for j in range(i + 1, len(self.monitoring_data)):
+                monitor1 = self.monitoring_data[i]
+                monitor2 = self.monitoring_data[j]
+
+                distance = math.sqrt((monitor1.x - monitor2.x)**2 + (monitor1.y - monitor2.y)**2)
+
+                # 只检查相对较近的监测站对
+                if distance < 500:  # 500米以内
+                    pred_diff = abs(predicted_concentrations[i] - predicted_concentrations[j])
+                    obs_diff = abs(observed_concentrations[i] - observed_concentrations[j])
+
+                    # 如果预测差异与观测差异相差太大，给予惩罚
+                    if obs_diff > 0.01:  # 避免除零
+                        ratio = pred_diff / obs_diff
+                        if ratio > 3.0 or ratio < 0.33:  # 差异比例不合理
+                            gradient_penalty += 0.1
+
+        constraint_score *= max(0.0, 1.0 - gradient_penalty)
+
+        return max(0.0, min(1.0, constraint_score))
+
+    def _calculate_physical_constraints(self, source):
+        """
+        计算物理约束项：检查污染源参数的物理合理性
+
+        Args:
+            source: 污染源
+
+        Returns:
+            float: 物理约束得分 (0-1，越大越好)
+        """
+        constraint_score = 1.0
+
+        # 1. 排放强度合理性
+        # 排放强度应该在合理范围内
+        if source.emission_rate < 0.1 or source.emission_rate > 1000:
+            constraint_score *= 0.5
+
+        # 2. 高度合理性
+        # 污染源高度应该合理
+        if source.z < 5 or source.z > 150:
+            constraint_score *= 0.8
+
+        # 3. 位置合理性
+        # 污染源不应该距离所有监测站都太远
+        min_distance = float('inf')
+        max_distance = 0.0
+        for monitor in self.monitoring_data:
+            distance = math.sqrt((source.x - monitor.x)**2 + (source.y - monitor.y)**2)
+            min_distance = min(min_distance, distance)
+            max_distance = max(max_distance, distance)
+
+        # 如果距离最近监测站太远，给予惩罚
+        if min_distance > 1000:  # 1公里以外
+            constraint_score *= 0.7
+
+        # 如果距离最近监测站太近，也给予惩罚
+        if min_distance < 30:  # 30米以内
+            constraint_score *= 0.8
+
+        return max(0.0, min(1.0, constraint_score))
 
     def trace_pollution_source(self) -> Optional[PollutionSource]:
         """

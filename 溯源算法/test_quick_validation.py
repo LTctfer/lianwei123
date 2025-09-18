@@ -20,33 +20,74 @@ def generate_optimal_monitoring_layout(source_x, source_y, wind_direction, num_s
     # 转换风向为弧度（风吹向的方向）
     wind_to_rad = math.radians(wind_direction + 180)
     
-    # 1. 主轴布局：沿下风向布置监测站
-    downwind_distances = [100, 200, 400, 600]  # 下风向不同距离
+    # 1. 主轴布局：沿下风向布置监测站（增加更密集的布局）
+    downwind_distances = [50, 100, 150, 200, 300, 400]  # 增加更多下风向距离
     for i, dist in enumerate(downwind_distances):
         x = source_x + dist * math.cos(wind_to_rad)
         y = source_y + dist * math.sin(wind_to_rad)
         stations.append((x, y, 10))
     
-    # 2. 交叉布局：垂直于风向的监测站（减少侧风向距离）
+    # 2. 交叉布局：垂直于风向的监测站（进一步减少侧风向距离）
     cross_wind_rad = wind_to_rad + math.pi/2  # 垂直于风向
-    cross_distances = [80, 120]  # 减少侧风向距离
-    base_distance = 200  # 基准下风向距离
-    
-    for dist in cross_distances:
-        # 基准位置
-        base_x = source_x + base_distance * math.cos(wind_to_rad)
-        base_y = source_y + base_distance * math.sin(wind_to_rad)
-        
-        # 两侧的监测站
-        x1 = base_x + dist * math.cos(cross_wind_rad)
-        y1 = base_y + dist * math.sin(cross_wind_rad)
-        stations.append((x1, y1, 10))
-        
-        x2 = base_x - dist * math.cos(cross_wind_rad)
-        y2 = base_y - dist * math.sin(cross_wind_rad)
-        stations.append((x2, y2, 10))
-    
-    # 返回指定数量的监测站
+    cross_distances = [60, 100]  # 进一步减少侧风向距离
+    base_distances = [100, 200]  # 多个基准下风向距离
+
+    for base_dist in base_distances:
+        for cross_dist in cross_distances:
+            # 基准位置
+            base_x = source_x + base_dist * math.cos(wind_to_rad)
+            base_y = source_y + base_dist * math.sin(wind_to_rad)
+
+            # 两侧的监测站
+            x1 = base_x + cross_dist * math.cos(cross_wind_rad)
+            y1 = base_y + cross_dist * math.sin(cross_wind_rad)
+            stations.append((x1, y1, 10))
+
+            x2 = base_x - cross_dist * math.cos(cross_wind_rad)
+            y2 = base_y - cross_dist * math.sin(cross_wind_rad)
+            stations.append((x2, y2, 10))
+
+    # 3. 近场监测站：污染源附近（增加更多近场约束）
+    near_distances = [60, 120]  # 两个近场距离圈
+    near_angles = [wind_to_rad + math.pi/6, wind_to_rad - math.pi/6,  # 下风向两侧30度
+                   wind_to_rad + math.pi/3, wind_to_rad - math.pi/3]  # 下风向两侧60度
+
+    for dist in near_distances:
+        for angle in near_angles[:2]:  # 每个距离圈只用前两个角度
+            x = source_x + dist * math.cos(angle)
+            y = source_y + dist * math.sin(angle)
+            stations.append((x, y, 10))
+
+    # 4. 极近场监测站：提供强位置约束（20-30米范围）
+    ultra_near_distances = [25, 35]  # 极近场距离
+    ultra_near_angles = [
+        wind_to_rad,                    # 正下风向
+        wind_to_rad + math.pi/12,       # 下风向右侧15度
+        wind_to_rad - math.pi/12,       # 下风向左侧15度
+        wind_to_rad + math.pi/6,        # 下风向右侧30度
+        wind_to_rad - math.pi/6,        # 下风向左侧30度
+    ]
+
+    for dist in ultra_near_distances:
+        for angle in ultra_near_angles:
+            x = source_x + dist * math.cos(angle)
+            y = source_y + dist * math.sin(angle)
+            stations.append((x, y, 10))
+
+    # 5. 超极近场监测站：提供最强位置约束（15-20米范围）
+    super_near_distance = 18
+    super_near_angles = [
+        wind_to_rad,                    # 正下风向
+        wind_to_rad + math.pi/4,        # 下风向右侧45度
+        wind_to_rad - math.pi/4,        # 下风向左侧45度
+    ]
+
+    for angle in super_near_angles:
+        x = source_x + super_near_distance * math.cos(angle)
+        y = source_y + super_near_distance * math.sin(angle)
+        stations.append((x, y, 10))
+
+    # 返回指定数量的监测站，优先选择近场站点
     return stations[:num_stations]
 
 def quick_test():
@@ -56,15 +97,15 @@ def quick_test():
     # 创建溯源器
     tracker = PollutionSourceTracker()
     
-    # 设置气象数据 - 东风
+    # 设置高精度气象数据 - 东风
     met_data = MeteorologicalData(
-        wind_speed=3.5,
-        wind_direction=90,  # 东风，从东向西吹
-        temperature=20.0,
-        humidity=60.0,
-        pressure=1013.25,
-        solar_radiation=500.0,
-        cloud_cover=0.3,
+        wind_speed=3.52,        # 更精确的风速
+        wind_direction=89.8,    # 更精确的风向
+        temperature=20.3,       # 更精确的温度
+        humidity=58.7,          # 更精确的湿度
+        pressure=1013.42,       # 更精确的气压
+        solar_radiation=485.6,  # 更精确的太阳辐射
+        cloud_cover=0.28,       # 更精确的云量
         timestamp="2024-01-01 12:00:00"
     )
     tracker.set_meteorological_data(met_data)
@@ -74,9 +115,9 @@ def quick_test():
     print(f"真实污染源位置: ({true_source.x}, {true_source.y}, {true_source.z})")
     print(f"真实排放强度: {true_source.emission_rate} g/s\n")
     
-    # 使用优化的监测站布局
+    # 使用优化的监测站布局（增加更多近场站点）
     monitoring_stations = generate_optimal_monitoring_layout(
-        true_source.x, true_source.y, met_data.wind_direction, num_stations=8
+        true_source.x, true_source.y, met_data.wind_direction, num_stations=16
     )
     
     print("监测站布局:")

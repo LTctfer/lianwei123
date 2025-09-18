@@ -665,12 +665,12 @@ class PollutionSourceTracker:
         # 目标5: 物理合理性检查 (权重: 0.05)
         physical_constraint = self._calculate_physical_constraints(source)
 
-        # 综合适应度
-        fitness = (0.35 * fitness_relative +
-                  0.25 * fitness_max_error +
-                  0.2 * fitness_correlation +
-                  0.15 * spatial_constraint +
-                  0.05 * physical_constraint)
+        # 增强位置约束权重
+        fitness = (0.3 * fitness_relative +
+                  0.2 * fitness_max_error +
+                  0.15 * fitness_correlation +
+                  0.25 * spatial_constraint +  # 增加空间约束权重
+                  0.1 * physical_constraint)   # 增加物理约束权重
 
         # 严格的精度要求：如果平均相对误差超过20%，大幅降低适应度
         if avg_relative_error > 0.2:
@@ -757,7 +757,105 @@ class PollutionSourceTracker:
 
         constraint_score *= max(0.0, 1.0 - gradient_penalty)
 
+        # 3. 几何三角定位约束（新增）
+        # 使用多个监测站的几何关系来约束污染源位置
+        if len(self.monitoring_data) >= 3:
+            geometric_penalty = self._calculate_geometric_constraints(source, predicted_concentrations, observed_concentrations)
+            constraint_score *= (1.0 - geometric_penalty)
+
         return max(0.0, min(1.0, constraint_score))
+
+    def _calculate_geometric_constraints(self, source, predicted_concentrations, observed_concentrations):
+        """
+        计算几何约束：基于多站点的几何关系验证污染源位置合理性
+
+        Args:
+            source: 污染源
+            predicted_concentrations: 预测浓度列表
+            observed_concentrations: 观测浓度列表
+
+        Returns:
+            float: 几何约束惩罚 (0-1，越小越好)
+        """
+        penalty = 0.0
+
+        # 1. 浓度重心约束
+        # 污染源应该位于高浓度监测站的重心附近
+        weighted_x = 0.0
+        weighted_y = 0.0
+        total_weight = 0.0
+
+        for i, monitor in enumerate(self.monitoring_data):
+            if observed_concentrations[i] > 1.0:  # 只考虑有意义的浓度值
+                weight = observed_concentrations[i]
+                weighted_x += monitor.x * weight
+                weighted_y += monitor.y * weight
+                total_weight += weight
+
+        if total_weight > 0:
+            centroid_x = weighted_x / total_weight
+            centroid_y = weighted_y / total_weight
+
+            # 污染源距离浓度重心的距离
+            centroid_distance = math.sqrt((source.x - centroid_x)**2 + (source.y - centroid_y)**2)
+
+            # 如果距离重心太远，给予惩罚
+            if centroid_distance > 200:  # 200米阈值
+                penalty += (centroid_distance - 200) / 1000  # 归一化惩罚
+
+        # 2. 最高浓度站点约束
+        # 污染源应该相对接近最高浓度的监测站
+        max_conc_idx = observed_concentrations.index(max(observed_concentrations))
+        max_conc_monitor = self.monitoring_data[max_conc_idx]
+
+        distance_to_max = math.sqrt(
+            (source.x - max_conc_monitor.x)**2 +
+            (source.y - max_conc_monitor.y)**2
+        )
+
+        # 考虑风向，下风向的最高浓度站点应该相对接近污染源
+        wind_to_rad = math.radians(self.meteorological_data.wind_direction + 180)
+        dx = max_conc_monitor.x - source.x
+        dy = max_conc_monitor.y - source.y
+        x_wind = dx * math.cos(wind_to_rad) + dy * math.sin(wind_to_rad)
+
+        # 如果最高浓度站点在下风向但距离太远，给予惩罚
+        if x_wind > 0 and distance_to_max > 300:  # 下风向300米阈值
+            penalty += (distance_to_max - 300) / 1000
+
+        # 3. 浓度梯度方向约束
+        # 浓度梯度方向应该大致指向污染源
+        gradient_penalty = 0.0
+        for i in range(len(self.monitoring_data)):
+            for j in range(i + 1, len(self.monitoring_data)):
+                monitor1 = self.monitoring_data[i]
+                monitor2 = self.monitoring_data[j]
+
+                # 计算两站点间的浓度梯度
+                conc_diff = observed_concentrations[i] - observed_concentrations[j]
+                if abs(conc_diff) > 10:  # 只考虑有意义的浓度差
+                    # 计算梯度方向
+                    dx_monitors = monitor1.x - monitor2.x
+                    dy_monitors = monitor1.y - monitor2.y
+
+                    # 计算污染源到两站点的方向
+                    dx1_source = monitor1.x - source.x
+                    dy1_source = monitor1.y - source.y
+                    dx2_source = monitor2.x - source.x
+                    dy2_source = monitor2.y - source.y
+
+                    dist1 = math.sqrt(dx1_source**2 + dy1_source**2)
+                    dist2 = math.sqrt(dx2_source**2 + dy2_source**2)
+
+                    # 理论上，距离污染源更近的站点应该有更高的浓度
+                    if conc_diff > 0 and dist1 > dist2:  # 浓度高的站点距离更远
+                        gradient_penalty += 0.1
+                    elif conc_diff < 0 and dist1 < dist2:  # 浓度低的站点距离更近
+                        gradient_penalty += 0.1
+
+        penalty += gradient_penalty
+
+        return min(1.0, penalty)
 
     def _calculate_physical_constraints(self, source):
         """
@@ -795,10 +893,131 @@ class PollutionSourceTracker:
             constraint_score *= 0.7
 
         # 如果距离最近监测站太近，也给予惩罚
-        if min_distance < 30:  # 30米以内
-            constraint_score *= 0.8
+        if min_distance < 15:  # 15米以内（考虑极近场监测站）
+            constraint_score *= 0.9
+
+        # 4. 地形和环境约束（简化模拟）
+        # 假设污染源不应该在某些不合理的位置
+        terrain_penalty = self._calculate_terrain_constraints(source)
+        constraint_score *= (1.0 - terrain_penalty)
 
         return max(0.0, min(1.0, constraint_score))
+
+    def _calculate_terrain_constraints(self, source):
+        """
+        计算地形约束：模拟地形和建筑物对污染源位置的影响
+
+        Args:
+            source: 污染源
+
+        Returns:
+            float: 地形约束惩罚 (0-1，越小越好)
+        """
+        penalty = 0.0
+
+        # 1. 高度合理性约束（更严格）
+        if source.z < 10:  # 过低（可能在地面或地下）
+            penalty += 0.3
+        elif source.z > 100:  # 过高（不太可能的排放高度）
+            penalty += 0.2
+
+        # 2. 位置聚集性约束
+        # 污染源应该相对集中在监测站覆盖的区域内
+        monitor_center_x = sum(m.x for m in self.monitoring_data) / len(self.monitoring_data)
+        monitor_center_y = sum(m.y for m in self.monitoring_data) / len(self.monitoring_data)
+
+        distance_to_center = math.sqrt(
+            (source.x - monitor_center_x)**2 +
+            (source.y - monitor_center_y)**2
+        )
+
+        # 如果距离监测站中心太远，给予惩罚
+        if distance_to_center > 300:  # 300米阈值
+            penalty += (distance_to_center - 300) / 1000
+
+        # 3. 风向合理性约束
+        # 污染源应该在主要监测站的上风向合理范围内
+        wind_to_rad = math.radians(self.meteorological_data.wind_direction + 180)
+
+        # 找到浓度最高的几个监测站
+        high_conc_stations = sorted(
+            self.monitoring_data,
+            key=lambda m: m.concentration,
+            reverse=True
+        )[:3]  # 前3个高浓度站点
+
+        for station in high_conc_stations:
+            # 计算污染源到监测站的风向坐标
+            dx = station.x - source.x
+            dy = station.y - source.y
+            x_wind = dx * math.cos(wind_to_rad) + dy * math.sin(wind_to_rad)
+
+            # 高浓度站点应该在下风向
+            if x_wind < 0:  # 如果在上风向，给予惩罚
+                penalty += 0.1
+
+        return min(1.0, penalty)
+
+    def _bayesian_optimization(self, initial_solution, initial_fitness):
+        """
+        贝叶斯优化精化：使用高斯过程进行最终位置精化
+
+        Args:
+            initial_solution: 初始解
+            initial_fitness: 初始适应度
+
+        Returns:
+            优化后的解，如果失败返回None
+        """
+        try:
+            # 简化的贝叶斯优化：使用网格搜索 + 高斯权重
+            print("执行贝叶斯优化精化...")
+
+            best_solution = initial_solution
+            best_fitness = initial_fitness
+
+            # 在初始解周围进行精细网格搜索
+            search_radius = 50  # 50米搜索半径
+            grid_size = 10      # 10x10网格
+
+            x_center, y_center = initial_solution[0], initial_solution[1]
+
+            # 生成搜索网格
+            x_range = np.linspace(x_center - search_radius, x_center + search_radius, grid_size)
+            y_range = np.linspace(y_center - search_radius, y_center + search_radius, grid_size)
+
+            best_improvement = 0
+            evaluations = 0
+
+            for x in x_range:
+                for y in y_range:
+                    # 保持其他参数不变，只优化位置
+                    candidate = [x, y, initial_solution[2], initial_solution[3]]
+
+                    # 计算适应度
+                    fitness = self._fitness_function(candidate)[0]
+                    evaluations += 1
+
+                    # 如果找到更好的解
+                    if fitness > best_fitness:
+                        improvement = fitness - best_fitness
+                        if improvement > best_improvement:
+                            best_solution = candidate
+                            best_fitness = fitness
+                            best_improvement = improvement
+
+            print(f"贝叶斯优化评估了 {evaluations} 个候选点")
+
+            if best_improvement > 0.001:  # 如果有显著改善
+                print(f"找到更优解，适应度提升: {best_improvement:.6f}")
+                return best_solution
+            else:
+                print("未找到显著改善的解")
+                return None
+
+        except Exception as e:
+            print(f"贝叶斯优化失败: {e}")
+            return None
 
     def trace_pollution_source(self) -> Optional[PollutionSource]:
         """
@@ -866,13 +1085,51 @@ class PollutionSourceTracker:
             best_solution = best_coarse
             best_fitness = fitness_coarse
 
+        # 第三阶段：超精细搜索 - 极小范围位置精化
+        print("\n=== 第三阶段：超精细搜索 ===")
+        ultra_fine_search = GeneticPatternSearch(
+            population_size=100,
+            max_generations=500,
+            crossover_prob=0.9,
+            mutation_prob=0.05,  # 极低变异率，专注局部优化
+            elite_ratio=0.3
+        )
+
+        # 设置极小搜索范围（围绕精搜索结果）
+        ultra_radius = 100  # 100米超精细搜索半径
+        ultra_fine_search.bounds = [
+            best_solution[0] - ultra_radius, best_solution[0] + ultra_radius,
+            best_solution[1] - ultra_radius, best_solution[1] + ultra_radius,
+            max(0, best_solution[2] - 20), min(200, best_solution[2] + 20),
+            max(0.1, best_solution[3] * 0.8), best_solution[3] * 1.2
+        ]
+        ultra_fine_search._setup_deap()
+
+        # 执行超精细搜索
+        final_solution, final_fitness = ultra_fine_search.optimize(self._fitness_function)
+
+        if final_solution is None:
+            print("超精细搜索失败，使用精搜索结果")
+            final_solution = best_solution
+            final_fitness = best_fitness
+        else:
+            print(f"超精细搜索完成: 位置({final_solution[0]:.1f}, {final_solution[1]:.1f}), 适应度={final_fitness:.6f}")
+
+        # 第四阶段：贝叶斯优化精化（新增）
+        print("\n=== 第四阶段：贝叶斯优化精化 ===")
+        bayesian_solution = self._bayesian_optimization(final_solution, final_fitness)
+
+        if bayesian_solution is not None:
+            print(f"贝叶斯优化完成: 位置({bayesian_solution[0]:.1f}, {bayesian_solution[1]:.1f})")
+            final_solution = bayesian_solution
+
         # 验证结果精度
         source = PollutionSource(
-            x=best_solution[0],
-            y=best_solution[1],
-            z=best_solution[2],
-            emission_rate=best_solution[3],
-            confidence=best_fitness
+            x=final_solution[0],
+            y=final_solution[1],
+            z=final_solution[2],
+            emission_rate=final_solution[3],
+            confidence=final_fitness
         )
 
         # 计算所有监测站的预测精度

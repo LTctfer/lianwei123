@@ -146,7 +146,7 @@ class PollutionSourceDemo:
             environmental_noise = random.uniform(-noise_level, noise_level) * theoretical_conc
             
             # 3. 背景浓度
-            background = random.uniform(5, 15)  # 5-15 μg/m³ 背景浓度
+            background = random.uniform(5, 15)  # 5-15 微克/立方米 背景浓度
             
             # 最终观测值
             observed_concentration = max(0, theoretical_conc + instrument_error + 
@@ -160,8 +160,8 @@ class PollutionSourceDemo:
             ))
         
         print(f"生成了 {len(monitoring_data)} 个监测站的数据")
-        print(f"真实污染源位置: ({true_source.x}, {true_source.y}, {true_source.z})")
-        print(f"真实排放强度: {true_source.emission_rate} g/s")
+        print(f"真实污染源位置: 东西方向{true_source.x}米, 南北方向{true_source.y}米, 高度{true_source.z}米")
+        print(f"真实排放强度: {true_source.emission_rate} 克/秒")
         
         return monitoring_data, met_data
     
@@ -188,7 +188,7 @@ class PollutionSourceDemo:
         concentrations = [d.concentration for d in monitoring_data]
         print(f"浓度统计: 最小值={min(concentrations):.1f}, "
               f"最大值={max(concentrations):.1f}, "
-              f"平均值={np.mean(concentrations):.1f} μg/m³")
+              f"平均值={np.mean(concentrations):.1f} 微克/立方米")
     
     def perform_source_tracking(self, monitoring_data: List[MonitoringData],
                               met_data: MeteorologicalData) -> Dict:
@@ -271,7 +271,7 @@ class PollutionSourceDemo:
                 save_path=save_path
             )
             
-            print(f"正向模拟完成，最大浓度: {np.max(conc_grid):.2f} μg/m³")
+            print(f"正向模拟完成，最大浓度: {np.max(conc_grid):.2f} 微克/立方米")
             
         except Exception as e:
             print(f"正向模拟失败: {e}")
@@ -297,9 +297,9 @@ class PollutionSourceDemo:
             f.write("2. 验证统计\n")
             f.write("-" * 20 + "\n")
             stats = verification_results['statistics']
-            f.write(f"平均绝对误差: {stats['mean_absolute_error']:.2f} μg/m³\n")
-            f.write(f"最大绝对误差: {stats['max_absolute_error']:.2f} μg/m³\n")
-            f.write(f"均方根误差: {stats['rmse']:.2f} μg/m³\n")
+            f.write(f"平均绝对误差: {stats['mean_absolute_error']:.2f} 微克/立方米\n")
+            f.write(f"最大绝对误差: {stats['max_absolute_error']:.2f} 微克/立方米\n")
+            f.write(f"均方根误差: {stats['rmse']:.2f} 微克/立方米\n")
             f.write(f"相关系数: {stats['correlation']:.3f}\n\n")
             
             f.write("3. 各站点详细结果\n")

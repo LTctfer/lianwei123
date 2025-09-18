@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}污染源溯源系统 - 首页{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- 系统介绍 -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-info-circle"></i> 系统介绍</h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">基于高斯烟羽模型和遗传-模式搜索算法的污染源溯源系统</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle text-success"></i> 核心特性</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-bullseye"></i> 高精度溯源：位置误差 &lt; 10米</li>
+                            <li><i class="fas fa-clock"></i> 快速响应：平均响应时间 2.44秒</li>
+                            <li><i class="fas fa-shield-alt"></i> 双向验证：反算+正算验证</li>
+                            <li><i class="fas fa-chart-line"></i> 实时处理：支持实时数据分析</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-cogs text-info"></i> 技术架构</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-wind"></i> 高斯烟羽扩散模型</li>
+                            <li><i class="fas fa-dna"></i> 遗传-模式搜索算法</li>
+                            <li><i class="fas fa-chart-bar"></i> 完整可视化展示</li>
+                            <li><i class="fas fa-file-alt"></i> 详细分析报告</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据输入选择 -->
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-upload"></i> 选择数据输入方式</h4>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- 文件上传 -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-primary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-upload fa-3x text-primary mb-3"></i>
+                                <h5>文件上传</h5>
+                                <p class="text-muted">上传CSV或JSON格式的监测数据和气象数据文件</p>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                    <i class="fas fa-upload"></i> 上传文件
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 手动输入 -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-warning">
+                            <div class="card-body text-center">
+                                <i class="fas fa-edit fa-3x text-warning mb-3"></i>
+                                <h5>手动输入</h5>
+                                <p class="text-muted">通过表单手动输入监测站数据和气象条件</p>
+                                <a href="{{ url_for('manual_input') }}" class="btn btn-warning">
+                                    <i class="fas fa-edit"></i> 手动输入
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 示例数据 -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-success">
+                            <div class="card-body text-center">
+                                <i class="fas fa-play fa-3x text-success mb-3"></i>
+                                <h5>示例演示</h5>
+                                <p class="text-muted">使用系统内置的示例数据进行演示</p>
+                                <a href="{{ url_for('demo_data') }}" class="btn btn-success">
+                                    <i class="fas fa-play"></i> 开始演示
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 文件上传模态框 -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-upload"></i> 文件上传</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="monitoring_file" class="form-label">
+                                    <i class="fas fa-chart-line"></i> 监测数据文件
+                                </label>
+                                <input type="file" class="form-control" id="monitoring_file" 
+                                       name="monitoring_file" accept=".csv,.json,.txt">
+                                <div class="form-text">支持CSV、JSON格式，包含站点位置和浓度数据</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="meteorological_file" class="form-label">
+                                    <i class="fas fa-cloud"></i> 气象数据文件
+                                </label>
+                                <input type="file" class="form-control" id="meteorological_file" 
+                                       name="meteorological_file" accept=".csv,.json,.txt">
+                                <div class="form-text">支持CSV、JSON格式，包含风速、风向等气象条件</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> 文件格式说明：</h6>
+                        <p><strong>监测数据格式：</strong></p>
+                        <code>station_id, x, y, z, concentration, timestamp</code>
+                        <p class="mt-2"><strong>气象数据格式：</strong></p>
+                        <code>wind_speed, wind_direction, temperature, pressure, humidity, stability_class</code>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="uploadFiles()">
+                    <i class="fas fa-upload"></i> 上传并处理
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function uploadFiles() {
+    const formData = new FormData(document.getElementById('uploadForm'));
+    
+    // 显示加载状态
+    const uploadBtn = document.querySelector('#uploadModal .btn-primary');
+    const originalText = uploadBtn.innerHTML;
+    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上传中...';
+    uploadBtn.disabled = true;
+    
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('文件上传成功！');
+            $('#uploadModal').modal('hide');
+            // 可以在这里跳转到处理页面
+        } else {
+            alert('上传失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('上传出错：' + error);
+    })
+    .finally(() => {
+        uploadBtn.innerHTML = originalText;
+        uploadBtn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

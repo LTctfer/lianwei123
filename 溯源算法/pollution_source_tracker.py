@@ -578,8 +578,8 @@ class PollutionSourceTracker:
         )
 
         print(f"溯源完成:")
-        print(f"  污染源位置: ({source.x:.1f}, {source.y:.1f}, {source.z:.1f}) m")
-        print(f"  排放强度: {source.emission_rate:.3f} g/s")
+        print(f"  污染源位置: 东西方向{source.x:.1f}米, 南北方向{source.y:.1f}米, 高度{source.z:.1f}米")
+        print(f"  排放强度: {source.emission_rate:.3f} 克/秒")
         print(f"  置信度: {source.confidence:.6f}")
 
         return source
@@ -625,8 +625,8 @@ class PollutionSourceTracker:
             total_error += absolute_error
             max_error = max(max_error, absolute_error)
 
-            print(f"  站点{monitor.station_id}: 观测={monitor.concentration:.1f}, "
-                  f"预测={theoretical_conc:.1f}, 误差={relative_error:.1f}%")
+            print(f"  站点{monitor.station_id}: 实际观测={monitor.concentration:.1f}, "
+                  f"模型预测={theoretical_conc:.1f}, 相对误差={relative_error:.1f}%")
 
         # 计算统计指标
         mean_absolute_error = total_error / len(self.monitoring_data)
@@ -759,13 +759,13 @@ def main():
 
     print("1. 加载数据")
     print(f"   监测站数量: {len(monitoring_data)}")
-    print(f"   气象条件: 风速{met_data.wind_speed}m/s, 风向{met_data.wind_direction}°")
+    print(f"   气象条件: 风速{met_data.wind_speed}米/秒, 风向{met_data.wind_direction}度")
 
     # 显示监测数据
     print("\n   监测数据:")
     for data in monitoring_data:
-        print(f"     {data.station_id}: 位置({data.x}, {data.y}, {data.z}), "
-              f"浓度{data.concentration:.1f} μg/m³")
+        print(f"     {data.station_id}: 位置(东西{data.x}米, 南北{data.y}米, 高度{data.z}米), "
+              f"浓度{data.concentration:.1f} 微克/立方米")
 
     # 创建溯源器
     tracker = PollutionSourceTracker()

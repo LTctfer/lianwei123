@@ -229,15 +229,15 @@ class Visualizer:
             ax.legend()
         
         # 设置图形属性
-        ax.set_xlabel('X坐标 (m)')
-        ax.set_ylabel('Y坐标 (m)')
-        ax.set_title('监测站分布及污染物浓度')
+        ax.set_xlabel('东西方向距离 (米)', fontsize=12)
+        ax.set_ylabel('南北方向距离 (米)', fontsize=12)
+        ax.set_title('监测站分布及污染物浓度分布图', fontsize=14, fontweight='bold')
         ax.grid(True, alpha=0.3)
         ax.set_aspect('equal')
-        
+
         # 添加颜色条
         cbar = plt.colorbar(scatter, ax=ax)
-        cbar.set_label('浓度 (μg/m³)')
+        cbar.set_label('污染物浓度 (微克/立方米)', fontsize=11)
         
         plt.tight_layout()
         
@@ -291,15 +291,15 @@ class Visualizer:
                       label='污染源', zorder=5)
         
         # 设置图形属性
-        ax.set_xlabel('X坐标 (m)')
-        ax.set_ylabel('Y坐标 (m)')
-        ax.set_title('污染物扩散分布')
-        ax.legend()
+        ax.set_xlabel('东西方向距离 (米)', fontsize=12)
+        ax.set_ylabel('南北方向距离 (米)', fontsize=12)
+        ax.set_title('污染物扩散分布模拟图', fontsize=14, fontweight='bold')
+        ax.legend(fontsize=10)
         ax.set_aspect('equal')
-        
+
         # 添加颜色条
         cbar = plt.colorbar(contour, ax=ax)
-        cbar.set_label('浓度 (μg/m³)')
+        cbar.set_label('污染物浓度 (微克/立方米)', fontsize=11)
         
         plt.tight_layout()
         
@@ -340,25 +340,25 @@ class Visualizer:
         ax1.text(0.05, 0.95, f'R² = {r_squared:.3f}', transform=ax1.transAxes,
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
 
-        ax1.set_xlabel('观测值 (μg/m³)')
-        ax1.set_ylabel('预测值 (μg/m³)')
-        ax1.set_title('观测值 vs 预测值')
-        ax1.legend()
+        ax1.set_xlabel('实际观测浓度 (微克/立方米)', fontsize=11)
+        ax1.set_ylabel('模型预测浓度 (微克/立方米)', fontsize=11)
+        ax1.set_title('实际观测值与模型预测值对比', fontsize=12, fontweight='bold')
+        ax1.legend(fontsize=10)
         ax1.grid(True, alpha=0.3)
 
         # 右图：各站点对比柱状图
         x_pos = np.arange(len(station_ids))
         width = 0.35
 
-        ax2.bar(x_pos - width/2, observed, width, label='观测值', alpha=0.8)
-        ax2.bar(x_pos + width/2, predicted, width, label='预测值', alpha=0.8)
+        ax2.bar(x_pos - width/2, observed, width, label='实际观测值', alpha=0.8, color='#1f77b4')
+        ax2.bar(x_pos + width/2, predicted, width, label='模型预测值', alpha=0.8, color='#ff7f0e')
 
-        ax2.set_xlabel('监测站')
-        ax2.set_ylabel('浓度 (μg/m³)')
-        ax2.set_title('各站点观测值与预测值对比')
+        ax2.set_xlabel('监测站点', fontsize=11)
+        ax2.set_ylabel('污染物浓度 (微克/立方米)', fontsize=11)
+        ax2.set_title('各监测站点数值对比', fontsize=12, fontweight='bold')
         ax2.set_xticks(x_pos)
-        ax2.set_xticklabels(station_ids, rotation=45)
-        ax2.legend()
+        ax2.set_xticklabels(station_ids, rotation=45, fontsize=9)
+        ax2.legend(fontsize=10)
         ax2.grid(True, alpha=0.3)
 
         plt.tight_layout()
@@ -397,10 +397,10 @@ class Visualizer:
             ax.plot(data.index, data[value_column],
                    marker='o', markersize=3, alpha=0.8)
 
-        ax.set_xlabel('时间')
-        ax.set_ylabel(f'{value_column} (μg/m³)')
-        ax.set_title('污染物浓度时间序列')
-        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.set_xlabel('时间', fontsize=12)
+        ax.set_ylabel('污染物浓度 (微克/立方米)', fontsize=12)
+        ax.set_title('污染物浓度随时间变化趋势图', fontsize=14, fontweight='bold')
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
         ax.grid(True, alpha=0.3)
 
         # 旋转x轴标签
@@ -410,5 +410,45 @@ class Visualizer:
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
             print(f"时间序列图已保存至: {save_path}")
+
+        plt.show()
+
+    def plot_wind_rose(self,
+                      wind_data: List[Dict],
+                      save_path: Optional[str] = None):
+        """
+        绘制风玫瑰图
+
+        Args:
+            wind_data: 风向风速数据 [{'wind_direction', 'wind_speed'}]
+            save_path: 保存路径
+        """
+        fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection='polar'))
+
+        # 提取风向和风速数据
+        directions = [d['wind_direction'] for d in wind_data]
+        speeds = [d['wind_speed'] for d in wind_data]
+
+        # 转换角度 (气象角度转数学角度)
+        theta = [(90 - d) * np.pi / 180 for d in directions]
+
+        # 绘制散点图
+        scatter = ax.scatter(theta, speeds, c=speeds, cmap='viridis', alpha=0.6)
+
+        # 设置角度标签
+        ax.set_theta_zero_location('N')
+        ax.set_theta_direction(-1)
+        ax.set_thetagrids(np.arange(0, 360, 45), ['北', '东北', '东', '东南', '南', '西南', '西', '西北'])
+
+        ax.set_title('风向风速分布图', pad=20, fontsize=14, fontweight='bold')
+        ax.set_ylabel('风速 (米/秒)', labelpad=30, fontsize=12)
+
+        # 添加颜色条
+        cbar = plt.colorbar(scatter, ax=ax, shrink=0.8)
+        cbar.set_label('风速 (米/秒)', fontsize=11)
+
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"风玫瑰图已保存至: {save_path}")
 
         plt.show()

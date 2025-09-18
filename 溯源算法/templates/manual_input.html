@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}手动输入数据 - 污染源溯源系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><i class="fas fa-edit"></i> 手动输入数据</h4>
+            </div>
+            <div class="card-body">
+                <form id="manualInputForm">
+                    <!-- 气象数据 -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="fas fa-cloud"></i> 气象条件</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="wind_speed" class="form-label">风速 (米/秒)</label>
+                                        <input type="number" class="form-control" id="wind_speed" 
+                                               name="wind_speed" step="0.1" min="0" max="20" value="3.5" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="wind_direction" class="form-label">风向 (度)</label>
+                                        <input type="number" class="form-control" id="wind_direction" 
+                                               name="wind_direction" min="0" max="360" value="225" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="temperature" class="form-label">温度 (°C)</label>
+                                        <input type="number" class="form-control" id="temperature" 
+                                               name="temperature" step="0.1" value="20.0" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="pressure" class="form-label">气压 (hPa)</label>
+                                        <input type="number" class="form-control" id="pressure" 
+                                               name="pressure" step="0.1" value="1013.25" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="humidity" class="form-label">湿度 (%)</label>
+                                        <input type="number" class="form-control" id="humidity" 
+                                               name="humidity" min="0" max="100" value="60" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="stability_class" class="form-label">大气稳定度</label>
+                                        <select class="form-select" id="stability_class" name="stability_class" required>
+                                            <option value="A">A - 极不稳定</option>
+                                            <option value="B">B - 不稳定</option>
+                                            <option value="C">C - 弱不稳定</option>
+                                            <option value="D" selected>D - 中性</option>
+                                            <option value="E">E - 弱稳定</option>
+                                            <option value="F">F - 稳定</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 监测站数据 -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-chart-line"></i> 监测站数据</h5>
+                            <button type="button" class="btn btn-light btn-sm" onclick="addStation()">
+                                <i class="fas fa-plus"></i> 添加监测站
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="stationsContainer">
+                                <!-- 默认监测站 -->
+                                <div class="station-row border rounded p-3 mb-3">
+                                    <div class="row">
+                                        <div class="col-md-2">
+                                            <label class="form-label">站点ID</label>
+                                            <input type="text" class="form-control" name="station_id[]" value="S001" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">东西方向 (米)</label>
+                                            <input type="number" class="form-control" name="x[]" value="100" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">南北方向 (米)</label>
+                                            <input type="number" class="form-control" name="y[]" value="200" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">高度 (米)</label>
+                                            <input type="number" class="form-control" name="z[]" value="10" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">浓度 (微克/立方米)</label>
+                                            <input type="number" class="form-control" name="concentration[]" 
+                                                   step="0.1" value="45.2" required>
+                                        </div>
+                                        <div class="col-md-1">
+                                            <label class="form-label">&nbsp;</label>
+                                            <button type="button" class="btn btn-danger btn-sm d-block" 
+                                                    onclick="removeStation(this)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 提交按钮 -->
+                    <div class="text-center">
+                        <button type="button" class="btn btn-primary btn-lg" onclick="processManualData()">
+                            <i class="fas fa-play"></i> 开始溯源分析
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg ms-2">
+                            <i class="fas fa-arrow-left"></i> 返回首页
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 结果显示模态框 -->
+<div class="modal fade" id="resultsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-chart-bar"></i> 溯源分析结果</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="resultsContent">
+                <!-- 结果内容将通过JavaScript动态加载 -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let stationCount = 1;
+
+function addStation() {
+    stationCount++;
+    const container = document.getElementById('stationsContainer');
+    const newStation = document.createElement('div');
+    newStation.className = 'station-row border rounded p-3 mb-3';
+    newStation.innerHTML = `
+        <div class="row">
+            <div class="col-md-2">
+                <label class="form-label">站点ID</label>
+                <input type="text" class="form-control" name="station_id[]" value="S${stationCount.toString().padStart(3, '0')}" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">东西方向 (米)</label>
+                <input type="number" class="form-control" name="x[]" value="${100 + Math.random() * 400}" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">南北方向 (米)</label>
+                <input type="number" class="form-control" name="y[]" value="${100 + Math.random() * 400}" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">高度 (米)</label>
+                <input type="number" class="form-control" name="z[]" value="10" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">浓度 (微克/立方米)</label>
+                <input type="number" class="form-control" name="concentration[]" 
+                       step="0.1" value="${(Math.random() * 50 + 10).toFixed(1)}" required>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <button type="button" class="btn btn-danger btn-sm d-block" onclick="removeStation(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    container.appendChild(newStation);
+}
+
+function removeStation(button) {
+    const stationRows = document.querySelectorAll('.station-row');
+    if (stationRows.length > 1) {
+        button.closest('.station-row').remove();
+    } else {
+        alert('至少需要保留一个监测站！');
+    }
+}
+
+function processManualData() {
+    const form = document.getElementById('manualInputForm');
+    const formData = new FormData(form);
+    
+    // 收集气象数据
+    const meteorologicalData = {
+        wind_speed: formData.get('wind_speed'),
+        wind_direction: formData.get('wind_direction'),
+        temperature: formData.get('temperature'),
+        pressure: formData.get('pressure'),
+        humidity: formData.get('humidity'),
+        stability_class: formData.get('stability_class')
+    };
+    
+    // 收集监测站数据
+    const stationIds = formData.getAll('station_id[]');
+    const xs = formData.getAll('x[]');
+    const ys = formData.getAll('y[]');
+    const zs = formData.getAll('z[]');
+    const concentrations = formData.getAll('concentration[]');
+    
+    const monitoringData = [];
+    for (let i = 0; i < stationIds.length; i++) {
+        monitoringData.push({
+            station_id: stationIds[i],
+            x: parseFloat(xs[i]),
+            y: parseFloat(ys[i]),
+            z: parseFloat(zs[i]),
+            concentration: parseFloat(concentrations[i])
+        });
+    }
+    
+    // 准备请求数据
+    const requestData = {
+        data_source: 'manual',
+        meteorological_data: meteorologicalData,
+        monitoring_data: monitoringData
+    };
+    
+    // 显示加载状态
+    const processBtn = document.querySelector('button[onclick="processManualData()"]');
+    const originalText = processBtn.innerHTML;
+    processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 分析中...';
+    processBtn.disabled = true;
+    
+    // 发送请求
+    fetch('/process', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showResults(data);
+        } else {
+            alert('分析失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('分析出错：' + error);
+    })
+    .finally(() => {
+        processBtn.innerHTML = originalText;
+        processBtn.disabled = false;
+    });
+}
+
+function showResults(data) {
+    const resultsContent = document.getElementById('resultsContent');
+    resultsContent.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-bullseye"></i> 溯源结果</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>污染源位置：</strong></p>
+                        <ul>
+                            <li>东西方向：${data.source_result.x.toFixed(1)} 米</li>
+                            <li>南北方向：${data.source_result.y.toFixed(1)} 米</li>
+                            <li>高度：${data.source_result.z.toFixed(1)} 米</li>
+                        </ul>
+                        <p><strong>排放强度：</strong> ${data.source_result.emission_rate.toFixed(3)} 克/秒</p>
+                        <p><strong>置信度：</strong> ${data.source_result.confidence.toFixed(6)}</p>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-line"></i> 验证统计</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>平均绝对误差：</strong> ${data.verification_stats.mean_absolute_error.toFixed(2)} 微克/立方米</p>
+                        <p><strong>最大绝对误差：</strong> ${data.verification_stats.max_absolute_error.toFixed(2)} 微克/立方米</p>
+                        <p><strong>均方根误差：</strong> ${data.verification_stats.rmse.toFixed(2)} 微克/立方米</p>
+                        <p><strong>相关系数：</strong> ${data.verification_stats.correlation.toFixed(3)}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-map-marker-alt"></i> 监测站分布图</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="data:image/png;base64,${data.monitoring_plot}" class="img-fluid" alt="监测站分布图">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar"></i> 验证结果对比</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="data:image/png;base64,${data.verification_plot}" class="img-fluid" alt="验证结果图">
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#resultsModal').modal('show');
+}
+</script>
+{% endblock %}

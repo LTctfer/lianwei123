@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}示例演示 - 污染源溯源系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-play"></i> 示例演示</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-info-circle"></i> 演示说明</h5>
+                    <p>本演示使用系统内置的模拟数据，包含：</p>
+                    <ul class="mb-0">
+                        <li><strong>监测站数据：</strong> 5个监测站，包含真实的仪器误差和环境噪声</li>
+                        <li><strong>气象条件：</strong> 风速3.5米/秒，风向225度，中性大气稳定度</li>
+                        <li><strong>污染源：</strong> 位置(250, 250, 50)，排放强度100克/秒</li>
+                        <li><strong>背景浓度：</strong> 5-15微克/立方米的随机背景浓度</li>
+                    </ul>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-cogs"></i> 演示参数</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>气象条件</h6>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-wind"></i> 风速：3.5 米/秒</li>
+                                    <li><i class="fas fa-compass"></i> 风向：225 度（西南风）</li>
+                                    <li><i class="fas fa-thermometer-half"></i> 温度：20.0 °C</li>
+                                    <li><i class="fas fa-tachometer-alt"></i> 气压：1013.25 hPa</li>
+                                    <li><i class="fas fa-tint"></i> 湿度：60%</li>
+                                    <li><i class="fas fa-layer-group"></i> 大气稳定度：D（中性）</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>真实污染源（用于验证）</h6>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-map-marker-alt"></i> 东西方向：250 米</li>
+                                    <li><i class="fas fa-map-marker-alt"></i> 南北方向：250 米</li>
+                                    <li><i class="fas fa-arrows-alt-v"></i> 高度：50 米</li>
+                                    <li><i class="fas fa-industry"></i> 排放强度：100 克/秒</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button type="button" class="btn btn-success btn-lg" onclick="runDemo()">
+                        <i class="fas fa-play"></i> 开始演示分析
+                    </button>
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg ms-2">
+                        <i class="fas fa-arrow-left"></i> 返回首页
+                    </a>
+                </div>
+
+                <!-- 进度显示 -->
+                <div id="progressContainer" class="mt-4" style="display: none;">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i class="fas fa-spinner fa-spin"></i> 分析进度</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="progress mb-3">
+                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div id="progressText" class="text-center">
+                                正在初始化...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 结果显示模态框 -->
+<div class="modal fade" id="demoResultsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-chart-bar"></i> 演示分析结果</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="demoResultsContent">
+                <!-- 结果内容将通过JavaScript动态加载 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" onclick="downloadReport()">
+                    <i class="fas fa-download"></i> 下载报告
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function runDemo() {
+    // 显示进度条
+    document.getElementById('progressContainer').style.display = 'block';
+    
+    // 禁用按钮
+    const demoBtn = document.querySelector('button[onclick="runDemo()"]');
+    const originalText = demoBtn.innerHTML;
+    demoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 分析中...';
+    demoBtn.disabled = true;
+    
+    // 模拟进度更新
+    let progress = 0;
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    
+    const progressSteps = [
+        { progress: 10, text: '生成模拟数据...' },
+        { progress: 30, text: '初始化遗传算法...' },
+        { progress: 50, text: '执行污染源溯源...' },
+        { progress: 70, text: '计算正向扩散验证...' },
+        { progress: 90, text: '生成可视化图表...' },
+        { progress: 100, text: '分析完成！' }
+    ];
+    
+    let stepIndex = 0;
+    const updateProgress = () => {
+        if (stepIndex < progressSteps.length) {
+            const step = progressSteps[stepIndex];
+            progressBar.style.width = step.progress + '%';
+            progressText.textContent = step.text;
+            stepIndex++;
+            setTimeout(updateProgress, 800);
+        }
+    };
+    
+    updateProgress();
+    
+    // 发送演示请求
+    fetch('/process', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            data_source: 'demo'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            setTimeout(() => {
+                showDemoResults(data);
+                document.getElementById('progressContainer').style.display = 'none';
+            }, 1000);
+        } else {
+            alert('演示分析失败：' + data.message);
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        alert('演示分析出错：' + error);
+        document.getElementById('progressContainer').style.display = 'none';
+    })
+    .finally(() => {
+        demoBtn.innerHTML = originalText;
+        demoBtn.disabled = false;
+    });
+}
+
+function showDemoResults(data) {
+    const resultsContent = document.getElementById('demoResultsContent');
+    
+    // 计算位置误差
+    const trueX = 250, trueY = 250, trueZ = 50;
+    const predictedX = data.source_result.x;
+    const predictedY = data.source_result.y;
+    const predictedZ = data.source_result.z;
+    const positionError = Math.sqrt(
+        Math.pow(predictedX - trueX, 2) + 
+        Math.pow(predictedY - trueY, 2)
+    );
+    
+    // 计算排放强度误差
+    const trueEmission = 100.0;
+    const predictedEmission = data.source_result.emission_rate;
+    const emissionError = Math.abs((predictedEmission - trueEmission) / trueEmission * 100);
+    
+    resultsContent.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-bullseye"></i> 溯源结果</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>污染源位置：</strong></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>东西方向</td>
+                                <td>${predictedX.toFixed(1)} 米</td>
+                            </tr>
+                            <tr>
+                                <td>南北方向</td>
+                                <td>${predictedY.toFixed(1)} 米</td>
+                            </tr>
+                            <tr>
+                                <td>高度</td>
+                                <td>${predictedZ.toFixed(1)} 米</td>
+                            </tr>
+                            <tr>
+                                <td><strong>排放强度</strong></td>
+                                <td>${predictedEmission.toFixed(3)} 克/秒</td>
+                            </tr>
+                            <tr>
+                                <td><strong>置信度</strong></td>
+                                <td>${data.source_result.confidence.toFixed(6)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-check-circle"></i> 精度评估</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-trophy"></i> 溯源精度</h6>
+                            <p><strong>位置误差：</strong> ${positionError.toFixed(1)} 米</p>
+                            <p><strong>排放强度误差：</strong> ${emissionError.toFixed(1)}%</p>
+                            <p class="mb-0"><strong>评估：</strong> 
+                                ${positionError < 10 ? '<span class="text-success">优秀</span>' : 
+                                  positionError < 20 ? '<span class="text-warning">良好</span>' : 
+                                  '<span class="text-danger">需要改进</span>'}
+                            </p>
+                        </div>
+                        
+                        <h6>验证统计</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>平均绝对误差：</strong> ${data.verification_stats.mean_absolute_error.toFixed(2)} 微克/立方米</li>
+                            <li><strong>最大绝对误差：</strong> ${data.verification_stats.max_absolute_error.toFixed(2)} 微克/立方米</li>
+                            <li><strong>均方根误差：</strong> ${data.verification_stats.rmse.toFixed(2)} 微克/立方米</li>
+                            <li><strong>相关系数：</strong> ${data.verification_stats.correlation.toFixed(3)}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-map-marker-alt"></i> 监测站分布图</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="data:image/png;base64,${data.monitoring_plot}" class="img-fluid" alt="监测站分布图">
+                        <small class="text-muted d-block mt-2">红色星号：预测污染源位置</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar"></i> 验证结果对比</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="data:image/png;base64,${data.verification_plot}" class="img-fluid" alt="验证结果图">
+                        <small class="text-muted d-block mt-2">左图：散点图显示预测精度；右图：各站点数值对比</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0"><i class="fas fa-list"></i> 各站点详细结果</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>站点ID</th>
+                                        <th>实际观测值</th>
+                                        <th>模型预测值</th>
+                                        <th>绝对误差</th>
+                                        <th>相对误差</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.detailed_results.map(result => `
+                                        <tr>
+                                            <td>${result.station_id}</td>
+                                            <td>${result.observed.toFixed(1)} 微克/立方米</td>
+                                            <td>${result.predicted.toFixed(1)} 微克/立方米</td>
+                                            <td>${result.absolute_error.toFixed(1)} 微克/立方米</td>
+                                            <td>${result.relative_error.toFixed(1)}%</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#demoResultsModal').modal('show');
+}
+
+function downloadReport() {
+    alert('报告下载功能开发中...');
+}
+</script>
+{% endblock %}

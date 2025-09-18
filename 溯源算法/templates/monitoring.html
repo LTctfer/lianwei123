@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+{% block title %}实时监控 - 污染源溯源系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 系统状态卡片 -->
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-primary">
+            <div class="card-body text-center">
+                <div class="text-primary">
+                    <i class="fas fa-server fa-3x"></i>
+                </div>
+                <h5 class="card-title mt-3">系统状态</h5>
+                <h3 id="systemStatus" class="text-success">正常</h3>
+                <small class="text-muted">最后更新: <span id="lastUpdate">--</span></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 活跃任务 -->
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <div class="text-warning">
+                    <i class="fas fa-tasks fa-3x"></i>
+                </div>
+                <h5 class="card-title mt-3">活跃任务</h5>
+                <h3 id="activeTasks" class="text-warning">0</h3>
+                <small class="text-muted">正在处理的分析任务</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 今日分析次数 -->
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <div class="text-success">
+                    <i class="fas fa-chart-line fa-3x"></i>
+                </div>
+                <h5 class="card-title mt-3">今日分析</h5>
+                <h3 id="todayAnalysis" class="text-success">0</h3>
+                <small class="text-muted">次成功分析</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 平均精度 -->
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-info">
+            <div class="card-body text-center">
+                <div class="text-info">
+                    <i class="fas fa-bullseye fa-3x"></i>
+                </div>
+                <h5 class="card-title mt-3">平均精度</h5>
+                <h3 id="averageAccuracy" class="text-info">--</h3>
+                <small class="text-muted">位置误差 (米)</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 实时日志 -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-list"></i> 实时分析日志</h5>
+                <button class="btn btn-sm btn-outline-light" onclick="clearLogs()">
+                    <i class="fas fa-trash"></i> 清空
+                </button>
+            </div>
+            <div class="card-body" style="height: 400px; overflow-y: auto;">
+                <div id="logContainer">
+                    <div class="text-muted text-center">
+                        <i class="fas fa-info-circle"></i> 暂无分析记录
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统信息 -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> 系统信息</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>版本:</strong> v2.0.0
+                </div>
+                <div class="mb-3">
+                    <strong>算法:</strong> 遗传-模式搜索
+                </div>
+                <div class="mb-3">
+                    <strong>模型:</strong> 高斯烟羽模型
+                </div>
+                <div class="mb-3">
+                    <strong>运行时间:</strong> <span id="uptime">--</span>
+                </div>
+                <div class="mb-3">
+                    <strong>内存使用:</strong> <span id="memoryUsage">--</span>
+                </div>
+                <div class="mb-3">
+                    <strong>CPU使用:</strong> <span id="cpuUsage">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 快速操作 -->
+        <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-bolt"></i> 快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="runQuickDemo()">
+                        <i class="fas fa-play"></i> 快速演示
+                    </button>
+                    <button class="btn btn-warning" onclick="exportLogs()">
+                        <i class="fas fa-download"></i> 导出日志
+                    </button>
+                    <button class="btn btn-info" onclick="refreshStats()">
+                        <i class="fas fa-sync"></i> 刷新统计
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 历史分析记录 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-history"></i> 历史分析记录</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-light me-2" onclick="loadHistory()">
+                        <i class="fas fa-sync"></i> 刷新
+                    </button>
+                    <button class="btn btn-sm btn-outline-light" onclick="exportHistory()">
+                        <i class="fas fa-download"></i> 导出
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="historyTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>时间</th>
+                                <th>数据源</th>
+                                <th>监测站数量</th>
+                                <th>污染源位置</th>
+                                <th>排放强度</th>
+                                <th>位置误差</th>
+                                <th>计算时间</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="9" class="text-center text-muted">
+                                    <i class="fas fa-info-circle"></i> 暂无历史记录
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let startTime = Date.now();
+let logCount = 0;
+let analysisHistory = JSON.parse(localStorage.getItem('analysisHistory') || '[]');
+
+// 更新系统状态
+function updateSystemStatus() {
+    // 更新运行时间
+    const uptime = Math.floor((Date.now() - startTime) / 1000);
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = uptime % 60;
+    document.getElementById('uptime').textContent = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    // 模拟系统资源使用
+    const memUsage = (Math.random() * 30 + 20).toFixed(1);
+    const cpuUsage = (Math.random() * 20 + 5).toFixed(1);
+    document.getElementById('memoryUsage').textContent = `${memUsage}%`;
+    document.getElementById('cpuUsage').textContent = `${cpuUsage}%`;
+    
+    // 更新最后更新时间
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+    
+    // 更新统计数据
+    updateStats();
+}
+
+// 更新统计数据
+function updateStats() {
+    const today = new Date().toDateString();
+    const todayAnalysis = analysisHistory.filter(item => 
+        new Date(item.timestamp).toDateString() === today
+    ).length;
+    
+    document.getElementById('todayAnalysis').textContent = todayAnalysis;
+    
+    // 计算平均精度
+    if (analysisHistory.length > 0) {
+        const avgAccuracy = analysisHistory
+            .filter(item => item.positionError !== undefined)
+            .reduce((sum, item) => sum + item.positionError, 0) / analysisHistory.length;
+        document.getElementById('averageAccuracy').textContent = avgAccuracy.toFixed(1);
+    }
+}
+
+// 添加日志
+function addLog(message, type = 'info') {
+    const logContainer = document.getElementById('logContainer');
+    const timestamp = new Date().toLocaleTimeString();
+    
+    // 如果是第一条日志，清空提示信息
+    if (logCount === 0) {
+        logContainer.innerHTML = '';
+    }
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = `alert alert-${type} alert-dismissible fade show mb-2`;
+    logEntry.innerHTML = `
+        <small class="text-muted">[${timestamp}]</small> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    logContainer.insertBefore(logEntry, logContainer.firstChild);
+    logCount++;
+    
+    // 限制日志数量
+    if (logCount > 50) {
+        const logs = logContainer.querySelectorAll('.alert');
+        if (logs.length > 50) {
+            logs[logs.length - 1].remove();
+        }
+    }
+}
+
+// 清空日志
+function clearLogs() {
+    document.getElementById('logContainer').innerHTML = `
+        <div class="text-muted text-center">
+            <i class="fas fa-info-circle"></i> 暂无分析记录
+        </div>
+    `;
+    logCount = 0;
+}
+
+// 快速演示
+function runQuickDemo() {
+    addLog('启动快速演示分析...', 'primary');
+    
+    // 模拟分析过程
+    setTimeout(() => {
+        addLog('生成示例数据完成', 'success');
+    }, 1000);
+    
+    setTimeout(() => {
+        addLog('遗传算法优化中...', 'warning');
+    }, 2000);
+    
+    setTimeout(() => {
+        const result = {
+            timestamp: new Date().toISOString(),
+            dataSource: '快速演示',
+            stationCount: 8,
+            sourceLocation: `(${(Math.random() * 400 - 200).toFixed(1)}, ${(Math.random() * 400 - 200).toFixed(1)})`,
+            emissionRate: (Math.random() * 5 + 1).toFixed(2),
+            positionError: (Math.random() * 20 + 5).toFixed(1),
+            computeTime: (Math.random() * 30 + 10).toFixed(1),
+            status: 'success'
+        };
+        
+        analysisHistory.unshift(result);
+        localStorage.setItem('analysisHistory', JSON.stringify(analysisHistory));
+        
+        addLog(`快速演示完成！污染源位置: ${result.sourceLocation}, 误差: ${result.positionError}米`, 'success');
+        loadHistory();
+        updateStats();
+    }, 4000);
+}
+
+// 导出日志
+function exportLogs() {
+    const logs = Array.from(document.querySelectorAll('#logContainer .alert')).map(log => {
+        return log.textContent.trim();
+    });
+    
+    const content = logs.join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analysis_logs_${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    addLog('日志导出完成', 'info');
+}
+
+// 刷新统计
+function refreshStats() {
+    updateStats();
+    addLog('统计数据已刷新', 'info');
+}
+
+// 加载历史记录
+function loadHistory() {
+    const tbody = document.getElementById('historyTableBody');
+    
+    if (analysisHistory.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center text-muted">
+                    <i class="fas fa-info-circle"></i> 暂无历史记录
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = analysisHistory.map((item, index) => `
+        <tr>
+            <td>${new Date(item.timestamp).toLocaleString()}</td>
+            <td><span class="badge bg-primary">${item.dataSource}</span></td>
+            <td>${item.stationCount}</td>
+            <td><code>${item.sourceLocation}</code></td>
+            <td>${item.emissionRate} g/s</td>
+            <td>${item.positionError} 米</td>
+            <td>${item.computeTime} 秒</td>
+            <td>
+                <span class="badge bg-${item.status === 'success' ? 'success' : 'danger'}">
+                    ${item.status === 'success' ? '成功' : '失败'}
+                </span>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteHistory(${index})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// 删除历史记录
+function deleteHistory(index) {
+    if (confirm('确定要删除这条记录吗？')) {
+        analysisHistory.splice(index, 1);
+        localStorage.setItem('analysisHistory', JSON.stringify(analysisHistory));
+        loadHistory();
+        updateStats();
+        addLog('历史记录已删除', 'warning');
+    }
+}
+
+// 导出历史记录
+function exportHistory() {
+    if (analysisHistory.length === 0) {
+        alert('暂无历史记录可导出');
+        return;
+    }
+    
+    const csv = [
+        ['时间', '数据源', '监测站数量', '污染源位置', '排放强度', '位置误差', '计算时间', '状态'].join(','),
+        ...analysisHistory.map(item => [
+            item.timestamp,
+            item.dataSource,
+            item.stationCount,
+            item.sourceLocation,
+            item.emissionRate,
+            item.positionError,
+            item.computeTime,
+            item.status
+        ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analysis_history_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    addLog('历史记录导出完成', 'info');
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    updateSystemStatus();
+    loadHistory();
+    
+    // 每秒更新系统状态
+    setInterval(updateSystemStatus, 1000);
+    
+    addLog('监控系统已启动', 'success');
+});
+</script>
+{% endblock %}

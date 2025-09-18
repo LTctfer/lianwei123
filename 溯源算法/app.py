@@ -7,8 +7,10 @@
 
 import os
 import json
+import time
+import uuid
 import pandas as pd
-from flask import Flask, render_template, request, jsonify, send_file, flash, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file, flash, redirect, url_for, Response
 from werkzeug.utils import secure_filename
 import numpy as np
 from datetime import datetime
@@ -103,41 +105,97 @@ def demo_data():
     """使用示例数据页面"""
     return render_template('demo_data.html')
 
+@app.route('/advanced_settings')
+def advanced_settings():
+    """高级设置页面"""
+    return render_template('advanced_settings.html')
+
+@app.route('/monitoring')
+def monitoring():
+    """实时监控页面"""
+    return render_template('monitoring.html')
+
 @app.route('/process', methods=['POST'])
 def process_data():
     """处理溯源请求"""
     try:
+        # 生成任务ID
+        task_id = str(uuid.uuid4())
+
+        # 初始化进度
+        progress_data[task_id] = {
+            'status': 'starting',
+            'progress': 0,
+            'message': '正在初始化...'
+        }
+
         data_source = request.json.get('data_source', 'demo')
         
         if data_source == 'demo':
             # 使用示例数据
+            progress_data[task_id].update({
+                'status': 'processing',
+                'progress': 10,
+                'message': '生成示例数据...'
+            })
             demo = PollutionSourceDemo()
             monitoring_data, met_data = demo.generate_realistic_data()
             
         elif data_source == 'manual':
             # 处理手动输入的数据
-            monitoring_data = []
-            met_data_dict = request.json.get('meteorological_data', {})
-            
-            for station_data in request.json.get('monitoring_data', []):
-                monitoring_data.append(MonitoringData(
-                    station_id=station_data['station_id'],
-                    x=float(station_data['x']),
-                    y=float(station_data['y']),
-                    z=float(station_data['z']),
-                    concentration=float(station_data['concentration']),
-                    timestamp=station_data.get('timestamp', datetime.now().isoformat())
-                ))
-            
-            met_data = MeteorologicalData(
-                wind_speed=float(met_data_dict['wind_speed']),
-                wind_direction=float(met_data_dict['wind_direction']),
-                temperature=float(met_data_dict['temperature']),
-                pressure=float(met_data_dict['pressure']),
-                humidity=float(met_data_dict['humidity']),
-                stability_class=met_data_dict['stability_class'],
-                timestamp=met_data_dict.get('timestamp', datetime.now().isoformat())
-            )
+            progress_data[task_id].update({
+                'status': 'processing',
+                'progress': 15,
+                'message': '处理手动输入数据...'
+            })
+
+            try:
+                monitoring_data = []
+                met_data_dict = request.json.get('meteorological_data', {})
+
+                # 验证气象数据
+                required_met_fields = ['wind_speed', 'wind_direction', 'temperature', 'pressure', 'humidity']
+                for field in required_met_fields:
+                    if field not in met_data_dict or met_data_dict[field] == '':
+                        raise ValueError(f'缺少必需的气象数据字段: {field}')
+
+                # 处理监测站数据
+                monitoring_data_list = request.json.get('monitoring_data', [])
+                if not monitoring_data_list:
+                    raise ValueError('至少需要一个监测站数据')
+
+                for i, station_data in enumerate(monitoring_data_list):
+                    try:
+                        monitoring_data.append(MonitoringData(
+                            station_id=station_data.get('station_id', f'站点{i+1}'),
+                            x=float(station_data['x']),
+                            y=float(station_data['y']),
+                            z=float(station_data['z']),
+                            concentration=float(station_data['concentration']),
+                            timestamp=station_data.get('timestamp', datetime.now().isoformat())
+                        ))
+                    except (ValueError, KeyError) as e:
+                        raise ValueError(f'监测站{i+1}数据格式错误: {str(e)}')
+
+                # 处理气象数据
+                met_data = MeteorologicalData(
+                    wind_speed=float(met_data_dict['wind_speed']),
+                    wind_direction=float(met_data_dict['wind_direction']),
+                    temperature=float(met_data_dict['temperature']),
+                    pressure=float(met_data_dict['pressure']),
+                    humidity=float(met_data_dict['humidity']),
+                    solar_radiation=float(met_data_dict.get('solar_radiation', 500.0)),  # 默认值
+                    cloud_cover=float(met_data_dict.get('cloud_cover', 0.5)),  # 默认值
+                    timestamp=met_data_dict.get('timestamp', datetime.now().isoformat())
+                )
+
+            except Exception as e:
+                progress_data[task_id].update({
+                    'status': 'error',
+                    'progress': 0,
+                    'message': f'数据处理失败: {str(e)}'
+                })
+                return jsonify({'status': 'error', 'message': f'手动输入数据处理失败: {str(e)}'})
             
         elif data_source == 'file':
             # 处理文件上传的数据
@@ -146,18 +204,36 @@ def process_data():
             return jsonify({'status': 'error', 'message': '文件数据处理功能开发中'})
         
         # 执行溯源
+        progress_data[task_id].update({
+            'status': 'processing',
+            'progress': 30,
+            'message': '初始化溯源算法...'
+        })
+
         tracker = PollutionSourceTracker()
-        
+
         # 添加监测数据
         for data in monitoring_data:
             tracker.add_monitoring_data(data)
-        
+
         # 设置气象数据
         tracker.set_meteorological_data(met_data)
-        
+
+        progress_data[task_id].update({
+            'status': 'processing',
+            'progress': 50,
+            'message': '执行污染源溯源...'
+        })
+
         # 执行溯源
         source_result = tracker.trace_pollution_source()
         
+        progress_data[task_id].update({
+            'status': 'processing',
+            'progress': 70,
+            'message': '验证溯源结果...'
+        })
+
         # 验证结果
         verification_stats = tracker.verify_source(source_result)
 
@@ -178,6 +254,12 @@ def process_data():
                 'relative_error': relative_error
             })
         
+        progress_data[task_id].update({
+            'status': 'processing',
+            'progress': 85,
+            'message': '生成可视化图表...'
+        })
+
         # 生成可视化
         visualizer = Visualizer()
         
@@ -197,15 +279,13 @@ def process_data():
             })
         
         # 生成监测站分布图
-        fig1, ax1 = plt.subplots(figsize=(10, 8))
         visualizer.plot_monitoring_stations(
             monitoring_data=data_dicts,
             source_location=(source_result.x, source_result.y)
         )
-        monitoring_plot = save_plot_to_base64(fig1)
+        monitoring_plot = save_plot_to_base64(plt.gcf())
         
         # 生成验证结果图
-        fig2, ax2 = plt.subplots(figsize=(12, 6))
         verification_data = []
         for result in detailed_results:
             verification_data.append({
@@ -213,13 +293,20 @@ def process_data():
                 'observed': result['observed'],
                 'predicted': result['predicted']
             })
-        
+
         visualizer.plot_verification_results(verification_data)
-        verification_plot = save_plot_to_base64(fig2)
+        verification_plot = save_plot_to_base64(plt.gcf())
         
+        progress_data[task_id].update({
+            'status': 'completed',
+            'progress': 100,
+            'message': '分析完成！'
+        })
+
         # 准备结果数据
         result_data = {
             'status': 'success',
+            'task_id': task_id,
             'source_result': {
                 'x': source_result.x,
                 'y': source_result.y,
@@ -232,11 +319,34 @@ def process_data():
             'verification_plot': verification_plot,
             'detailed_results': detailed_results
         }
-        
+
         return jsonify(result_data)
         
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'处理过程中出错: {str(e)}'})
+
+# 全局进度跟踪
+progress_data = {}
+
+@app.route('/progress/<task_id>')
+def progress_stream(task_id):
+    """Server-Sent Events进度流"""
+    def generate():
+        while True:
+            if task_id in progress_data:
+                data = progress_data[task_id]
+                yield f"data: {json.dumps(data)}\n\n"
+
+                # 如果任务完成，清理数据并结束流
+                if data.get('status') in ['completed', 'error']:
+                    del progress_data[task_id]
+                    break
+            else:
+                yield f"data: {json.dumps({'status': 'waiting', 'message': '等待开始...'})}\n\n"
+
+            time.sleep(0.5)  # 每0.5秒更新一次
+
+    return Response(generate(), mimetype='text/event-stream')
 
 @app.route('/results')
 def results():
@@ -244,4 +354,4 @@ def results():
     return render_template('results.html')
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)

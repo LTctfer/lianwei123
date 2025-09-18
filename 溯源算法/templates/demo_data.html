@@ -109,40 +109,16 @@
 function runDemo() {
     // 显示进度条
     document.getElementById('progressContainer').style.display = 'block';
-    
+
     // 禁用按钮
     const demoBtn = document.querySelector('button[onclick="runDemo()"]');
     const originalText = demoBtn.innerHTML;
     demoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 分析中...';
     demoBtn.disabled = true;
-    
-    // 模拟进度更新
-    let progress = 0;
+
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
-    
-    const progressSteps = [
-        { progress: 10, text: '生成模拟数据...' },
-        { progress: 30, text: '初始化遗传算法...' },
-        { progress: 50, text: '执行污染源溯源...' },
-        { progress: 70, text: '计算正向扩散验证...' },
-        { progress: 90, text: '生成可视化图表...' },
-        { progress: 100, text: '分析完成！' }
-    ];
-    
-    let stepIndex = 0;
-    const updateProgress = () => {
-        if (stepIndex < progressSteps.length) {
-            const step = progressSteps[stepIndex];
-            progressBar.style.width = step.progress + '%';
-            progressText.textContent = step.text;
-            stepIndex++;
-            setTimeout(updateProgress, 800);
-        }
-    };
-    
-    updateProgress();
-    
+
     // 发送演示请求
     fetch('/process', {
         method: 'POST',
@@ -156,10 +132,41 @@ function runDemo() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            setTimeout(() => {
+            // 如果有task_id，使用SSE监听进度
+            if (data.task_id) {
+                const eventSource = new EventSource(`/progress/${data.task_id}`);
+
+                eventSource.onmessage = function(event) {
+                    const progressData = JSON.parse(event.data);
+
+                    // 更新进度条
+                    progressBar.style.width = progressData.progress + '%';
+                    progressText.textContent = progressData.message;
+
+                    // 如果完成，关闭连接并显示结果
+                    if (progressData.status === 'completed') {
+                        eventSource.close();
+                        setTimeout(() => {
+                            showDemoResults(data);
+                            document.getElementById('progressContainer').style.display = 'none';
+                        }, 500);
+                    } else if (progressData.status === 'error') {
+                        eventSource.close();
+                        alert('演示分析失败：' + progressData.message);
+                        document.getElementById('progressContainer').style.display = 'none';
+                    }
+                };
+
+                eventSource.onerror = function() {
+                    eventSource.close();
+                    alert('进度监听连接失败');
+                    document.getElementById('progressContainer').style.display = 'none';
+                };
+            } else {
+                // 没有task_id，直接显示结果
                 showDemoResults(data);
                 document.getElementById('progressContainer').style.display = 'none';
-            }, 1000);
+            }
         } else {
             alert('演示分析失败：' + data.message);
             document.getElementById('progressContainer').style.display = 'none';

@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+{% block title %}高级设置 - 污染源溯源系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="fas fa-cogs"></i> 高级算法设置</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-info-circle"></i> 设置说明</h5>
+                    <p>这些高级设置允许您调整遗传算法的参数以优化溯源精度。默认设置已经过优化，适用于大多数情况。</p>
+                </div>
+
+                <form id="advancedSettingsForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-dna"></i> 遗传算法参数</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="populationSize" class="form-label">种群大小</label>
+                                        <input type="range" class="form-range" id="populationSize" 
+                                               min="50" max="500" value="200" step="50">
+                                        <div class="d-flex justify-content-between">
+                                            <small>50</small>
+                                            <span id="populationSizeValue" class="fw-bold">200</span>
+                                            <small>500</small>
+                                        </div>
+                                        <small class="text-muted">更大的种群提供更好的搜索覆盖，但计算时间更长</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="maxGenerations" class="form-label">最大迭代次数</label>
+                                        <input type="range" class="form-range" id="maxGenerations" 
+                                               min="200" max="2000" value="1000" step="100">
+                                        <div class="d-flex justify-content-between">
+                                            <small>200</small>
+                                            <span id="maxGenerationsValue" class="fw-bold">1000</span>
+                                            <small>2000</small>
+                                        </div>
+                                        <small class="text-muted">更多迭代可能找到更好的解，但需要更长时间</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="crossoverProb" class="form-label">交叉概率</label>
+                                        <input type="range" class="form-range" id="crossoverProb" 
+                                               min="0.5" max="1.0" value="0.8" step="0.05">
+                                        <div class="d-flex justify-content-between">
+                                            <small>0.5</small>
+                                            <span id="crossoverProbValue" class="fw-bold">0.8</span>
+                                            <small>1.0</small>
+                                        </div>
+                                        <small class="text-muted">控制基因交换的频率</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="mutationProb" class="form-label">变异概率</label>
+                                        <input type="range" class="form-range" id="mutationProb" 
+                                               min="0.05" max="0.3" value="0.15" step="0.01">
+                                        <div class="d-flex justify-content-between">
+                                            <small>0.05</small>
+                                            <span id="mutationProbValue" class="fw-bold">0.15</span>
+                                            <small>0.3</small>
+                                        </div>
+                                        <small class="text-muted">控制随机变异的频率，增加搜索多样性</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="eliteRatio" class="form-label">精英保留比例</label>
+                                        <input type="range" class="form-range" id="eliteRatio" 
+                                               min="0.05" max="0.3" value="0.15" step="0.01">
+                                        <div class="d-flex justify-content-between">
+                                            <small>0.05</small>
+                                            <span id="eliteRatioValue" class="fw-bold">0.15</span>
+                                            <small>0.3</small>
+                                        </div>
+                                        <small class="text-muted">保留最优个体的比例</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-search"></i> 搜索边界设置</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label for="xMin" class="form-label">X坐标最小值 (米)</label>
+                                                <input type="number" class="form-control" id="xMin" value="-1000">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label for="xMax" class="form-label">X坐标最大值 (米)</label>
+                                                <input type="number" class="form-control" id="xMax" value="1000">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label for="yMin" class="form-label">Y坐标最小值 (米)</label>
+                                                <input type="number" class="form-control" id="yMin" value="-1000">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label for="yMax" class="form-label">Y坐标最大值 (米)</label>
+                                                <input type="number" class="form-control" id="yMax" value="1000">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label for="zMin" class="form-label">高度最小值 (米)</label>
+                                                <input type="number" class="form-control" id="zMin" value="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label for="zMax" class="form-label">高度最大值 (米)</label>
+                                                <input type="number" class="form-control" id="zMax" value="100">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label for="qMin" class="form-label">排放强度最小值 (g/s)</label>
+                                                <input type="number" class="form-control" id="qMin" value="0.1" step="0.1">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label for="qMax" class="form-label">排放强度最大值 (g/s)</label>
+                                                <input type="number" class="form-control" id="qMax" value="10.0" step="0.1">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-4">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0"><i class="fas fa-stopwatch"></i> 收敛设置</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="patience" class="form-label">早停耐心值</label>
+                                        <input type="number" class="form-control" id="patience" value="100" min="10" max="500">
+                                        <small class="text-muted">连续多少代没有改进就停止</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="minImprovement" class="form-label">最小改进阈值</label>
+                                        <input type="number" class="form-control" id="minImprovement" 
+                                               value="0.000001" step="0.000001" min="0.000001">
+                                        <small class="text-muted">认为有改进的最小适应度提升</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-chart-line"></i> 预期性能影响</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="text-center">
+                                                <h5 class="text-primary">计算时间</h5>
+                                                <span id="estimatedTime" class="h4 text-primary">~5-10分钟</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="text-center">
+                                                <h5 class="text-success">预期精度</h5>
+                                                <span id="estimatedAccuracy" class="h4 text-success">高</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="text-center">
+                                                <h5 class="text-warning">内存使用</h5>
+                                                <span id="estimatedMemory" class="h4 text-warning">中等</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn btn-secondary btn-lg me-2" onclick="resetToDefaults()">
+                            <i class="fas fa-undo"></i> 恢复默认
+                        </button>
+                        <button type="button" class="btn btn-primary btn-lg me-2" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> 保存设置
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-success btn-lg">
+                            <i class="fas fa-arrow-left"></i> 返回主页
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 更新滑块值显示
+function updateSliderValues() {
+    document.getElementById('populationSizeValue').textContent = document.getElementById('populationSize').value;
+    document.getElementById('maxGenerationsValue').textContent = document.getElementById('maxGenerations').value;
+    document.getElementById('crossoverProbValue').textContent = document.getElementById('crossoverProb').value;
+    document.getElementById('mutationProbValue').textContent = document.getElementById('mutationProb').value;
+    document.getElementById('eliteRatioValue').textContent = document.getElementById('eliteRatio').value;
+    
+    updatePerformanceEstimates();
+}
+
+// 更新性能预估
+function updatePerformanceEstimates() {
+    const popSize = parseInt(document.getElementById('populationSize').value);
+    const maxGen = parseInt(document.getElementById('maxGenerations').value);
+    
+    // 估算计算时间
+    const timeEstimate = Math.round((popSize * maxGen) / 20000); // 简化估算
+    let timeText = '';
+    if (timeEstimate < 1) {
+        timeText = '< 1分钟';
+    } else if (timeEstimate < 60) {
+        timeText = `~${timeEstimate}分钟`;
+    } else {
+        timeText = `~${Math.round(timeEstimate/60)}小时`;
+    }
+    document.getElementById('estimatedTime').textContent = timeText;
+    
+    // 估算精度
+    let accuracyText = '';
+    if (popSize >= 200 && maxGen >= 800) {
+        accuracyText = '高';
+    } else if (popSize >= 100 && maxGen >= 400) {
+        accuracyText = '中等';
+    } else {
+        accuracyText = '低';
+    }
+    document.getElementById('estimatedAccuracy').textContent = accuracyText;
+    
+    // 估算内存使用
+    let memoryText = '';
+    if (popSize >= 300) {
+        memoryText = '高';
+    } else if (popSize >= 150) {
+        memoryText = '中等';
+    } else {
+        memoryText = '低';
+    }
+    document.getElementById('estimatedMemory').textContent = memoryText;
+}
+
+// 恢复默认设置
+function resetToDefaults() {
+    document.getElementById('populationSize').value = 200;
+    document.getElementById('maxGenerations').value = 1000;
+    document.getElementById('crossoverProb').value = 0.8;
+    document.getElementById('mutationProb').value = 0.15;
+    document.getElementById('eliteRatio').value = 0.15;
+    document.getElementById('xMin').value = -1000;
+    document.getElementById('xMax').value = 1000;
+    document.getElementById('yMin').value = -1000;
+    document.getElementById('yMax').value = 1000;
+    document.getElementById('zMin').value = 0;
+    document.getElementById('zMax').value = 100;
+    document.getElementById('qMin').value = 0.1;
+    document.getElementById('qMax').value = 10.0;
+    document.getElementById('patience').value = 100;
+    document.getElementById('minImprovement').value = 0.000001;
+    
+    updateSliderValues();
+    Utils.showSuccess('已恢复默认设置');
+}
+
+// 保存设置
+function saveSettings() {
+    const settings = {
+        population_size: parseInt(document.getElementById('populationSize').value),
+        max_generations: parseInt(document.getElementById('maxGenerations').value),
+        crossover_prob: parseFloat(document.getElementById('crossoverProb').value),
+        mutation_prob: parseFloat(document.getElementById('mutationProb').value),
+        elite_ratio: parseFloat(document.getElementById('eliteRatio').value),
+        bounds: [
+            parseFloat(document.getElementById('xMin').value),
+            parseFloat(document.getElementById('xMax').value),
+            parseFloat(document.getElementById('yMin').value),
+            parseFloat(document.getElementById('yMax').value),
+            parseFloat(document.getElementById('zMin').value),
+            parseFloat(document.getElementById('zMax').value),
+            parseFloat(document.getElementById('qMin').value),
+            parseFloat(document.getElementById('qMax').value)
+        ],
+        patience: parseInt(document.getElementById('patience').value),
+        min_improvement: parseFloat(document.getElementById('minImprovement').value)
+    };
+    
+    // 保存到localStorage
+    localStorage.setItem('advancedSettings', JSON.stringify(settings));
+    Utils.showSuccess('设置已保存！这些设置将在下次分析时使用。');
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 添加滑块事件监听
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+        slider.addEventListener('input', updateSliderValues);
+    });
+    
+    // 加载保存的设置
+    const savedSettings = localStorage.getItem('advancedSettings');
+    if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        document.getElementById('populationSize').value = settings.population_size || 200;
+        document.getElementById('maxGenerations').value = settings.max_generations || 1000;
+        document.getElementById('crossoverProb').value = settings.crossover_prob || 0.8;
+        document.getElementById('mutationProb').value = settings.mutation_prob || 0.15;
+        document.getElementById('eliteRatio').value = settings.elite_ratio || 0.15;
+        
+        if (settings.bounds) {
+            document.getElementById('xMin').value = settings.bounds[0];
+            document.getElementById('xMax').value = settings.bounds[1];
+            document.getElementById('yMin').value = settings.bounds[2];
+            document.getElementById('yMax').value = settings.bounds[3];
+            document.getElementById('zMin').value = settings.bounds[4];
+            document.getElementById('zMax').value = settings.bounds[5];
+            document.getElementById('qMin').value = settings.bounds[6];
+            document.getElementById('qMax').value = settings.bounds[7];
+        }
+        
+        document.getElementById('patience').value = settings.patience || 100;
+        document.getElementById('minImprovement').value = settings.min_improvement || 0.000001;
+    }
+    
+    updateSliderValues();
+});
+</script>
+{% endblock %}

@@ -57,15 +57,18 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="mb-3">
-                                        <label for="stability_class" class="form-label">大气稳定度</label>
-                                        <select class="form-select" id="stability_class" name="stability_class" required>
-                                            <option value="A">A - 极不稳定</option>
-                                            <option value="B">B - 不稳定</option>
-                                            <option value="C">C - 弱不稳定</option>
-                                            <option value="D" selected>D - 中性</option>
-                                            <option value="E">E - 弱稳定</option>
-                                            <option value="F">F - 稳定</option>
-                                        </select>
+                                        <label for="solar_radiation" class="form-label">太阳辐射强度 (W/m²)</label>
+                                        <input type="number" class="form-control" id="solar_radiation"
+                                               name="solar_radiation" min="0" max="1500" value="500" step="10" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="cloud_cover" class="form-label">云量 (0-1)</label>
+                                        <input type="number" class="form-control" id="cloud_cover"
+                                               name="cloud_cover" min="0" max="1" value="0.5" step="0.1" required>
                                     </div>
                                 </div>
                             </div>
@@ -205,16 +208,53 @@ function removeStation(button) {
 function processManualData() {
     const form = document.getElementById('manualInputForm');
     const formData = new FormData(form);
-    
+
+    // 验证表单数据
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
     // 收集气象数据
     const meteorologicalData = {
-        wind_speed: formData.get('wind_speed'),
-        wind_direction: formData.get('wind_direction'),
-        temperature: formData.get('temperature'),
-        pressure: formData.get('pressure'),
-        humidity: formData.get('humidity'),
-        stability_class: formData.get('stability_class')
+        wind_speed: parseFloat(formData.get('wind_speed')),
+        wind_direction: parseFloat(formData.get('wind_direction')),
+        temperature: parseFloat(formData.get('temperature')),
+        pressure: parseFloat(formData.get('pressure')),
+        humidity: parseFloat(formData.get('humidity')),
+        solar_radiation: parseFloat(formData.get('solar_radiation')),
+        cloud_cover: parseFloat(formData.get('cloud_cover'))
     };
+
+    // 验证气象数据
+    if (isNaN(meteorologicalData.wind_speed) || meteorologicalData.wind_speed <= 0) {
+        alert('请输入有效的风速值（大于0）');
+        return;
+    }
+    if (isNaN(meteorologicalData.wind_direction) || meteorologicalData.wind_direction < 0 || meteorologicalData.wind_direction >= 360) {
+        alert('请输入有效的风向值（0-359度）');
+        return;
+    }
+    if (isNaN(meteorologicalData.temperature)) {
+        alert('请输入有效的温度值');
+        return;
+    }
+    if (isNaN(meteorologicalData.pressure) || meteorologicalData.pressure <= 0) {
+        alert('请输入有效的气压值（大于0）');
+        return;
+    }
+    if (isNaN(meteorologicalData.humidity) || meteorologicalData.humidity < 0 || meteorologicalData.humidity > 100) {
+        alert('请输入有效的湿度值（0-100%）');
+        return;
+    }
+    if (isNaN(meteorologicalData.solar_radiation) || meteorologicalData.solar_radiation < 0) {
+        alert('请输入有效的太阳辐射强度值（大于等于0）');
+        return;
+    }
+    if (isNaN(meteorologicalData.cloud_cover) || meteorologicalData.cloud_cover < 0 || meteorologicalData.cloud_cover > 1) {
+        alert('请输入有效的云量值（0-1）');
+        return;
+    }
     
     // 收集监测站数据
     const stationIds = formData.getAll('station_id[]');
@@ -222,15 +262,47 @@ function processManualData() {
     const ys = formData.getAll('y[]');
     const zs = formData.getAll('z[]');
     const concentrations = formData.getAll('concentration[]');
-    
+
+    if (stationIds.length === 0) {
+        alert('至少需要一个监测站数据');
+        return;
+    }
+
     const monitoringData = [];
     for (let i = 0; i < stationIds.length; i++) {
+        const x = parseFloat(xs[i]);
+        const y = parseFloat(ys[i]);
+        const z = parseFloat(zs[i]);
+        const concentration = parseFloat(concentrations[i]);
+
+        // 验证监测站数据
+        if (!stationIds[i] || stationIds[i].trim() === '') {
+            alert(`监测站${i+1}的站点ID不能为空`);
+            return;
+        }
+        if (isNaN(x)) {
+            alert(`监测站${i+1}的X坐标无效`);
+            return;
+        }
+        if (isNaN(y)) {
+            alert(`监测站${i+1}的Y坐标无效`);
+            return;
+        }
+        if (isNaN(z) || z < 0) {
+            alert(`监测站${i+1}的高度无效（应大于等于0）`);
+            return;
+        }
+        if (isNaN(concentration) || concentration < 0) {
+            alert(`监测站${i+1}的浓度无效（应大于等于0）`);
+            return;
+        }
+
         monitoringData.push({
-            station_id: stationIds[i],
-            x: parseFloat(xs[i]),
-            y: parseFloat(ys[i]),
-            z: parseFloat(zs[i]),
-            concentration: parseFloat(concentrations[i])
+            station_id: stationIds[i].trim(),
+            x: x,
+            y: y,
+            z: z,
+            concentration: concentration
         });
     }
     

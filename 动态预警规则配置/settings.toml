@@ -1,0 +1,97 @@
+# 预警规则配置文件 - settings.toml
+#
+# 作用：
+#   定义预警规则的所有参数和配置信息
+#
+# 主要配置：
+#   - 基础预警规则信息（ID、名称、等级等）
+#   - 设备异常预警配置（单属性、双属性规则）
+#   - 频率控制配置（累计次数、时间范围等）
+#   - 时间范围配置（生效时间段）
+#
+# 技术特点：
+#   - TOML格式，易于阅读和编辑
+#   - 支持动态修改和实时读取
+#   - 完整的配置验证和类型检查
+#
+# 使用说明：
+#   修改此文件后，预警引擎会自动读取新配置
+
+[alarm_rule]
+# 基础预警规则配置
+alarmRuleId = "999001"
+alarmRuleName = "新的温度异常预警"
+alarmClazz = "DEVICE_ALARM"  # DEVICE_ALARM(设备异常预警) | ENTERPRISE_ALARM(企业违规预警)
+alarmType = "1"
+alarmLevel = "HIGH"  # HIGH | MEDIUM | LOW
+alarmInternal = 1  # 预警间隔时长(小时)
+dataInternal = "1h"  # 数据时间间隔
+algorithmType = "test"
+calculateWay = "test"
+enabled = 1  # 0:禁用, 1:启用
+startTime = "08:00"  # 预警开始时间(HH:mm格式)
+endTime = "18:00"    # 预警结束时间(HH:mm格式)
+showProperties = ["1", "2"]  # 关联展示属性列表
+
+# 设备异常预警配置
+[device_alarm_config]
+# 单属性规则配置
+[[device_alarm_config.singlePropertyRule]]
+symbol = "OR"  # AND | OR
+property = "t1"
+lowValue = 1
+expression1 = "lt"  # lt(小于) | le(小于等于) | eq(等于)
+highValue = 10
+expression2 = "gt"  # 修正为gt(大于)以检测超出范围的值
+
+[[device_alarm_config.singlePropertyRule]]
+symbol = "AND"
+property = "t2"
+lowValue = 5
+expression1 = "lt"  # t2 < 5 (过小)
+highValue = 20
+expression2 = "gt"  # t2 > 20 (过大)
+
+# 双属性规则配置
+[[device_alarm_config.doublePropertyRule]]
+symbol = "AND"  # AND | OR
+leftProperty = "t1"
+rightProperty = "t2"
+expression = "lt"  # eq(等于) | lt(小于) | le(小于等于) | gt(大于) | ge(大于等于)
+
+[[device_alarm_config.doublePropertyRule]]
+symbol = "OR"
+leftProperty = "t3"
+rightProperty = "t4"
+expression = "gt"
+
+# 频率配置
+[device_alarm_config.frequency]
+enabled = 1  # 0:禁用, 1:启用
+hasAccumulate = 1  # 1:启用累计异常次数, 0:启用连续异常次数
+accumulateCount = 5  # 累计异常次数(当hasAccumulate=1时必填)
+accumulateTimeRange = 30  # 累计时间范围(当hasAccumulate=1时必填)
+continuousCount = 3  # 连续异常次数(当hasAccumulate=0时必填)
+
+# 企业违规预警配置
+[enterprise_alarm_config]
+# 单属性规则配置(与设备异常预警相同结构)
+[[enterprise_alarm_config.singlePropertyRule]]
+symbol = "OR"
+property = "t1"
+lowValue = 1
+expression1 = "lt"
+highValue = 10
+expression2 = "lt"
+
+# 算法类型和工况状态
+algorithmType = "algorithm_1"
+workStatus = ["spray", "unused"]
+
+# 频率配置(与设备异常预警相同结构)
+[enterprise_alarm_config.frequency]
+enabled = 1
+hasAccumulate = 1
+accumulateCount = 5
+accumulateTimeRange = 30
+continuousCount = 3

@@ -79,11 +79,23 @@ class AlarmRuleManager:
         current = doc
 
         for k in keys[:-1]:
-            if k not in current:
+            # 检查是否是数组索引
+            if k.isdigit():
+                # 这是数组索引，跳过处理
+                continue
+            elif k not in current:
                 current[k] = tomlkit.table()
             current = current[k]
 
-        current[keys[-1]] = value
+        final_key = keys[-1]
+        # 检查是否是数组索引
+        if final_key.isdigit():
+            # 处理数组索引
+            array_index = int(final_key)
+            if isinstance(current, list) and len(current) > array_index:
+                current[array_index] = value
+        else:
+            current[final_key] = value
     
     def build_alarm_rule(self) -> Dict[str, Any]:
         """构建完整的预警规则"""

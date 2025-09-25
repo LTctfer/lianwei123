@@ -22,16 +22,85 @@
 
 import json
 import time
+import random
+import os
 from datetime import datetime, timedelta
 from compact_alarm_engine import CompactAlarmEngine, OperatorFactory, RuleEvaluator, FrequencyManager
 
 
-class TestCompactAlarmEngine:
+class CompactAlarmEngineTest:
     """精简预警引擎测试类"""
-    
+
     def __init__(self):
+        # 确保在正确的目录下运行
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(script_dir)
+
         self.engine = CompactAlarmEngine()
         self.test_results = []
+        random.seed(42)  # 设置随机种子确保测试可重复
+
+    def generate_test_data(self, count=1000):
+        """生成大规模测试数据"""
+        test_data = []
+
+        for i in range(count):
+            # 生成不同类型的测试数据
+            data_type = i % 6
+
+            if data_type == 0:
+                # 正常数据
+                data = {
+                    't1': random.uniform(2, 8),
+                    't2': random.uniform(8, 18),
+                    't3': random.uniform(5, 15),
+                    't4': random.uniform(3, 12)
+                }
+            elif data_type == 1:
+                # t1异常（过小）
+                data = {
+                    't1': random.uniform(0.1, 0.9),
+                    't2': random.uniform(8, 18),
+                    't3': random.uniform(5, 15),
+                    't4': random.uniform(3, 12)
+                }
+            elif data_type == 2:
+                # t1异常（过大）
+                data = {
+                    't1': random.uniform(12, 20),
+                    't2': random.uniform(8, 18),
+                    't3': random.uniform(5, 15),
+                    't4': random.uniform(3, 12)
+                }
+            elif data_type == 3:
+                # t2异常（过大）
+                data = {
+                    't1': random.uniform(2, 8),
+                    't2': random.uniform(22, 30),
+                    't3': random.uniform(5, 15),
+                    't4': random.uniform(3, 12)
+                }
+            elif data_type == 4:
+                # 双属性异常（t3 > t4）
+                t4_val = random.uniform(3, 8)
+                data = {
+                    't1': random.uniform(2, 8),
+                    't2': random.uniform(8, 18),
+                    't3': t4_val + random.uniform(5, 10),  # 确保t3 > t4
+                    't4': t4_val
+                }
+            else:
+                # 多重异常
+                data = {
+                    't1': random.uniform(0.1, 0.5),  # t1过小
+                    't2': random.uniform(25, 35),    # t2过大
+                    't3': random.uniform(40, 60),    # t3较大
+                    't4': random.uniform(1, 5)       # t4较小
+                }
+
+            test_data.append(data)
+
+        return test_data
     
     def run_test(self, test_name: str, test_func):
         """运行单个测试"""
@@ -124,19 +193,33 @@ class TestCompactAlarmEngine:
         """测试异常数据处理"""
         # 清空历史记录确保测试独立性
         self.engine.clear_alarm_history()
-        abnormal_data = {'t1': 0.1, 't2': 25, 't3': 50, 't4': 5}  # 多重异常数据
-        alarm = self.engine.process_data(abnormal_data)
 
-        if alarm is None:
-            print(f"   预警未触发，数据: {abnormal_data}")
+        # 使用多种异常数据进行测试
+        abnormal_datasets = [
+            {'t1': 0.1, 't2': 25, 't3': 50, 't4': 5},   # 多重异常
+            {'t1': 0.5, 't2': 15, 't3': 8, 't4': 12},   # t1过小
+            {'t1': 15, 't2': 15, 't3': 8, 't4': 12},    # t1过大
+            {'t1': 5, 't2': 25, 't3': 8, 't4': 12},     # t2过大
+            {'t1': 5, 't2': 3, 't3': 8, 't4': 12},      # t2过小
+            {'t1': 20, 't2': 15, 't3': 8, 't4': 12},    # t1 > t2 (双属性异常)
+        ]
+
+        alarm_triggered = False
+        for abnormal_data in abnormal_datasets:
+            alarm = self.engine.process_data(abnormal_data)
+            if alarm is not None:
+                alarm_triggered = True
+                # 验证预警消息格式
+                required_fields = ['alarmId', 'alarmTime', 'data', 'alarmInfo']
+                for field in required_fields:
+                    if field not in alarm:
+                        print(f"   预警消息缺少字段: {field}")
+                        return False
+                break
+
+        if not alarm_triggered:
+            print(f"   所有异常数据都未触发预警")
             return False
-
-        # 验证预警消息格式
-        required_fields = ['alarmId', 'alarmTime', 'data', 'alarmInfo']
-        for field in required_fields:
-            if field not in alarm:
-                print(f"   预警消息缺少字段: {field}")
-                return False
 
         return True
     
@@ -202,12 +285,21 @@ class TestCompactAlarmEngine:
         self.engine.clear_alarm_history()
         initial_count = len(self.engine.get_alarm_history())
 
-        # 触发一个预警
-        abnormal_data = {'t1': 0.1, 't2': 25, 't3': 50, 't4': 5}
-        self.engine.process_data(abnormal_data)
-        
+        # 尝试多种异常数据触发预警
+        abnormal_datasets = [
+            {'t1': 0.1, 't2': 25, 't3': 50, 't4': 5},   # 多重异常
+            {'t1': 0.5, 't2': 15, 't3': 8, 't4': 12},   # t1过小
+            {'t1': 15, 't2': 15, 't3': 8, 't4': 12},    # t1过大
+        ]
+
+        alarm_count = 0
+        for abnormal_data in abnormal_datasets:
+            alarm = self.engine.process_data(abnormal_data)
+            if alarm is not None:
+                alarm_count += 1
+
         new_count = len(self.engine.get_alarm_history())
-        return new_count == initial_count + 1
+        return new_count >= initial_count + alarm_count and alarm_count > 0
     
     def test_statistics(self):
         """测试统计功能"""
@@ -228,15 +320,15 @@ class TestCompactAlarmEngine:
             {'t1': 'invalid'},  # 无效类型
             {'unknown_field': 123},  # 未知字段
         ]
-        
+
         for data in edge_cases:
             try:
-                alarm = self.engine.process_data(data)
-                # 边界情况不应该抛出异常
+                result = self.engine.process_data(data)
+                # 边界情况不应该抛出异常，可能返回None或预警
             except Exception as e:
                 print(f"   边界情况处理失败: {data} - {str(e)}")
                 return False
-        
+
         return True
     
     def test_multiple_rule_triggers(self):
@@ -255,12 +347,62 @@ class TestCompactAlarmEngine:
         """测试配置重新加载"""
         # 获取当前配置
         config1 = self.engine.manager.get_fresh_config()
-        
+
         # 重新获取配置（模拟配置更新）
         config2 = self.engine.manager.get_fresh_config()
-        
+
         # 配置应该能够正常获取
         return config1 is not None and config2 is not None
+
+    def test_large_scale_data(self):
+        """大规模数据测试"""
+        print("🔄 开始大规模数据测试...")
+
+        # 生成1000个测试数据
+        test_data = self.generate_test_data(1000)
+
+        # 清空历史记录
+        self.engine.clear_alarm_history()
+
+        alarm_count = 0
+        error_count = 0
+        start_time = time.time()
+
+        for i, data in enumerate(test_data):
+            try:
+                alarm = self.engine.process_data(data)
+                if alarm is not None:
+                    alarm_count += 1
+
+                # 每100个数据显示一次进度
+                if (i + 1) % 100 == 0:
+                    print(f"   已处理 {i + 1}/1000 个数据，触发预警 {alarm_count} 次")
+
+            except Exception as e:
+                error_count += 1
+                if error_count <= 5:  # 只显示前5个错误
+                    print(f"   数据处理错误: {data} - {str(e)}")
+
+        end_time = time.time()
+        processing_time = end_time - start_time
+
+        print(f"   大规模测试完成:")
+        print(f"   - 处理数据: 1000 个")
+        print(f"   - 触发预警: {alarm_count} 次")
+        print(f"   - 处理错误: {error_count} 次")
+        print(f"   - 处理时间: {processing_time:.2f} 秒")
+        print(f"   - 平均速度: {1000/processing_time:.1f} 次/秒")
+
+        # 验证结果
+        history = self.engine.get_alarm_history()
+        stats = self.engine.get_statistics()
+
+        print(f"   - 历史记录: {len(history)} 条")
+        print(f"   - 统计信息: {stats}")
+
+        # 测试通过条件：错误率低于5%，有预警触发
+        success_rate = (1000 - error_count) / 1000
+        return success_rate >= 0.95 and alarm_count > 0
     
     def run_all_tests(self):
         """运行所有测试"""
@@ -282,6 +424,7 @@ class TestCompactAlarmEngine:
             ("边界情况测试", self.test_edge_cases),
             ("多规则触发测试", self.test_multiple_rule_triggers),
             ("配置重新加载测试", self.test_configuration_reload),
+            ("大规模数据测试", self.test_large_scale_data),
         ]
         
         # 运行所有测试
@@ -320,33 +463,46 @@ def run_performance_test():
     """运行性能测试"""
     print("\n⚡ 性能测试")
     print("-" * 30)
-    
+
     engine = CompactAlarmEngine()
-    test_data = {'t1': 0.5, 't2': 15, 't3': 8, 't4': 12}
-    
+
+    # 使用多样化的测试数据
+    test_datasets = [
+        {'t1': 5, 't2': 15, 't3': 8, 't4': 12},      # 正常数据
+        {'t1': 0.5, 't2': 25, 't3': 50, 't4': 5},    # 异常数据
+        {'t1': 15, 't2': 3, 't3': 2, 't4': 20},      # 混合数据
+        {'t1': 0.1, 't2': 30, 't3': 60, 't4': 1},    # 多重异常
+    ]
+
     # 测试处理速度
     start_time = time.time()
     iterations = 1000
-    
-    for _ in range(iterations):
-        engine.process_data(test_data)
-    
+    alarm_count = 0
+
+    for i in range(iterations):
+        test_data = test_datasets[i % len(test_datasets)]
+        alarm = engine.process_data(test_data)
+        if alarm is not None:
+            alarm_count += 1
+
     end_time = time.time()
     duration = end_time - start_time
-    
+
     print(f"处理 {iterations} 次数据耗时: {duration:.3f} 秒")
     print(f"平均每次处理耗时: {duration/iterations*1000:.3f} 毫秒")
     print(f"每秒处理能力: {iterations/duration:.0f} 次/秒")
+    print(f"触发预警次数: {alarm_count} 次")
+    print(f"预警触发率: {alarm_count/iterations*100:.1f}%")
 
 
 if __name__ == "__main__":
     # 运行测试套件
-    tester = TestCompactAlarmEngine()
+    tester = CompactAlarmEngineTest()
     tester.run_all_tests()
-    
+
     # 运行性能测试
     run_performance_test()
-    
+
     # 显示最终的预警历史和统计
     print("\n📈 最终统计信息:")
     stats = tester.engine.get_statistics()

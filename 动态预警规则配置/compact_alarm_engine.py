@@ -112,9 +112,13 @@ class RuleEvaluator:
 
 class FrequencyManager:
     """频率管理器 - 处理累计和连续异常次数检查"""
-    
+
     def __init__(self):
         self.states: Dict[str, FrequencyState] = {}
+
+    def clear_states(self):
+        """清空所有频率状态"""
+        self.states.clear()
     
     def check_frequency(self, rule_id: str, frequency_config: Dict[str, Any], 
                        is_triggered: bool) -> bool:
@@ -224,14 +228,18 @@ class CompactAlarmEngine:
         triggered_rules.extend(RuleEvaluator.evaluate_rules_group(
             alarm_config.get('doublePropertyRule', []), data, 'double'))
         
-        if not triggered_rules:
-            return {'triggered': False, 'reason': '未触发任何规则'}
-        
-        # 检查频率限制
+        # 检查频率限制（无论是否触发规则都要检查，以便更新连续计数）
         rule_id = alarm_rule.get('alarmRuleId', '')
         frequency_config = alarm_config.get('frequency', {})
-        
-        if self.frequency_manager.check_frequency(rule_id, frequency_config, True):
+        has_triggered_rules = len(triggered_rules) > 0
+
+        # 更新频率状态
+        frequency_passed = self.frequency_manager.check_frequency(rule_id, frequency_config, has_triggered_rules)
+
+        if not has_triggered_rules:
+            return {'triggered': False, 'reason': '未触发任何规则'}
+
+        if frequency_passed:
             return {
                 'triggered': True,
                 'alarm_rule': alarm_rule,
@@ -239,7 +247,7 @@ class CompactAlarmEngine:
                 'data': data,
                 'timestamp': datetime.now().isoformat()
             }
-        
+
         return {'triggered': False, 'reason': '频率限制未满足'}
     
     def process_data(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -265,6 +273,8 @@ class CompactAlarmEngine:
     def clear_alarm_history(self) -> None:
         """清空预警历史记录"""
         self.alarm_history.clear()
+        # 同时清空频率状态
+        self.frequency_manager.clear_states()
     
     def get_statistics(self) -> Dict[str, Any]:
         """获取预警统计信息"""

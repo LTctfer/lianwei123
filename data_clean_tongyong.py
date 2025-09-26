@@ -1,61 +1,91 @@
 import pandas as pd
+from sqlalchemy import create_engine
 
-def clean_data(df, columns_to_clean):
-    """
-    通用数据清洗函数：
-    1. 去除空值
-    2. 去除 0 值
-    3. 使用箱型图(IQR)去除异常值
+class DataCleaner:
+    def __init__(self, db_url):
+        """
+        初始化数据库连接
+        参数:
+            db_url: 数据库连接字符串
+                   - MySQL: "mysql+pymysql://user:password@host:port/database"
+                   - PostgreSQL: "postgresql://user:password@host:port/database"
+                   - SQLite: "sqlite:///your.db"
+        """
+        self.engine = create_engine(db_url)
 
-    参数:
-        df (pd.DataFrame): 输入的原始数据
-        columns_to_clean (list): 需要清洗的字段名列表
+    def read_data(self, table_name, columns):
+        """
+        从数据库读取指定字段
+        """
+        query = f"SELECT {', '.join(columns)} FROM {table_name}"
+        df = pd.read_sql(query, self.engine)
+        return df
 
-    返回:
-        pd.DataFrame: 清洗后的数据
-    """
-    cleaned_df = df.copy()
+    def clean(self, df, columns_to_clean):
+        """
+        数据清洗逻辑：
+        1. 去空值
+        2. 去 0 值
+        3. 箱型图法去异常值
+        """
+        cleaned_df = df.copy()
 
-    for col in columns_to_clean:
-        if col not in cleaned_df.columns:
-            print(f"⚠️ 警告：字段 {col} 不存在，跳过")
-            continue
+        for col in columns_to_clean:
+            if col not in cleaned_df.columns:
+                print(f"⚠️ 警告：字段 {col} 不存在，跳过")
+                continue
 
-        # 去除空值和 0 值
-        cleaned_df = cleaned_df[cleaned_df[col].notnull()]
-        cleaned_df = cleaned_df[cleaned_df[col] != 0]
+            # 去空值和 0 值
+            cleaned_df = cleaned_df[cleaned_df[col].notnull()]
+            cleaned_df = cleaned_df[cleaned_df[col] != 0]
 
-        # 使用箱型图方法去除异常值
-        Q1 = cleaned_df[col].quantile(0.25)
-        Q3 = cleaned_df[col].quantile(0.75)
-        IQR = Q3 - Q1
-        lower_bound = Q1 - 1.5 * IQR
-        upper_bound = Q3 + 1.5 * IQR
+            # 箱型图方法去异常值
+            Q1 = cleaned_df[col].quantile(0.25)
+            Q3 = cleaned_df[col].quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
 
-        before_len = len(cleaned_df)
-        cleaned_df = cleaned_df[(cleaned_df[col] >= lower_bound) & (cleaned_df[col] <= upper_bound)]
-        after_len = len(cleaned_df)
+            before_len = len(cleaned_df)
+            cleaned_df = cleaned_df[(cleaned_df[col] >= lower_bound) & (cleaned_df[col] <= upper_bound)]
+            after_len = len(cleaned_df)
 
-        print(f"字段 {col} 清洗完成：移除了 {before_len - after_len} 条异常值")
+            print(f"字段 {col} 清洗完成：移除了 {before_len - after_len} 条异常值")
 
-    return cleaned_df
+        return cleaned_df
+
+    def save_to_new_table(self, df, new_table_name, if_exists="replace"):
+        """
+        将清洗后的数据写入新的表
+        参数:
+            df: 清洗后的 DataFrame
+            new_table_name: 新表名
+            if_exists: 'replace' 覆盖, 'append' 追加
+        """
+        df.to_sql(new_table_name, self.engine, index=False, if_exists=if_exists)
+        print(f"✅ 清洗后的数据已保存到新表: {new_table_name}")
 
 
 # ================= 使用示例 =================
 if __name__ == "__main__":
-    # 构造示例数据
-    data = {
-        "温度": [25, 26, 0, None, 1000, 27, 28],
-        "湿度": [50, 55, 60, 0, None, 70, 800],
-        "压力": [101, 102, 103, 104, 0, None, 10000]
-    }
-    df = pd.DataFrame(data)
+    # 数据库连接 (以 MySQL 为例)
+    db_url = "mysql+pymysql://root:123456@localhost:3306/testdb"
+    cleaner = DataCleaner(db_url)
+
+    # 原始表和清洗后的表
+    source_table = "gateway_data"
+    new_table = "gateway_data_cleaned"
+
+    # 需要清洗的字段
+    columns_to_clean = ["temperature", "humidity", "pressure"]
+
+    # 读取数据
+    df = cleaner.read_data(source_table, columns_to_clean)
     print("原始数据：")
-    print(df)
+    print(df.head())
 
-    # 只需要修改这部分即可指定清洗的字段
-    columns_to_clean = ["温度", "湿度", "压力"]
+    # 清洗数据
+    cleaned_df = cleaner.clean(df, columns_to_clean)
 
-    cleaned = clean_data(df, columns_to_clean)
-    print("\n清洗后的数据：")
-    print(cleaned)
+    # 保存到新表
+    cleaner.save_to_new_table(cleaned_df, new_table)

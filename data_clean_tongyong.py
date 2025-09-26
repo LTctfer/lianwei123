@@ -3,89 +3,104 @@ from sqlalchemy import create_engine
 
 class DataCleaner:
     def __init__(self, db_url):
-        """
-        初始化数据库连接
-        参数:
-            db_url: 数据库连接字符串
-                   - MySQL: "mysql+pymysql://user:password@host:port/database"
-                   - PostgreSQL: "postgresql://user:password@host:port/database"
-                   - SQLite: "sqlite:///your.db"
-        """
         self.engine = create_engine(db_url)
 
-    def read_data(self, table_name, columns):
+    def read_data(self, table_name, columns, time_col):
         """
-        从数据库读取指定字段
+        从数据库读取数据，并确保时间字段转换为 datetime 类型
         """
         query = f"SELECT {', '.join(columns)} FROM {table_name}"
         df = pd.read_sql(query, self.engine)
+        df[time_col] = pd.to_datetime(df[time_col])  # 确保时间列为 datetime 类型
         return df
 
-    def clean(self, df, columns_to_clean):
+    def clean_and_calculate(self, df, columns_to_clean, time_col="timestamp"):
         """
-        数据清洗逻辑：
+        在每个 1 分钟窗口内进行清洗并计算均值：
         1. 去空值
         2. 去 0 值
-        3. 箱型图法去异常值
+        3. 用箱型图去除极大值和极小值
+        4. 计算均值
         """
-        cleaned_df = df.copy()
+        # 按分钟对时间戳取整
+        df["minute"] = df[time_col].dt.floor("T")
 
-        for col in columns_to_clean:
-            if col not in cleaned_df.columns:
-                print(f"⚠️ 警告：字段 {col} 不存在，跳过")
-                continue
+        result_list = []
 
-            # 去空值和 0 值
-            cleaned_df = cleaned_df[cleaned_df[col].notnull()]
-            cleaned_df = cleaned_df[cleaned_df[col] != 0]
+        for minute, group in df.groupby("minute"):
+            group_cleaned = group.copy()
 
-            # 箱型图方法去异常值
-            Q1 = cleaned_df[col].quantile(0.25)
-            Q3 = cleaned_df[col].quantile(0.75)
-            IQR = Q3 - Q1
-            lower_bound = Q1 - 1.5 * IQR
-            upper_bound = Q3 + 1.5 * IQR
+            # 清洗每一列
+            for col in columns_to_clean:
+                if col not in group_cleaned.columns:
+                    continue
 
-            before_len = len(cleaned_df)
-            cleaned_df = cleaned_df[(cleaned_df[col] >= lower_bound) & (cleaned_df[col] <= upper_bound)]
-            after_len = len(cleaned_df)
+                # 去空值 & 0 值
+                group_cleaned = group_cleaned[group_cleaned[col].notnull()]
+                group_cleaned = group_cleaned[group_cleaned[col] != 0]
 
-            print(f"字段 {col} 清洗完成：移除了 {before_len - after_len} 条异常值")
+                # 箱型图方法去除极值
+                if not group_cleaned.empty:
+                    Q1 = group_cleaned[col].quantile(0.25)
+                    Q3 = group_cleaned[col].quantile(0.75)
+                    IQR = Q3 - Q1
+                    lower_bound = Q1 - 1.5 * IQR
+                    upper_bound = Q3 + 1.5 * IQR
+                    group_cleaned = group_cleaned[
+                        (group_cleaned[col] >= lower_bound) &
+                        (group_cleaned[col] <= upper_bound)
+                    ]
 
-        return cleaned_df
+            # 计算均值
+            if not group_cleaned.empty:
+                means = group_cleaned[columns_to_clean].mean()
+                means[time_col] = minute  # 添加时间列
+                result_list.append(means)
 
-    def save_to_new_table(self, df, new_table_name, if_exists="replace"):
+        # 将均值合并为 DataFrame
+        result_df = pd.DataFrame(result_list)
+
+        return result_df
+
+    def save_to_backend(self, df, backend_function):
         """
-        将清洗后的数据写入新的表
-        参数:
-            df: 清洗后的 DataFrame
-            new_table_name: 新表名
-            if_exists: 'replace' 覆盖, 'append' 追加
+        将计算后的均值写入后端
+        参数：
+            df: 清洗和计算后的 DataFrame
+            backend_function: 后端接口函数
         """
-        df.to_sql(new_table_name, self.engine, index=False, if_exists=if_exists)
-        print(f"✅ 清洗后的数据已保存到新表: {new_table_name}")
+        # 将均值结果传给后端
+        for _, row in df.iterrows():
+            backend_function(row)  # 调用后端接口
+        print(f"✅ 已将数据写入后端：{len(df)} 条记录")
 
 
 # ================= 使用示例 =================
 if __name__ == "__main__":
-    # 数据库连接 (以 MySQL 为例)
+    # 数据库连接
     db_url = "mysql+pymysql://root:123456@localhost:3306/testdb"
     cleaner = DataCleaner(db_url)
 
-    # 原始表和清洗后的表
+    # 表和字段
     source_table = "gateway_data"
-    new_table = "gateway_data_cleaned"
-
-    # 需要清洗的字段
     columns_to_clean = ["temperature", "humidity", "pressure"]
+    time_col = "timestamp"
+
+    # 后端函数示例（模拟）
+    def backend_function(data_row):
+        print(f"将数据写入后端：{data_row.to_dict()}")
 
     # 读取数据
-    df = cleaner.read_data(source_table, columns_to_clean)
+    df = cleaner.read_data(source_table, [time_col] + columns_to_clean, time_col)
     print("原始数据：")
     print(df.head())
 
-    # 清洗数据
-    cleaned_df = cleaner.clean(df, columns_to_clean)
+    # 清洗数据并计算均值
+    result_df = cleaner.clean_and_calculate(df, columns_to_clean, time_col)
 
-    # 保存到新表
-    cleaner.save_to_new_table(cleaned_df, new_table)
+    # 打印结果（均值）
+    print("\n计算后的均值：")
+    print(result_df)
+
+    # 保存到后端
+    cleaner.save_to_backend(result_df, backend_function)

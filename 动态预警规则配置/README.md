@@ -1,141 +1,204 @@
-# 智能预警规则引擎
+# 智能预警引擎 - 精简版
 
-基于智算中心预警规则文档实现的精简高效预警系统，支持实时数据处理和智能预警判断。
+基于智算中心预警规则文档的通用预警算法，单文件解决方案，易于维护和部署。
 
-## ⭐ 核心亮点
+## 🎯 核心特点
 
-- **精简高效** - 核心算法仅250行，处理速度50+次/秒
-- **功能完整** - 支持单属性、双属性规则和频率控制
-- **标准兼容** - 完全符合智算中心文档规范
-- **即插即用** - 基于配置文件，无需修改代码
+- **单文件解决方案**: 所有功能集成在一个文件中，易于维护
+- **完全配置驱动**: 所有参数通过配置文件动态调整
+- **平台集成友好**: 支持标准MQTT格式的配置下发和预警推送
+- **智能频率控制**: 累积异常和连续异常两种模式
+- **内置测试演示**: 自带测试和演示功能，无需额外文件
 
-## 📁 文件结构
+## 📁 项目结构
 
-| 文件 | 功能 | 推荐度 |
-|------|------|--------|
-| `compact_alarm_engine.py` | **精简预警引擎** | ⭐⭐⭐ |
-| `demo_compact_engine.py` | 功能演示程序 | ⭐⭐ |
-| `test_compact_engine.py` | 测试套件 | ⭐⭐ |
-| `settings.toml` | 预警规则配置 | ⭐⭐⭐ |
-| `alarm_rule_manager.py` | 配置管理器 | ⭐ |
-| `alarm_rule_engine.py` | 原始引擎（对比用） | ⭐ |
+```
+lianwei123\动态预警规则配置\
+├── smart_alarm.py               # 智能预警引擎主文件 (250行)
+├── config.toml                  # 预警配置文件
+├── 智算中心-预警规则文档.md        # 官方规范文档
+└── README.md                    # 项目说明文档
+```
 
 ## 🚀 快速开始
 
-### 安装依赖
+### 1. 运行测试
 
 ```bash
-pip install dynaconf tomlkit
+# 运行自测试
+python smart_alarm.py test
+
+# 运行演示
+python smart_alarm.py demo
+
+# 默认运行（自测试）
+python smart_alarm.py
 ```
 
-### 基础使用
+### 2. 基础使用
 
 ```python
-from compact_alarm_engine import CompactAlarmEngine
+from smart_alarm import SmartAlarmEngine
 
-# 创建引擎并处理数据
-engine = CompactAlarmEngine()
-data = {'t1': 0.1, 't2': 25.8, 't3': 50.2, 't4': 2.1}
+# 创建引擎实例
+engine = SmartAlarmEngine()
+
+# 处理数据
+data = {'t1': 0.5, 't2': 25, 't3': 50, 't4': 5}
 alarm = engine.process_data(data)
 
 if alarm:
-    print(f"🚨 {alarm['alarmInfo']['alarmRuleName']}")
-else:
-    print("✅ 数据正常")
+    print(f"触发预警: {alarm['alarmId']}")
+    # 推送到平台
+    engine.push_alarm(alarm, "device_001")
 ```
 
-### 运行演示
+### 3. 平台配置下发
 
-```bash
-python demo_compact_engine.py    # 完整功能演示
-python test_compact_engine.py    # 测试套件
+```python
+# 接收平台配置命令
+platform_command = {
+    "commandType": "ALARM_RULE",
+    "data": {
+        "alarmRuleId": "123456",
+        "alarmRuleName": "温度异常预警",
+        "alarmClazz": "DEVICE_ALARM",
+        "alarmLevel": "HIGH",
+        "enabled": 1
+    }
+}
+
+result = engine.receive_platform_command(platform_command)
+print(f"配置更新: {result['message']}")
 ```
 
-## 📋 核心文件说明
+## 🔧 核心功能
 
-### `compact_alarm_engine.py` ⭐ 精简预警引擎
+### 1. 预警规则评估
+- **单属性规则**: 支持OR/AND逻辑，所有比较操作符 (lt, le, eq, gt, ge, ne)
+- **双属性规则**: 支持两个属性间的比较操作
 
-**主要特点**:
-- 250行精简代码，性能50+次/秒
-- 支持单属性、双属性规则和频率控制
-- 基于策略模式和工厂模式设计
-- 完整类型注解，易于维护
+### 2. 频率控制机制
+- **累积模式**: 时间窗口内累积异常次数，达到阈值触发预警
+- **连续模式**: 统计连续异常次数，正常数据重置计数
 
-**核心类**:
-- `CompactAlarmEngine` - 主引擎
-- `OperatorFactory` - 操作符处理
-- `RuleEvaluator` - 规则评估
-- `FrequencyManager` - 频率控制
+### 3. 配置管理
+- **实时更新**: 配置修改立即生效
+- **平台下发**: 支持标准JSON格式配置命令
+- **动态调整**: 所有参数均可通过配置文件修改
 
-### `settings.toml` 配置文件
-
-**关键配置**:
-```toml
-[alarm_rule]
-enabled = 1                     # 启用预警
-alarmLevel = "HIGH"             # 预警等级
-
-[device_alarm_config.singlePropertyRule]
-property = "t1"                 # 监控属性
-lowValue = 1                    # 最小阈值
-highValue = 10                  # 最大阈值
-
-[device_alarm_config.frequency]
-accumulateCount = 5             # 累计5次异常触发
-```
-
-### 其他文件
-
-- `demo_compact_engine.py` - 完整功能演示
-- `test_compact_engine.py` - 测试套件（13个用例）
-- `alarm_rule_manager.py` - 配置管理器
-- `智算中心-预警规则文档.md` - 官方规范文档
-
-## 📊 预警消息示例
-
-触发预警时生成的标准JSON格式：
-
+### 4. 预警消息推送
+标准MQTT格式推送到 `qixiu/warning_data/{设备编号}`:
 ```json
 {
-  "alarmId": "999001",
-  "alarmTime": "2025-09-24T16:43:10.783737",
-  "data": {"t1": 0.1, "t2": 25.8, "t3": 50.2, "t4": 2.1},
-  "alarmInfo": {
-    "alarmRuleName": "新的温度异常预警",
-    "alarmLevel": "HIGH",
+  "alarmId": "123456",
+  "alarmTime": "2025-09-26 10:30:00",
+  "data": {"t1": 0.5, "t2": 25}
+}
+```
+
+## 📊 配置文件格式 (config.toml)
+
+```toml
+[alarm_rule]
+alarmRuleId = "123456"
+alarmRuleName = "智能预警规则"
+alarmClazz = "DEVICE_ALARM"  # DEVICE_ALARM | ENTERPRISE_ALARM
+alarmLevel = "HIGH"          # LOW | MEDIUM | HIGH | CRITICAL
+enabled = 1                  # 0:禁用, 1:启用
+startTime = "00:00"         # 预警开始时间
+endTime = "23:59"           # 预警结束时间
+
+[device_alarm_config]
+# 单属性规则
+[[device_alarm_config.singlePropertyRule]]
+symbol = "OR"               # AND | OR
+property = "t1"
+lowValue = 1
+expression1 = "lt"          # lt | le | eq | gt | ge | ne
+highValue = 10
+expression2 = "gt"
+
+# 双属性规则
+[[device_alarm_config.doublePropertyRule]]
+symbol = "AND"
+leftProperty = "t1"
+rightProperty = "t2"
+expression = "lt"
+
+# 频率控制
+[device_alarm_config.frequency]
+enabled = 1
+hasAccumulate = 1           # 1:累积模式, 0:连续模式
+accumulateCount = 3         # 累积异常次数
+accumulateTimeRange = 30    # 累积时间范围(分钟)
+continuousCount = 3         # 连续异常次数
+```
+
+## 🧪 测试和演示
+
+### 内置功能
+
+```bash
+# 运行自测试 - 验证所有核心功能
+python smart_alarm.py test
+
+# 运行演示 - 展示预警处理流程
+python smart_alarm.py demo
+
+# 默认运行自测试
+python smart_alarm.py
+```
+
+### 测试覆盖
+- ✅ 基础预警功能测试
+- ✅ 配置动态修改测试
+- ✅ 频率控制机制测试
+- ✅ 平台命令处理测试
+- ✅ 预警消息推送测试
+
+## 🔌 平台集成
+
+### 配置下发接口
+MQTT主题: `command/{设备编号}`
+```json
+{
+  "commandType": "ALARM_RULE",
+  "data": {
+    "alarmRuleId": "123456",
+    "alarmRuleName": "温度异常预警",
     "alarmClazz": "DEVICE_ALARM",
-    "triggeredRulesCount": 4,
-    "triggeredRules": [...]
+    "alarmLevel": "HIGH"
   }
 }
 ```
 
-## 🔧 主要API
-
-```python
-# 基础使用
-engine = CompactAlarmEngine()
-alarm = engine.process_data(data)
-history = engine.get_alarm_history()
-
-# 配置管理
-manager = AlarmRuleManager()
-manager.update_config({"alarm_rule.enabled": 1})
-config = manager.get_fresh_config()
+### 预警上报接口
+MQTT主题: `qixiu/warning_data/{设备编号}`
+```json
+{
+  "alarmId": "123456",
+  "alarmTime": "2025-09-26 10:30:00",
+  "data": {"t1": 0.5, "t2": 25}
+}
 ```
 
-## 🛠️ 技术特点
+## 📈 性能特点
 
-- **Python 3.7+** 现代特性支持
-- **策略模式** 操作符处理
-- **工厂模式** 组件创建
-- **类型安全** 完整注解
-- **配置驱动** 无需修改代码
+- **代码量**: 250行，易于维护
+- **处理速度**: 高性能数据处理
+- **内存占用**: 轻量级设计
+- **响应时间**: 毫秒级预警响应
+- **配置更新**: 实时生效
 
-## 📞 支持
+## 🎉 项目优势
 
-遇到问题请提供：Python版本、错误日志、配置文件、测试数据
+1. **单文件解决方案** - 所有功能集成在一个文件中
+2. **易于维护** - 代码结构清晰，逻辑简单
+3. **快速部署** - 无复杂依赖，即拷即用
+4. **功能完整** - 涵盖所有预警需求
+5. **内置测试** - 自带测试和演示功能
 
----
+## 📄 许可证
 
-**MIT License** | 基于智算中心预警规则文档实现
+MIT License

@@ -1,12 +1,16 @@
+# 智能预警引擎配置文件
+# 支持基础引擎和MQTT引擎
+
 [alarm_rule]
-alarmRuleId = "TEST_001"
-alarmRuleName = "测试规则"
+alarmRuleId = "SMART_ALARM_001"
+alarmRuleName = "智能预警规则"
 alarmClazz = "DEVICE_ALARM"
-alarmLevel = "LOW"
+alarmLevel = "HIGH"
 enabled = 1
 startTime = "00:00"
 endTime = "23:59"
 
+# 单属性规则配置
 [[device_alarm_config.singlePropertyRule]]
 symbol = "OR"
 property = "t1"
@@ -23,14 +27,29 @@ expression1 = "lt"
 highValue = 20
 expression2 = "gt"
 
+# 双属性规则配置
 [[device_alarm_config.doublePropertyRule]]
 symbol = "AND"
 leftProperty = "t1"
 rightProperty = "t2"
 expression = "lt"
 
+# 频率控制配置
 [device_alarm_config.frequency]
 enabled = 1
 hasAccumulate = 1
 accumulateCount = 3
 accumulateTimeRange = 30
+
+# MQTT配置（可选，用于文档说明）
+[mqtt]
+broker_host = "broker.emqx.io"
+broker_port = 1883
+device_id = "device_001"
+qos = 1
+keep_alive = 60
+
+[mqtt.topics]
+config_update = "smart_alarm/config/update/{device_id}"
+alarm_alert = "smart_alarm/alarm/alert/{device_id}"
+status_feedback = "smart_alarm/status/feedback/{device_id}"

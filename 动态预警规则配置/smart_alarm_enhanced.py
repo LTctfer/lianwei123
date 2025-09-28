@@ -153,9 +153,14 @@ class FileWatcher:
 
 class ConfigManager:
     """配置管理器 - 支持内存缓存和热加载"""
-    
+
     def __init__(self, config_file: str):
-        self.config_file = config_file
+        # 处理相对路径，确保配置文件在脚本同级目录
+        if not os.path.isabs(config_file):
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            self.config_file = os.path.join(script_dir, config_file)
+        else:
+            self.config_file = config_file
         self.config_cache = {}
         self.config_version = 0
         self.config_hash = ""

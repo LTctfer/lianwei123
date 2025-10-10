@@ -34,9 +34,9 @@ class MQTTSmartAlarm:
         )
         self.logger = logging.getLogger(__name__)
         
-        # MQTT主题
-        self.config_topic = f"smart_alarm/config/update/{device_id}"
-        self.alarm_topic = f"smart_alarm/alarm/alert/{device_id}"
+        # MQTT主题 - 按照智算中心文档要求
+        self.command_topic = f"command/{device_id}"
+        self.alarm_topic = f"RTO/warning_data/{device_id}"
         self.status_topic = f"smart_alarm/status/feedback/{device_id}"
         
         # 初始化预警引擎
@@ -86,10 +86,10 @@ class MQTTSmartAlarm:
             with self.lock:
                 self.connected = True
             
-            # 订阅配置更新主题
-            result = client.subscribe(self.config_topic, qos=1)
+            # 订阅命令主题
+            result = client.subscribe(self.command_topic, qos=1)
             if result[0] == mqtt.MQTT_ERR_SUCCESS:
-                self.logger.info(f"📡 已订阅配置更新主题: {self.config_topic}")
+                self.logger.info(f"📡 已订阅命令主题: {self.command_topic}")
             
             # 发送上线状态
             self._publish_status({
@@ -113,54 +113,88 @@ class MQTTSmartAlarm:
         self.logger.debug(f"📤 消息发布成功，消息ID: {mid}")
     
     def _on_message(self, client, userdata, message):
-        """消息接收回调 - 处理配置更新"""
+        """消息接收回调 - 处理ALARM_RULE命令"""
         try:
             payload = message.payload.decode('utf-8')
-            self.logger.info(f"📥 收到配置更新消息: {message.topic}")
-            
-            config_data = json.loads(payload)
+            self.logger.info(f"📥 收到命令消息: {message.topic}")
+
+            command_data = json.loads(payload)
             self.stats['received_configs'] += 1
-            
-            # 验证消息格式
-            if not self._validate_config_message(config_data):
-                self._publish_error_status("配置消息格式无效")
+
+            # 验证ALARM_RULE命令格式
+            if not self._validate_alarm_rule_command(command_data):
+                self._publish_error_status("命令格式无效")
                 self.stats['failed_updates'] += 1
                 return
-            
-            # 应用配置更新
-            updates = config_data.get("updates", {})
-            persist = config_data.get("persist", True)
-            
-            self.logger.info(f"🔧 应用配置更新:")
+
+            # 转换ALARM_RULE命令为配置更新
+            updates = self._convert_alarm_rule_to_config(command_data.get("data", {}))
+            persist = True  # 预警规则配置默认持久化
+
+            self.logger.info(f"🔧 应用预警规则配置:")
             for key, value in updates.items():
                 self.logger.info(f"   {key}: {value}")
-            
+
             result = self.alarm_engine.update_config(updates, persist)
-            
+
             # 发送响应
             if result["success"]:
                 self._publish_success_status(result)
                 self.stats['successful_updates'] += 1
-                self.logger.info(f"✅ 配置更新成功 (版本: {result['version']})")
+                self.logger.info(f"✅ 预警规则配置成功 (版本: {result['version']})")
             else:
                 self._publish_error_status(result)
                 self.stats['failed_updates'] += 1
-                self.logger.error(f"❌ 配置更新失败: {result['message']}")
-                
+                self.logger.error(f"❌ 预警规则配置失败: {result['message']}")
+
         except Exception as e:
-            self.logger.error(f"❌ 处理配置消息时发生错误: {e}")
+            self.logger.error(f"❌ 处理命令消息时发生错误: {e}")
             self._publish_error_status(f"处理错误: {str(e)}")
             self.stats['failed_updates'] += 1
     
-    def _validate_config_message(self, config_data: Dict[str, Any]) -> bool:
-        """验证配置消息格式"""
-        required_fields = ["command_type", "updates"]
-        
-        for field in required_fields:
-            if field not in config_data:
-                return False
-        
-        return config_data["command_type"] == "config_update"
+    def _validate_alarm_rule_command(self, command_data: Dict[str, Any]) -> bool:
+        """验证ALARM_RULE命令格式"""
+        return (command_data.get("commandType") == "ALARM_RULE" and
+                "data" in command_data)
+
+    def _convert_alarm_rule_to_config(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """将ALARM_RULE命令数据转换为配置更新格式"""
+        updates = {}
+
+        # 基础预警规则字段
+        field_mapping = {
+            'alarmRuleId': 'alarm_rule.alarmRuleId',
+            'alarmRuleName': 'alarm_rule.alarmRuleName',
+            'alarmClazz': 'alarm_rule.alarmClazz',
+            'alarmLevel': 'alarm_rule.alarmLevel',
+            'enabled': 'alarm_rule.enabled',
+            'startTime': 'alarm_rule.startTime',
+            'endTime': 'alarm_rule.endTime'
+        }
+
+        for src_key, dst_key in field_mapping.items():
+            if src_key in data:
+                updates[dst_key] = data[src_key]
+
+        # 处理config字段中的规则配置
+        if 'config' in data and data['config']:
+            try:
+                config_obj = json.loads(data['config']) if isinstance(data['config'], str) else data['config']
+                alarm_clazz = data.get('alarmClazz', 'DEVICE_ALARM')
+                config_prefix = 'device_alarm_config' if alarm_clazz == 'DEVICE_ALARM' else 'enterprise_alarm_config'
+
+                # 转换规则配置
+                if 'singlePropertyRule' in config_obj:
+                    updates[f'{config_prefix}.singlePropertyRule'] = config_obj['singlePropertyRule']
+                if 'doublePropertyRule' in config_obj:
+                    updates[f'{config_prefix}.doublePropertyRule'] = config_obj['doublePropertyRule']
+                if 'frequency' in config_obj:
+                    updates[f'{config_prefix}.frequency'] = config_obj['frequency']
+
+            except (json.JSONDecodeError, TypeError):
+                self.logger.warning("⚠️ config字段解析失败，跳过规则配置")
+
+        return updates
     
     def _publish_status(self, status_data: Dict[str, Any]) -> bool:
         """发布状态消息"""
@@ -201,18 +235,13 @@ class MQTTSmartAlarm:
         self._publish_status(status_data)
     
     def _publish_alarm(self, alarm: Dict[str, Any]) -> bool:
-        """发布预警消息"""
+        """发布预警消息 - 按照智算中心文档格式"""
         try:
+            # 按照文档要求的格式：{"alarmId":"", "alarmTime":"", "data":{}}
             alarm_message = {
-                "alarm_id": alarm.get("alarmId"),
-                "alarm_time": alarm.get("alarmTime"),
-                "alarm_level": alarm.get("alarmLevel"),
-                "alarm_class": alarm.get("alarmClazz"),
-                "device_id": self.device_id,
-                "data": alarm.get("data", {}),
-                "message": f"设备 {self.device_id} 触发预警",
-                "timestamp": datetime.now().isoformat(),
-                "source": "smart_alarm_engine"
+                "alarmId": alarm.get("alarmId"),
+                "alarmTime": alarm.get("alarmTime"),
+                "data": alarm.get("data", {})
             }
             
             payload = json.dumps(alarm_message, ensure_ascii=False)
@@ -344,9 +373,9 @@ class MQTTBackendSimulator:
 
         self.logger = logging.getLogger("BackendSimulator")
 
-        # MQTT主题
-        self.config_topic = f"smart_alarm/config/update/{device_id}"
-        self.alarm_topic = f"smart_alarm/alarm/alert/{device_id}"
+        # MQTT主题 - 按照智算中心文档要求
+        self.command_topic = f"command/{device_id}"
+        self.alarm_topic = f"RTO/warning_data/{device_id}"
         self.status_topic = f"smart_alarm/status/feedback/{device_id}"
 
         # MQTT客户端
@@ -417,23 +446,21 @@ class MQTTBackendSimulator:
         except Exception as e:
             self.logger.error(f"❌ 断开连接时发生错误: {e}")
 
-    def send_config_update(self, updates: Dict[str, Any], persist: bool = True) -> bool:
-        """发送配置更新命令"""
+    def send_alarm_rule_command(self, alarm_rule_data: Dict[str, Any]) -> bool:
+        """发送ALARM_RULE命令"""
         if not self.connected:
             return False
 
-        config_message = {
-            "command_type": "config_update",
-            "timestamp": datetime.now().isoformat(),
-            "updates": updates,
-            "persist": persist
+        command_message = {
+            "commandType": "ALARM_RULE",
+            "data": alarm_rule_data
         }
 
-        payload = json.dumps(config_message, ensure_ascii=False)
-        result = self.client.publish(self.config_topic, payload, qos=1)
+        payload = json.dumps(command_message, ensure_ascii=False)
+        result = self.client.publish(self.command_topic, payload, qos=1)
 
         if result.rc == mqtt.MQTT_ERR_SUCCESS:
-            self.logger.info(f"📤 配置更新命令已发送")
+            self.logger.info(f"📤 ALARM_RULE命令已发送")
             return True
         return False
 
@@ -466,11 +493,34 @@ def run_comprehensive_test():
         # 等待连接稳定
         time.sleep(2)
 
-        # 测试配置更新
-        print("\n🔧 测试配置更新...")
-        backend_sim.send_config_update({
-            "alarm_rule.alarmLevel": "HIGH"
-        })
+        # 测试ALARM_RULE命令
+        print("\n🔧 测试ALARM_RULE命令...")
+        alarm_rule_data = {
+            "alarmRuleId": "TEST_RULE_001",
+            "alarmRuleName": "测试预警规则",
+            "alarmClazz": "DEVICE_ALARM",
+            "alarmLevel": "HIGH",
+            "enabled": 1,
+            "startTime": "08:00",
+            "endTime": "18:00",
+            "config": json.dumps({
+                "singlePropertyRule": [{
+                    "symbol": "OR",
+                    "property": "t1",
+                    "lowValue": 1,
+                    "expression1": "lt",
+                    "highValue": 10,
+                    "expression2": "gt"
+                }],
+                "frequency": {
+                    "enabled": 1,
+                    "hasAccumulate": 1,
+                    "accumulateCount": 2,
+                    "accumulateTimeRange": 30
+                }
+            })
+        }
+        backend_sim.send_alarm_rule_command(alarm_rule_data)
         time.sleep(2)
 
         # 测试预警生成

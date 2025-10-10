@@ -2,8 +2,8 @@
 # 支持基础引擎和MQTT引擎
 
 [alarm_rule]
-alarmRuleId = "SMART_ALARM_001"
-alarmRuleName = "智能预警规则"
+alarmRuleId = "RTO_TEST_001"
+alarmRuleName = "RTO测试预警"
 alarmClazz = "DEVICE_ALARM"
 alarmLevel = "HIGH"
 enabled = 1
@@ -13,21 +13,11 @@ endTime = "23:59"
 # 单属性规则配置
 [[device_alarm_config.singlePropertyRule]]
 symbol = "OR"
-property = "t1"
-lowValue = 1
-expression1 = "lt"
+property = "test_value"
+lowValue = 10
+expression1 = "gt"
 highValue = 10
 expression2 = "gt"
-
-[[device_alarm_config.singlePropertyRule]]
-symbol = "OR"
-property = "t2"
-lowValue = 5
-expression1 = "lt"
-highValue = 20
-expression2 = "gt"
-
-# 双属性规则配置
 [[device_alarm_config.doublePropertyRule]]
 symbol = "AND"
 leftProperty = "t1"
@@ -37,11 +27,8 @@ expression = "lt"
 # 频率控制配置
 [device_alarm_config.frequency]
 enabled = 1
-hasAccumulate = 1
-accumulateCount = 3
-accumulateTimeRange = 30
-
-# MQTT配置（可选，用于文档说明）
+hasAccumulate = 0
+continuousCount = 1
 [mqtt]
 broker_host = "broker.emqx.io"
 broker_port = 1883
@@ -50,6 +37,7 @@ qos = 1
 keep_alive = 60
 
 [mqtt.topics]
-config_update = "smart_alarm/config/update/{device_id}"
-alarm_alert = "smart_alarm/alarm/alert/{device_id}"
+# 按照智算中心文档要求的主题格式
+command_topic = "command/{device_id}"
+alarm_topic = "RTO/warning_data/{device_id}"
 status_feedback = "smart_alarm/status/feedback/{device_id}"

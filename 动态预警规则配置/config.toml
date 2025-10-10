@@ -1,34 +1,27 @@
-# 智能预警引擎配置文件
-# 支持基础引擎和MQTT引擎
-
 [alarm_rule]
-alarmRuleId = "RTO_TEST_001"
-alarmRuleName = "RTO测试预警"
+alarmRuleId = "REFACTOR_TEST"
+alarmRuleName = "重构测试预警"
 alarmClazz = "DEVICE_ALARM"
 alarmLevel = "HIGH"
 enabled = 1
 startTime = "00:00"
 endTime = "23:59"
 
-# 单属性规则配置
+[device_alarm_config]
 [[device_alarm_config.singlePropertyRule]]
 symbol = "OR"
 property = "test_value"
-lowValue = 10
-expression1 = "gt"
-highValue = 10
+lowValue = 5
+expression1 = "lt"
+highValue = 15
 expression2 = "gt"
+
 [[device_alarm_config.doublePropertyRule]]
 symbol = "AND"
 leftProperty = "t1"
 rightProperty = "t2"
 expression = "lt"
 
-# 频率控制配置
-[device_alarm_config.frequency]
-enabled = 1
-hasAccumulate = 0
-continuousCount = 1
 [mqtt]
 broker_host = "broker.emqx.io"
 broker_port = 1883
@@ -36,8 +29,12 @@ device_id = "device_001"
 qos = 1
 keep_alive = 60
 
+[device_alarm_config.frequency]
+enabled = 1
+hasAccumulate = 0
+continuousCount = 1
+
 [mqtt.topics]
-# 按照智算中心文档要求的主题格式
 command_topic = "command/{device_id}"
 alarm_topic = "RTO/warning_data/{device_id}"
 status_feedback = "smart_alarm/status/feedback/{device_id}"

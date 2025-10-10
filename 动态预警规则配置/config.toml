@@ -1,40 +1,44 @@
-[alarm_rule]
-alarmRuleId = "REFACTOR_TEST"
-alarmRuleName = "重构测试预警"
-alarmClazz = "DEVICE_ALARM"
-alarmLevel = "HIGH"
-enabled = 1
-startTime = "00:00"
-endTime = "23:59"
-
-[device_alarm_config]
-[[device_alarm_config.singlePropertyRule]]
-symbol = "OR"
-property = "test_value"
-lowValue = 5
-expression1 = "lt"
-highValue = 15
-expression2 = "gt"
-
-[[device_alarm_config.doublePropertyRule]]
-symbol = "AND"
-leftProperty = "t1"
-rightProperty = "t2"
-expression = "lt"
-
-[mqtt]
-broker_host = "broker.emqx.io"
-broker_port = 1883
-device_id = "device_001"
-qos = 1
-keep_alive = 60
-
-[device_alarm_config.frequency]
-enabled = 1
-hasAccumulate = 0
-continuousCount = 1
-
-[mqtt.topics]
-command_topic = "command/{device_id}"
-alarm_topic = "RTO/warning_data/{device_id}"
-status_feedback = "smart_alarm/status/feedback/{device_id}"
+{
+  "alarmRuleId": "123456",
+  "alarmRuleName": "温度异常预警",
+  "alarmClazz": "DEVICE_ALARM",   
+  "alarmType": "1",
+  "alarmLevel": "HIGH",
+  "alarmInternal": 2,             
+  "dataInternal": "1h",
+  "algorithmType": "test",
+  "calculateWay": "test",
+  "enabled": 1,
+  "startTime": "08:00",
+  "endTime": "18:00",
+  "showProperties": ["t1", "t2"],
+  "config": {
+    "singlePropertyRule": [
+      {
+        "symbol": "OR",
+        "property": "t1",
+        "lowValue": 1,
+        "expression1": "lt",
+        "highValue": 10,
+        "expression2": "lt"
+      }
+    ],
+    "doublePropertyRule": [
+      {
+        "symbol": "AND",
+        "leftProperty": "t1",
+        "rightProperty": "t2",
+        "expression": "lt"
+      }
+    ],
+    "frequency": {
+      "enabled": 1,
+      "hasAccumulate": 1,
+      "accumulateCount": 5,
+      "accumulateTimeRange": 30,
+      "continuousCount": 3
+    },
+    "workStatus": ["spray", "unused"],
+    "algorithmType": "algorithm_1"
+  }
+}

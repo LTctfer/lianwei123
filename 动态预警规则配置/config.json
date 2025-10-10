@@ -1,0 +1,40 @@
+{
+  "rules": [
+    {
+      "alarmRuleId": "NEW001",
+      "alarmRuleName": "新温度预警",
+      "alarmClazz": "DEVICE_ALARM",
+      "alarmType": "1",
+      "alarmLevel": "HIGH",
+      "alarmInternal": 2,
+      "dataInternal": "2h",
+      "algorithmType": "T-ALG",
+      "calculateWay": "max",
+      "enabled": 1,
+      "startTime": "00:00",
+      "endTime": "23:59",
+      "showProperties": [
+        "temperature"
+      ],
+      "config": {
+        "singlePropertyRule": [
+          {
+            "symbol": "OR",
+            "property": "temperature",
+            "lowValue": 15,
+            "expression1": "lt",
+            "highValue": 85,
+            "expression2": "gt"
+          }
+        ],
+        "doublePropertyRule": [],
+        "frequency": {
+          "enabled": 1,
+          "hasAccumulate": 1,
+          "accumulateCount": 5,
+          "accumulateTimeRange": 600
+        }
+      }
+    }
+  ]
+}

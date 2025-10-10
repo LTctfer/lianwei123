@@ -1,88 +1,116 @@
-# backend_api.py
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Smart Alarm Backend API (JSON Version)
+--------------------------------------
+支持多规则配置同步与预警数据上报
+配置文件格式：config.json
+"""
+
 import uvicorn
 from fastapi import FastAPI, Body, HTTPException
-from pydantic import BaseModel
 from typing import Any, Dict, List
-import os, json, datetime, toml
+import json
+import os
+import datetime
 
-CONFIG_JSON = "config.json"
-CONFIG_TOML = "config.toml"
+# ==============================
+# 配置文件路径
+# ==============================
+CONFIG_PATH = "config.json"
 
-app = FastAPI(title="Smart Alarm Backend API")
+# ==============================
+# FastAPI 初始化
+# ==============================
+app = FastAPI(title="Smart Alarm Backend (JSON Version)")
 ALARM_STORE: List[Dict[str, Any]] = []
 
-def _load_config_dict() -> Dict[str, Any]:
-    if os.path.exists(CONFIG_JSON):
-        with open(CONFIG_JSON, "r", encoding="utf-8") as f:
-            return json.load(f)
-    if os.path.exists(CONFIG_TOML):
-        with open(CONFIG_TOML, "r", encoding="utf-8") as f:
-            return toml.load(f)
-    return {}
 
-def _save_config_dict(cfg: Dict[str, Any]):
-    with open(CONFIG_JSON, "w", encoding="utf-8") as f:
+# ==============================
+# 工具函数
+# ==============================
+def _load_config() -> Dict[str, Any]:
+    """从 config.json 加载规则配置"""
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON 解析错误: {e}")
+                return {"rules": []}
+    return {"rules": []}
+
+
+def _save_config(cfg: Dict[str, Any]):
+    """保存规则配置到 config.json"""
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
 
-class DotPatch(BaseModel):
-    updates: Dict[str, Any]
-    persist: bool = True
+
+# ==============================
+# 接口定义
+# ==============================
 
 @app.get("/get_config")
 def get_config():
-    return _load_config_dict()
+    """
+    算法引擎拉取配置：返回所有规则
+    GET /get_config
+    """
+    return _load_config()
 
-@app.post("/set_config")
-def set_config(cfg: Dict[str, Any] = Body(...)):
+
+@app.post("/sync_rules")
+def sync_rules(body: Dict[str, Any] = Body(...)):
+    """
+    批量同步规则（一次可下发多条）
+    请求格式:
+    {
+      "rules": [ {rule1}, {rule2}, ... ]
+    }
+    """
+    if "rules" not in body or not isinstance(body["rules"], list):
+        raise HTTPException(status_code=400, detail="Missing 'rules' list")
     try:
-        # 轻量校验：必填字段存在性（详尽校验可按需增强）
-        required = [
-            "alarmRuleId", "alarmRuleName", "alarmClazz", "alarmType",
-            "alarmLevel", "alarmInternal", "dataInternal", "algorithmType",
-            "calculateWay", "enabled", "startTime", "endTime", "showProperties", "config"
-        ]
-        miss = [k for k in required if k not in cfg]
-        if miss:
-            raise HTTPException(status_code=400, detail=f"missing required: {miss}")
-        _save_config_dict(cfg)
-        return {"success": True, "message": "config replaced"}
-    except HTTPException:
-        raise
+        _save_config(body)
+        print(f"✅ 同步规则 {len(body['rules'])} 条成功")
+        return {"success": True, "count": len(body["rules"])}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.patch("/update_config")
-def update_config(patch: DotPatch):
-    cfg = _load_config_dict()
-    for k, v in patch.updates.items():
-        cursor = cfg
-        parts = k.split(".")
-        for p in parts[:-1]:
-            if p not in cursor or not isinstance(cursor[p], dict):
-                cursor[p] = {}
-            cursor = cursor[p]
-        cursor[parts[-1]] = v
-    if patch.persist:
-        _save_config_dict(cfg)
-    return {"success": True, "message": "config updated", "config": cfg}
 
 @app.post("/push_alarm")
 def push_alarm(alarm: Dict[str, Any] = Body(...)):
+    """
+    算法引擎上报预警
+    POST /push_alarm
+    {
+      "alarmId": "R001",
+      "alarmTime": "2025-10-10 14:32:55",
+      "data": {"temperature": 95.3}
+    }
+    """
     for field in ("alarmId", "alarmTime", "data"):
         if field not in alarm:
-            raise HTTPException(status_code=400, detail=f"missing field: {field}")
+            raise HTTPException(status_code=400, detail=f"Missing field: {field}")
+
     alarm["receivedAt"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     ALARM_STORE.append(alarm)
     print(f"🚨 [RECV ALARM] {alarm}")
     return {"ok": True}
 
+
 @app.get("/alarms")
 def list_alarms():
+    """
+    查看已接收预警
+    GET /alarms
+    """
     return {"count": len(ALARM_STORE), "items": ALARM_STORE}
 
-if __name__ == "__main__":
-    # 启动：uvicorn backend_api:app --reload --host 0.0.0.0 --port 8000
-    uvicorn.run(app, host="0.0.0.0", port=8000)
 
+# ==============================
+# 主入口
+# ==============================
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

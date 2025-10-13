@@ -23,6 +23,46 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# 服务状态跟踪
+startup_complete = False
+
+@app.on_event("startup")
+async def startup_event():
+    """服务启动时的初始化操作"""
+    global startup_complete
+    try:
+        # 验证配置文件访问
+        _ = load_config()
+        startup_complete = True
+        print("✅ 服务初始化完成")
+    except Exception as e:
+        print(f"❌ 服务初始化失败: {e}")
+        startup_complete = False
+
+@app.get("/health")
+def health_check():
+    """
+    健康检查接口
+    
+    返回:
+        Dict: 服务状态信息
+    """
+    if startup_complete:
+        return {
+            "status": "healthy",
+            "message": "服务运行正常",
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "config_loaded": True,
+            "alarm_count": len(ALARM_STORE)
+        }, 200
+    else:
+        return {
+            "status": "starting",
+            "message": "服务正在启动",
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "config_loaded": False
+        }, 503
+
 def load_config() -> Dict[str, Any]:
     """从文件加载配置"""
     if os.path.exists(CONFIG_FILE):

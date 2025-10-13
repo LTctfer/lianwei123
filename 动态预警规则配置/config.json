@@ -1,38 +1,44 @@
 {
   "rules": [
     {
-      "alarmRuleId": "NEW001",
-      "alarmRuleName": "新温度预警",
+      "alarmRuleId": "1971037079932628993",
+      "alarmRuleName": "规则1",
       "alarmClazz": "DEVICE_ALARM",
-      "alarmType": "1",
+      "alarmType": "CONTROL_ALARM",
       "alarmLevel": "HIGH",
-      "alarmInternal": 2,
-      "dataInternal": "2h",
-      "algorithmType": "T-ALG",
-      "calculateWay": "max",
+      "alarmInternal": 0,
+      "dataInternal": "10s",
+      "algorithmType": "test",
       "enabled": 1,
-      "startTime": "00:00",
-      "endTime": "23:59",
+      "startTime": "10:00",
+      "endTime": "18:00",
       "showProperties": [
-        "temperature"
+        "1968595591692861442",
+        "1968854956819726338"
       ],
       "config": {
         "singlePropertyRule": [
           {
             "symbol": "OR",
-            "property": "temperature",
-            "lowValue": 15,
+            "property": "outlet_temperature",
+            "lowValue": 10,
             "expression1": "lt",
-            "highValue": 85,
-            "expression2": "gt"
+            "highValue": 100,
+            "expression2": "eq"
           }
         ],
-        "doublePropertyRule": [],
+        "doublePropertyRule": [
+          {
+            "symbol": "OR",
+            "leftProperty": "preheat_temperature",
+            "rightProperty": "combustion_temperature",
+            "expression": "gt"
+          }
+        ],
         "frequency": {
-          "enabled": 1,
-          "hasAccumulate": 1,
-          "accumulateCount": 5,
-          "accumulateTimeRange": 600
+          "enabled": 0,
+          "hasAccumulate": 0,
+          "continuousCount": 10
         }
       }
     }

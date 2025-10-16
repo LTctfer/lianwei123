@@ -16,9 +16,11 @@ import logging
 import json
 import random
 import os
+import struct
 from datetime import datetime
 from collections import deque
 from typing import Dict, Any, List, Optional
+from pymodbus.client import ModbusSerialClient
 
 
 # ======================================================
@@ -27,9 +29,24 @@ from typing import Dict, Any, List, Optional
 
 # 远程API接口地址
 REMOTE_API_URL = "http://192.168.0.137:8023/intelligence-center/data-import/importAlarmData"
+REAL_DATA_API_URL = "http://192.168.0.137:8023/intelligence-center/data-import/importRealData"
 
 # 本地配置文件路径
 CONFIG_FILE = "config.json"
+
+# PLC Modbus 配置
+PLC_SLAVE_ID = 1
+PLC_PORT = "/dev/ttyS8"  # Windows系统使用COM端口，Linux系统使用/dev/ttyS8
+PLC_BAUDRATE = 9600
+PLC_PARITY = "N"
+PLC_STOPBITS = 1
+PLC_BYTESIZE = 8
+PLC_TIMEOUT = 1
+PLC_INTERVAL = 2  # 每次读取间隔秒数
+
+# 设备信息
+DEVICE_NUM = "255122420258d523"
+DEVICE_MN = "001"
 
 # 日志配置
 logging.basicConfig(
@@ -45,6 +62,15 @@ logging.basicConfig(
 # ======================================================
 # 工具函数
 # ======================================================
+
+def registers_to_float(registers, byteorder="big"):
+    """将两个寄存器转换为浮点数"""
+    try:
+        raw = (registers[0] << 16) + registers[1]
+        return struct.unpack(">f" if byteorder == "big" else "<f",
+                             raw.to_bytes(4, byteorder=byteorder))[0]
+    except Exception:
+        return None
 
 def _cmp(a, op, b):
     """支持 lt/le/eq/ge/gt 与符号比较"""
@@ -335,58 +361,153 @@ class AlarmDataReporter:
 
 
 # ======================================================
-# 数据模拟器（用于测试）
+# PLC数据读取器
 # ======================================================
 
-class DataSimulator:
-    """模拟实时数据生成器"""
+class ModbusDataReader:
+    """从PLC读取实时数据"""
     
     def __init__(self):
-        self.properties = [
-            "outlet_temperature",
-            "preheat_temperature",
-            "combustion_temperature",
-            "inlet_temperature",
-            "pressure",
-            "flow_rate"
-        ]
+        self.client = ModbusSerialClient(
+            method="rtu",
+            port=PLC_PORT,
+            baudrate=PLC_BAUDRATE,
+            parity=PLC_PARITY,
+            stopbits=PLC_STOPBITS,
+            bytesize=PLC_BYTESIZE,
+            timeout=PLC_TIMEOUT
+        )
+        self.connected = False
+        logging.info(f"初始化Modbus客户端: {PLC_PORT}")
     
-    def generate(self) -> Dict[str, Any]:
-        """生成模拟数据"""
-        data = {}
+    def connect(self) -> bool:
+        """连接到PLC设备"""
+        try:
+            if self.client.connect():
+                self.connected = True
+                logging.info("✅ 成功连接到PLC设备")
+                return True
+            else:
+                logging.error("❌ 无法连接到PLC设备")
+                return False
+        except Exception as e:
+            logging.error(f"❌ 连接PLC失败: {e}")
+            return False
+    
+    def read(self) -> Dict[str, Any]:
+        """读取PLC数据"""
+        if not self.connected:
+            logging.warning("PLC未连接，尝试重新连接...")
+            if not self.connect():
+                return {}
         
-        # 模拟出口温度（有概率触发预警）
-        data["outlet_temperature"] = random.choice([
-            random.uniform(30, 80),   # 正常范围
-            random.uniform(5, 9),     # 低温（触发预警）
-            random.uniform(91, 110)   # 高温（触发预警）
-        ])
+        try:
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            # 读取风机启停状态 (线圈)
+            coils = self.client.read_coils(0x0000, 1, slave=PLC_SLAVE_ID)
+            fan_status = 1 if (not coils.isError() and coils.bits[0]) else 0
+            
+            # 定义读取浮点数的内部函数
+            def read_float(addr):
+                r = self.client.read_holding_registers(addr, 2, slave=PLC_SLAVE_ID)
+                return registers_to_float(r.registers) if not r.isError() else None
+            
+            # 分别读取寄存器
+            t1 = read_float(0x0000)  # 加热室平均温度
+            t2 = read_float(0x0002)  # RTO出口温度
+            t3 = read_float(0x0004)  # RTO进口温度
+            p1 = read_float(0x0006)  # RTO出口压力
+            
+            # 构造数据字典
+            data = {
+                "fan_status": fan_status,
+                "t1": round(t1, 2) if t1 is not None else None,
+                "t2": round(t2, 2) if t2 is not None else None,
+                "t3": round(t3, 2) if t3 is not None else None,
+                "p1": round(p1, 2) if p1 is not None else None,
+                "timestamp": now
+            }
+            
+            logging.info(
+                f"📊 读取PLC数据: fan_status={fan_status}, "
+                f"t1={data['t1']}℃, t2={data['t2']}℃, "
+                f"t3={data['t3']}℃, p1={data['p1']}"
+            )
+            
+            return data
+            
+        except Exception as e:
+            logging.error(f"❌ 读取PLC数据失败: {e}")
+            self.connected = False
+            return {}
+    
+    def close(self):
+        """关闭连接"""
+        try:
+            if self.connected:
+                self.client.close()
+                self.connected = False
+                logging.info("🔌 已断开PLC连接")
+        except Exception as e:
+            logging.error(f"关闭连接异常: {e}")
+
+
+# ======================================================
+# 实时数据上传
+# ======================================================
+
+def upload_real_data(data: Dict[str, Any]):
+    """上传实时数据到远程接口"""
+    try:
+        # 获取数据值
+        fan_status = data.get("fan_status")
+        t1 = data.get("t1")
+        t2 = data.get("t2")
+        t3 = data.get("t3")
+        p1 = data.get("p1")
+        now = data.get("timestamp")
         
-        # 模拟预热温度
-        data["preheat_temperature"] = random.uniform(200, 400)
+        # 构造上传数据格式
+        data_json = {
+            "deviceNum": DEVICE_NUM,
+            "data_time": now,
+            "MN": DEVICE_MN,
+            "data_internal": "1m",
+            "data": {
+                "fan_status": fan_status,
+                "t1": round(t1, 2) if t1 is not None else None,
+                "t2": round(t2, 2) if t2 is not None else None,
+                "t3": round(t3, 2) if t3 is not None else None,
+                "p1": round(p1, 2) if p1 is not None else None
+            }
+        }
         
-        # 模拟燃烧温度
-        data["combustion_temperature"] = random.choice([
-            random.uniform(250, 380),  # 正常范围
-            random.uniform(150, 200)   # 低温（可能触发预警）
-        ])
+        logging.info(f"📤 上传实时数据...")
+        logging.debug(f"上传内容: {json.dumps(data_json, ensure_ascii=False)}")
         
-        # 模拟其他传感器数据
-        data["inlet_temperature"] = random.uniform(20, 100)
-        data["pressure"] = random.uniform(0.8, 1.2)
-        data["flow_rate"] = random.uniform(50, 150)
+        # 发送POST请求
+        response = requests.post(
+            REAL_DATA_API_URL,
+            json=data_json,
+            headers={"Content-Type": "application/json"},
+            timeout=3
+        )
         
-        # 添加工况状态
-        data["workStatus"] = random.choice(["running", "idle", "maintenance"])
-        
-        # 添加时间戳
-        data["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # 添加属性ID（如果配置中使用）
-        data["1968595591692861442"] = data["outlet_temperature"]
-        data["1968854956819726338"] = data["combustion_temperature"]
-        
-        return data
+        if response.status_code == 200:
+            logging.info(f"✅ 实时数据上传成功！响应: {response.text[:200]}")
+        else:
+            logging.warning(
+                f"⚠️ 实时数据上传失败！"
+                f"状态码: {response.status_code}, "
+                f"响应: {response.text[:200]}"
+            )
+    except requests.exceptions.Timeout:
+        logging.error("❌ 实时数据上传超时")
+    except requests.exceptions.ConnectionError:
+        logging.error(f"❌ 无法连接到实时数据API: {REAL_DATA_API_URL}")
+    except Exception as e:
+        logging.error(f"❌ 实时数据上传异常: {e}")
 
 
 # ======================================================
@@ -399,32 +520,39 @@ def main():
     reporter = AlarmDataReporter()
     reporter.start()
     
-    # 创建数据模拟器
-    simulator = DataSimulator()
+    # 创建PLC数据读取器
+    reader = ModbusDataReader()
+    
+    # 连接到PLC
+    if not reader.connect():
+        logging.error("无法启动程序，PLC连接失败")
+        return
     
     logging.info("=" * 60)
-    logging.info("开始模拟数据生成和预警检测...")
+    logging.info("开始读取PLC数据并执行预警检测...")
     logging.info("按 Ctrl+C 停止程序")
     logging.info("=" * 60)
     
     try:
         while True:
-            # 生成模拟数据
-            data = simulator.generate()
+            # 从PLC读取数据
+            data = reader.read()
             
-            # 打印当前数据
-            logging.info(f"📊 生成数据: 出口温度={data['outlet_temperature']:.2f}℃, "
-                        f"燃烧温度={data['combustion_temperature']:.2f}℃, "
-                        f"工况={data['workStatus']}")
-            
-            # 处理数据（执行规则检查）
-            reporter.process(data)
+            if data:
+                # 上传实时数据
+                upload_real_data(data)
+                
+                # 处理数据（执行规则检查）
+                reporter.process(data)
+            else:
+                logging.warning("未能读取到有效数据")
             
             # 等待一段时间
-            time.sleep(5)  # 每5秒生成一次数据
+            time.sleep(PLC_INTERVAL)
             
     except KeyboardInterrupt:
         logging.info("\n\n收到停止信号，正在关闭...")
+        reader.close()
         reporter.stop()
         logging.info("程序已退出")
 

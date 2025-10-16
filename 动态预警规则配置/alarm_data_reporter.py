@@ -28,8 +28,8 @@ from pymodbus.client import ModbusSerialClient
 # ======================================================
 
 # 远程API接口地址
-REMOTE_API_URL = "http://192.168.0.137:8023/intelligence-center/data-import/importAlarmData"
-REAL_DATA_API_URL = "http://192.168.0.137:8023/intelligence-center/data-import/importRealData"
+REMOTE_API_URL = "http://127.0.0.1:8023/intelligence-center/data-import/importAlarmData"
+REAL_DATA_API_URL = "http://127.0.0.1:8023/intelligence-center/data-import/importRealData"
 
 # 本地配置文件路径
 CONFIG_FILE = "config.json"
@@ -42,7 +42,7 @@ PLC_PARITY = "N"
 PLC_STOPBITS = 1
 PLC_BYTESIZE = 8
 PLC_TIMEOUT = 1
-PLC_INTERVAL = 2  # 每次读取间隔秒数
+PLC_INTERVAL = 60  # 每次读取间隔秒数
 
 # 设备信息
 DEVICE_NUM = "255122420258d523"
@@ -180,9 +180,17 @@ class RuleRunner:
             e1, e2 = s.get("expression1"), s.get("expression2")
             symbol = (s.get("symbol") or "OR").upper()
             
-            if symbol == "AND":
+            # 当symbol="AND"且有两个边界值时，表示范围检测：超出范围则触发预警
+            # 例如：lowValue=0, expression1="le", highValue=30, expression2="le"
+            # 表示正常范围为 (0, 30]，即 v <= 0 OR v > 30 时触发预警
+            if symbol == "AND" and low is not None and high is not None:
+                # 范围外检测：小于等于下界 OR 大于上界
+                violate |= _cmp(v, e1, low) or not _cmp(v, e2, high)
+            elif symbol == "AND":
+                # 普通 AND 逻辑
                 violate |= _cmp(v, e1, low) and _cmp(v, e2, high)
             else:
+                # OR 逻辑
                 violate |= _cmp(v, e1, low) or _cmp(v, e2, high)
         return violate
 
@@ -426,6 +434,7 @@ class ModbusDataReader:
                 "t2": round(t2, 2) if t2 is not None else None,
                 "t3": round(t3, 2) if t3 is not None else None,
                 "p1": round(p1, 2) if p1 is not None else None,
+                "workStatus": "qx1",  # 工况状态，可根据实际情况从PLC读取
                 "timestamp": now
             }
             

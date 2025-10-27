@@ -14,13 +14,14 @@ import time
 import threading
 import logging
 import json
-import random
 import os
 import struct
-from datetime import datetime
+import pandas as pd
+from datetime import datetime, timedelta
 from collections import deque
 from typing import Dict, Any, List, Optional
 from pymodbus.client import ModbusSerialClient
+from pathlib import Path
 
 
 # ======================================================
@@ -42,7 +43,12 @@ PLC_PARITY = "N"
 PLC_STOPBITS = 1
 PLC_BYTESIZE = 8
 PLC_TIMEOUT = 1
-PLC_INTERVAL = 60  # 每次读取间隔秒数
+PLC_INTERVAL = 10  # 每次读取间隔秒数（10秒一次）
+
+# CSV数据存储配置
+CSV_DATA_DIR = "plc_data"  # CSV数据存储目录
+CSV_FILE_PREFIX = "plc_data"  # CSV文件前缀
+DATA_RETENTION_DAYS = 2  # 数据保留天数
 
 # 设备信息
 DEVICE_NUM = "255122420258d523"
@@ -86,6 +92,186 @@ def _cmp(a, op, b):
         "ge": a >= b, ">=": a >= b,
         "gt": a > b, ">": a > b
     }.get(op, False)
+
+
+# ======================================================
+# CSV数据管理
+# ======================================================
+
+class CSVDataManager:
+    """管理CSV数据存储和读取"""
+    
+    def __init__(self, data_dir: str = CSV_DATA_DIR):
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(exist_ok=True)
+        logging.info(f"初始化CSV数据管理器: {self.data_dir}")
+    
+    def _get_csv_filename(self, date=None) -> Path:
+        """获取CSV文件名（按日期）"""
+        if date is None:
+            date = datetime.now().date()
+        return self.data_dir / f"{CSV_FILE_PREFIX}_{date.strftime('%Y%m%d')}.csv"
+    
+    def save_data(self, data: Dict[str, Any]):
+        """保存数据到CSV文件"""
+        try:
+            today = datetime.now().date()
+            csv_file = self._get_csv_filename(today)
+            
+            # 准备数据，确保时间戳为第一列
+            df_data = {
+                'timestamp': [data.get('timestamp')],
+                'fan_status': [data.get('fan_status')],
+                't1': [data.get('t1')],
+                't2': [data.get('t2')],
+                't3': [data.get('t3')],
+                'p1': [data.get('p1')],
+                'workStatus': [data.get('workStatus')]
+            }
+            
+            df = pd.DataFrame(df_data)
+            
+            # 如果文件存在，追加数据；否则创建新文件
+            if csv_file.exists():
+                df.to_csv(csv_file, mode='a', header=False, index=False, encoding='utf-8-sig')
+            else:
+                df.to_csv(csv_file, mode='w', header=True, index=False, encoding='utf-8-sig')
+                logging.info(f"创建新的CSV文件: {csv_file}")
+            
+        except Exception as e:
+            logging.error(f"保存数据到CSV失败: {e}")
+    
+    def read_recent_data(self, minutes: int = 60) -> pd.DataFrame:
+        """读取最近的数据"""
+        try:
+            today = datetime.now().date()
+            csv_file = self._get_csv_filename(today)
+            
+            if not csv_file.exists():
+                return pd.DataFrame()
+            
+            df = pd.read_csv(csv_file, encoding='utf-8-sig')
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            
+            # 只返回最近N分钟的数据
+            cutoff_time = datetime.now() - timedelta(minutes=minutes)
+            df = df[df['timestamp'] >= cutoff_time]
+            
+            return df
+        except Exception as e:
+            logging.error(f"读取CSV数据失败: {e}")
+            return pd.DataFrame()
+    
+    def clean_old_files(self, days: int = DATA_RETENTION_DAYS):
+        """清理过期的CSV文件"""
+        try:
+            cutoff_date = datetime.now().date() - timedelta(days=days)
+            deleted_count = 0
+            
+            for csv_file in self.data_dir.glob(f"{CSV_FILE_PREFIX}_*.csv"):
+                try:
+                    # 从文件名提取日期
+                    date_str = csv_file.stem.split('_')[-1]
+                    file_date = datetime.strptime(date_str, '%Y%m%d').date()
+                    
+                    if file_date < cutoff_date:
+                        csv_file.unlink()
+                        deleted_count += 1
+                        logging.info(f"删除过期文件: {csv_file}")
+                except Exception as e:
+                    logging.warning(f"处理文件 {csv_file} 时出错: {e}")
+            
+            if deleted_count > 0:
+                logging.info(f"清理完成，删除 {deleted_count} 个过期文件")
+        except Exception as e:
+            logging.error(f"清理过期文件失败: {e}")
+
+
+# ======================================================
+# 数据处理器
+# ======================================================
+
+class DataProcessor:
+    """数据清洗、异常值检测和统计计算"""
+    
+    @staticmethod
+    def clean_data(df: pd.DataFrame) -> pd.DataFrame:
+        """数据清洗：去除负值、0值、空值"""
+        if df.empty:
+            return df
+        
+        df_clean = df.copy()
+        numeric_columns = ['t1', 't2', 't3', 'p1']
+        
+        for col in numeric_columns:
+            if col in df_clean.columns:
+                # 去除空值、0值和负值（仅保留 > 0 的数据）
+                df_clean = df_clean[(df_clean[col].notna()) & (df_clean[col] > 0)]
+        
+        return df_clean
+    
+    @staticmethod
+    def remove_outliers_iqr(df: pd.DataFrame, columns: List[str] = None) -> pd.DataFrame:
+        """使用箱型图（IQR方法）去除异常值"""
+        if df.empty:
+            return df
+        
+        df_clean = df.copy()
+        
+        if columns is None:
+            columns = ['t1', 't2', 't3', 'p1']
+        
+        for col in columns:
+            if col in df_clean.columns and len(df_clean) > 0:
+                Q1 = df_clean[col].quantile(0.25)
+                Q3 = df_clean[col].quantile(0.75)
+                IQR = Q3 - Q1
+                
+                # 计算上下界
+                lower_bound = Q1 - 1.5 * IQR
+                upper_bound = Q3 + 1.5 * IQR
+                
+                # 过滤异常值
+                df_clean = df_clean[
+                    (df_clean[col] >= lower_bound) & 
+                    (df_clean[col] <= upper_bound)
+                ]
+        
+        return df_clean
+    
+    @staticmethod
+    def calculate_statistics(df: pd.DataFrame, interval: str = '1min') -> Dict[str, Any]:
+        """计算统计数据（分钟、小时、日均值）"""
+        if df.empty:
+            return {}
+        
+        try:
+            # 设置时间索引
+            df_stats = df.copy()
+            df_stats.set_index('timestamp', inplace=True)
+            
+            # 根据间隔重采样并计算均值
+            numeric_columns = ['t1', 't2', 't3', 'p1']
+            available_columns = [col for col in numeric_columns if col in df_stats.columns]
+            
+            if not available_columns:
+                return {}
+            
+            # 重采样并计算均值
+            resampled = df_stats[available_columns].resample(interval).mean()
+            
+            # 返回最新的统计数据
+            if not resampled.empty:
+                latest = resampled.iloc[-1]
+                result = {col: round(float(latest[col]), 2) if pd.notna(latest[col]) else None 
+                         for col in available_columns}
+                result['timestamp'] = resampled.index[-1].strftime('%Y-%m-%d %H:%M:%S')
+                return result
+            
+            return {}
+        except Exception as e:
+            logging.error(f"计算统计数据失败: {e}")
+            return {}
 
 
 # ======================================================
@@ -243,11 +429,6 @@ class RuleRunner:
                     if k in data
                 }
             }
-            
-            # 添加额外的规则信息（便于调试）
-            alarm_data["data"]["alarmRuleName"] = self.rule.get("alarmRuleName")
-            alarm_data["data"]["alarmLevel"] = self.rule.get("alarmLevel")
-            alarm_data["data"]["alarmType"] = self.rule.get("alarmType")
             
             return alarm_data
         return None
@@ -466,7 +647,7 @@ class ModbusDataReader:
 # 实时数据上传
 # ======================================================
 
-def upload_real_data(data: Dict[str, Any]):
+def upload_real_data(data: Dict[str, Any], data_internal: str = "1m"):
     """上传实时数据到远程接口"""
     try:
         # 获取数据值
@@ -482,7 +663,7 @@ def upload_real_data(data: Dict[str, Any]):
             "deviceNum": DEVICE_NUM,
             "data_time": now,
             "MN": DEVICE_MN,
-            "data_internal": "1m",
+            "data_internal": data_internal,
             "data": {
                 "fan_status": fan_status,
                 "t1": round(t1, 2) if t1 is not None else None,
@@ -492,7 +673,7 @@ def upload_real_data(data: Dict[str, Any]):
             }
         }
         
-        logging.info(f"📤 上传实时数据...")
+        logging.info(f"📤 上传实时数据 ({data_internal})...")
         logging.debug(f"上传内容: {json.dumps(data_json, ensure_ascii=False)}")
         
         # 发送POST请求
@@ -504,7 +685,7 @@ def upload_real_data(data: Dict[str, Any]):
         )
         
         if response.status_code == 200:
-            logging.info(f"✅ 实时数据上传成功！响应: {response.text[:200]}")
+            logging.info(f"✅ 实时数据上传成功 ({data_internal})！")
         else:
             logging.warning(
                 f"⚠️ 实时数据上传失败！"
@@ -514,9 +695,67 @@ def upload_real_data(data: Dict[str, Any]):
     except requests.exceptions.Timeout:
         logging.error("❌ 实时数据上传超时")
     except requests.exceptions.ConnectionError:
-        logging.error(f"❌ 无法连接到实时数据API: {REAL_DATA_API_URL}")
+        logging.error(f"❌ 无法连接到实时数据 API: {REAL_DATA_API_URL}")
     except Exception as e:
         logging.error(f"❌ 实时数据上传异常: {e}")
+
+
+# ======================================================
+# 统计数据处理
+# ======================================================
+
+def process_and_upload_stats(csv_manager: CSVDataManager, reporter: AlarmDataReporter, 
+                            data_internal: str, window_minutes: int):
+    """处理统计数据并上传"""
+    try:
+        logging.info(f"\n{'='*60}")
+        logging.info(f"开始处理 {data_internal} 统计数据")
+        logging.info(f"{'='*60}")
+        
+        # 1. 读取最近的数据
+        df = csv_manager.read_recent_data(minutes=window_minutes)
+        if df.empty:
+            logging.warning(f"没有可用的数据进行 {data_internal} 统计")
+            return
+        
+        logging.info(f"读取到 {len(df)} 条原始数据")
+        
+        # 2. 数据清洗
+        df_clean = DataProcessor.clean_data(df)
+        logging.info(f"数据清洗后剩余 {len(df_clean)} 条")
+        if df_clean.empty:
+            logging.warning("数据清洗后无有效数据")
+            return
+        
+        # 3. 使用箱型图去除异常值
+        df_no_outliers = DataProcessor.remove_outliers_iqr(df_clean)
+        logging.info(f"去除异常值后剩余 {len(df_no_outliers)} 条")
+        if df_no_outliers.empty:
+            logging.warning("去除异常值后无有效数据")
+            return
+        
+        # 4. 计算统计值
+        interval_map = {"1m": "1min", "1h": "1H", "1d": "1D"}
+        interval = interval_map.get(data_internal, "1min")
+        stats = DataProcessor.calculate_statistics(df_no_outliers, interval=interval)
+        if not stats:
+            logging.warning(f"无法计算 {data_internal} 统计数据")
+            return
+        
+        logging.info(f"计算得到 {data_internal} 统计数据: {stats}")
+        
+        # 5. 添加必要字段并上传
+        stats['workStatus'] = 'qx1'
+        stats['fan_status'] = 1
+        upload_real_data(stats, data_internal=data_internal)
+        
+        # 6. 使用统计数据进行预警判断
+        reporter.process(stats)
+        
+        logging.info(f"{data_internal} 统计数据处理完成\n")
+        
+    except Exception as e:
+        logging.error(f"处理 {data_internal} 统计数据失败: {e}")
 
 
 # ======================================================
@@ -532,6 +771,9 @@ def main():
     # 创建PLC数据读取器
     reader = ModbusDataReader()
     
+    # 创建CSV数据管理器
+    csv_manager = CSVDataManager()
+    
     # 连接到PLC
     if not reader.connect():
         logging.error("无法启动程序，PLC连接失败")
@@ -542,19 +784,53 @@ def main():
     logging.info("按 Ctrl+C 停止程序")
     logging.info("=" * 60)
     
+    # 用于跟踪上次清理时间
+    last_cleanup_time = datetime.now()
+    
+    # 用于跟踪上次处理统计数据的时间
+    last_minute_process = datetime.now()
+    last_hour_process = datetime.now()
+    last_day_process = datetime.now()
+    
     try:
         while True:
-            # 从PLC读取数据
+            # 从PLC读取数据（10秒一次）
             data = reader.read()
             
             if data:
-                # 上传实时数据
-                upload_real_data(data)
+                # 1. 先上传原始数据（data_internal="10s"）
+                upload_real_data(data, data_internal="10s")
                 
-                # 处理数据（执行规则检查）
-                reporter.process(data)
+                # 2. 将数据带时间戳存储到CSV文件
+                csv_manager.save_data(data)
+                logging.info("✅ 数据已保存到CSV文件")
+                
+                # 3. 定期处理统计数据（数据清洗 → 箱型图去异常值 → 计算均值 → 上传 → 预警）
+                current_time = datetime.now()
+                
+                # 每分钟处理一次：计算并上传分钟均值（data_internal="1m"）
+                if (current_time - last_minute_process).total_seconds() >= 60:
+                    process_and_upload_stats(csv_manager, reporter, "1m", 2)
+                    last_minute_process = current_time
+                
+                # 每小时处理一次：计算并上传小时均值（data_internal="1h"）
+                if (current_time - last_hour_process).total_seconds() >= 3600:
+                    process_and_upload_stats(csv_manager, reporter, "1h", 120)
+                    last_hour_process = current_time
+                
+                # 每日处理一次：计算并上传日均值（data_internal="1d"）
+                if (current_time - last_day_process).total_seconds() >= 86400:
+                    process_and_upload_stats(csv_manager, reporter, "1d", 1440)
+                    last_day_process = current_time
+                
             else:
                 logging.warning("未能读取到有效数据")
+            
+            # 4. 定期清理过期文件（每2天清理一次）
+            if (datetime.now() - last_cleanup_time).total_seconds() >= DATA_RETENTION_DAYS * 86400:
+                logging.info("开始清理过期文件...")
+                csv_manager.clean_old_files(DATA_RETENTION_DAYS)
+                last_cleanup_time = datetime.now()
             
             # 等待一段时间
             time.sleep(PLC_INTERVAL)
@@ -564,6 +840,7 @@ def main():
         reader.close()
         reporter.stop()
         logging.info("程序已退出")
+
 
 
 if __name__ == "__main__":
